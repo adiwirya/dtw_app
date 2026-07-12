@@ -42,3 +42,12 @@ Note: OnlineStatusToggle is the full card, not the small header status pill (ite
 07 variant-mgmt: complete (c9efe34..9d92968, spec PASS / quality Approved) — built in 2 dispatches (A: variant screens+provider; B: option modals). Minors deferred: opsi_varian_modal _NamaField duplicates AppInput (use AppInput; _HargaField justified for Rp-addon); deep-link modal 1-frame flash (recurring pattern). @riverpod VariantList (add/loadSaved/addOption mock). Screens: KelolaVarianScreen (kelola-varian empty + varian-disimpan), PilihVarianScreen (picker via VariantSelectRow), TambahVarianScreen (form: Nama + 2 VariantRuleToggleRows [Wajib Dipilih+Pilih Lebih dari Satu = required+multi-select L6] + VariantOptionRows + Simpan). opsi_varian_modal (358-wide add-option: Nama + Rp-addon +price → VariantOptionData null/0→Gratis else +Rp). All 12 variant/option routes wired. varian-ditambahkan reuses L6 TambahMenuScreen w/ attached variants. 179 tests pass.
 
 ## ALL 8 TENANT ITEMS COMPLETE — 179 tests pass, analyze clean, busboy green throughout.
+
+## FINAL WHOLE-RUN REVIEW: READY (run base a2f54fa .. 054918f)
+- analyze 0 issues; flutter test 179/179 pass; build_runner 0 drift; all 34 tenant frames reachable; login outside tenant shell; 4 tabs correct; 0 PlaceholderScreen remaining.
+- BUSBOY ISOLATED: only lib/app.dart (flavor switch, default busboy) + lib/bootstrap.dart (optional overrides) touched — backward-compatible; main_dev/main_prod still boot busboy; busboy 71 tests + goldens unchanged. app_theme additive-only.
+- L6 confirmed: menu form Populer/PIN + 2 discount fields + promo/stock removed; order reject-per-item (rejectedItemNames+reason); variant required+multi-select+"+price".
+- #1 follow-up recommended: SYSTEMIC precacheImage-before-pump golden stability (recurring 03/05/08 image-decode nondeterminism + deep-link 1-frame flashes) — latent flakiness, not failing now.
+- Other Minors all deferred (mock-stage): 02 pill buttons, 03 cross-feature import + Pilih Tenant stub, 06 MenuSuccessModal bespoke (justified) + copyWith + row onTap, 07 _NamaField dup + deep-link flash, 08 date label position, deep-link wrappers hardcode sample data.
+
+## TENANT RUN COMPLETE. No commit / no push (per user). Working tree on branch feat/busboy-order-app now holds BOTH the busboy build (spec 0001) and the tenant build (spec 0002), all uncommitted.
