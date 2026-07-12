@@ -1,0 +1,18 @@
+{
+  "id": "1209:1010",
+  "name": "Profile Saya",
+  "type": "FRAME",
+  "x": 472,
+  "y": 5366,
+  "width": 390,
+  "height": 1083,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 0,
+  "layoutMode": "NONE",
+  "fills": 1,
+  "strokes": 0,
+  "children": 6
+}

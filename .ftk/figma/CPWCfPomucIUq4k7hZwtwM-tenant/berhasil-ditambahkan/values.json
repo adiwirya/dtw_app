@@ -1,0 +1,18 @@
+{
+  "id": "928:13345",
+  "name": "berhasil ditambahkan",
+  "type": "FRAME",
+  "x": 3029,
+  "y": 533,
+  "width": 358,
+  "height": 174,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 16,
+  "layoutMode": "VERTICAL",
+  "fills": 1,
+  "strokes": 0,
+  "children": 4
+}

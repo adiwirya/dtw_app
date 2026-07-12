@@ -1,0 +1,18 @@
+{
+  "id": "847:12447",
+  "name": "varian ditambahkan",
+  "type": "FRAME",
+  "x": 2559,
+  "y": 533,
+  "width": 390,
+  "height": 1310,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 0,
+  "layoutMode": "NONE",
+  "fills": 1,
+  "strokes": 0,
+  "children": 4
+}

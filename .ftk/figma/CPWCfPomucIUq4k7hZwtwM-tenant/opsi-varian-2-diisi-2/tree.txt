@@ -1,0 +1,57 @@
+FRAME: opsi varian 2 diisi (358x262)
+  TEXT: Opsi & Customisasi (153x22)
+  FRAME: Frame 2149 (326x136)
+    INSTANCE: Input (326x64)
+      INSTANCE: Base (326x64)
+        INSTANCE: Atom/Label (326x16)
+          TEXT: Label (65x16)
+          TEXT: Hint/optional (75x16)
+        FRAME: Input Field (326x40)
+          INSTANCE: Atom/Input (318x20)
+            TEXT: Text (55x20)
+        INSTANCE: Atom/Feedback (250x16)
+          INSTANCE: Warning (16x16)
+            VECTOR: Vector (15x13)
+          TEXT: Text (226x16)
+    INSTANCE: Input (326x64)
+      FRAME: Atom/Label (326x16)
+        TEXT: Label (85x16)
+        TEXT: Hint/optional (75x16)
+      FRAME: input-number (326x40)
+        FRAME: input-addon-right (46x40)
+          FRAME: text (20x24)
+            TEXT: text (20x24)
+        FRAME: _input-number-base (281x40)
+          FRAME: placeholder (255x19)
+            FRAME: input-prefix (18x18)
+              FRAME: icon-wrapper (14x14)
+                FRAME: width <- change size here
+                  RECTANGLE: _ignore
+                  RECTANGLE: _ignore
+                FRAME: icon-wrapper-h (14x14)
+                  FRAME: height <- change size here
+                    RECTANGLE: _ignore
+                    RECTANGLE: _ignore
+                  FRAME: icon-wrapper (14x14)
+                    BOOLEAN_OPERATION: Union (7x12)
+                      INSTANCE: currency-dollar (14x14)
+                        VECTOR: Vector (7x12)
+            TEXT: placeholder (33x19)
+          FRAME: spacer (4x0)
+            RECTANGLE: _ignore (0x0)
+            RECTANGLE: _ignore (0x0)
+          FRAME: input-suffix (18x18)
+            FRAME: icon-wrapper (14x14)
+              FRAME: width <- change size here
+                RECTANGLE: _ignore
+                RECTANGLE: _ignore
+              FRAME: icon-wrapper-h (14x14)
+                FRAME: height <- change size here
+                  RECTANGLE: _ignore
+                  RECTANGLE: _ignore
+                FRAME: icon-wrapper (14x14)
+                  BOOLEAN_OPERATION: Union (14x14)
+                    INSTANCE: x-circle-fill (14x14)
+                      VECTOR: Vector (14x14)
+  FRAME: Frame 49 (326x40)
+    TEXT: Simpan (51x19)

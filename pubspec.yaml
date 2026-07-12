@@ -68,6 +68,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Resolution-aware raster assets exported from the Figma cache
+  # (login-default / login-tenantt). 1x lives at the path below; Flutter
+  # auto-selects the 2.0x/3.0x variants.
+  assets:
+    - assets/images/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

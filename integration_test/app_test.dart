@@ -6,11 +6,10 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('App boots and renders the home screen', (tester) async {
+  testWidgets('App boots and renders the login screen', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: App()));
     await tester.pumpAndSettle();
 
-    expect(find.text('dtw_app'), findsOneWidget);
-    expect(find.text('Ready to build features.'), findsOneWidget);
+    expect(find.text('Login Default'), findsOneWidget);
   });
 }

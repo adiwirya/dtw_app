@@ -1,0 +1,18 @@
+{
+  "id": "911:13132",
+  "name": "Kelola Menu",
+  "type": "FRAME",
+  "x": 711,
+  "y": 2367,
+  "width": 358,
+  "height": 245,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 16,
+  "layoutMode": "VERTICAL",
+  "fills": 1,
+  "strokes": 0,
+  "children": 2
+}

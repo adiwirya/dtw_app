@@ -1,0 +1,18 @@
+{
+  "id": "917:14637",
+  "name": "opsi varian 2 diisi",
+  "type": "FRAME",
+  "x": 4343,
+  "y": 2367,
+  "width": 358,
+  "height": 262,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 16,
+  "layoutMode": "VERTICAL",
+  "fills": 1,
+  "strokes": 0,
+  "children": 3
+}

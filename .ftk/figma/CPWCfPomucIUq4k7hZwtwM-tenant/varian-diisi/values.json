@@ -1,0 +1,18 @@
+{
+  "id": "917:13695",
+  "name": "varian diisi",
+  "type": "FRAME",
+  "x": 2089,
+  "y": 2367,
+  "width": 390,
+  "height": 844,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 0,
+  "layoutMode": "NONE",
+  "fills": 1,
+  "strokes": 0,
+  "children": 4
+}

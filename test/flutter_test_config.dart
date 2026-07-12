@@ -8,7 +8,22 @@ import 'package:flutter_test/flutter_test.dart';
 /// instead of the default Ahem placeholder glyphs.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   setUpAll(_loadRealFonts);
+  setUpAll(_loadObraIcons);
   await testMain();
+}
+
+/// Loads the bundled `obra_icons` glyph font so golden tests render its icons
+/// (used on the Akun screen) instead of blank notdef boxes.
+Future<void> _loadObraIcons() async {
+  try {
+    final data = await rootBundle.load(
+      'packages/obra_icons/fonts/ObraIcons.ttf',
+    );
+    final loader = FontLoader('ObraIcons')..addFont(Future.value(data));
+    await loader.load();
+  } on Exception catch (_) {
+    // Font asset not bundled in this test run; icons fall back to notdef.
+  }
 }
 
 Future<void> _loadRealFonts() async {

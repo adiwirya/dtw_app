@@ -1,0 +1,910 @@
+{
+  "fileKey": "CPWCfPomucIUq4k7hZwtwM",
+  "pageNodeId": "632:10585",
+  "pageName": "🟡 HIFI Tenant",
+  "flavor": "tenant",
+  "cacheDir": ".ftk/figma/CPWCfPomucIUq4k7hZwtwM-tenant",
+  "note": "Tenant flavor (separate Figma PAGE, same file as busboy). Cache namespaced with -tenant suffix to avoid slug collisions with busboy cache.",
+  "designNote": "tenant, tampilan login, order: bisa ditolak per item, best seller diganti PIN/Popular, promo dihapus, buat 2 field persentase diskon + harga + tanggal berlaku, ketersediaan stok dihapus; opsi customisasi wajib dipilih multi-select (pilih >1); tambah + di bagian harga spicy.",
+  "screens": [
+    {
+      "slug": "menu-order-baru",
+      "nodeId": "632:10585",
+      "name": "Menu Order Baru",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-order-baru-2",
+      "nodeId": "974:14448",
+      "name": "Menu Order Baru",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "login-default",
+      "nodeId": "928:13508",
+      "name": "Login Default",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "login-tenantt",
+      "nodeId": "1009:2506",
+      "name": "login tenantt",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-diproses",
+      "nodeId": "660:11008",
+      "name": "menu diproses",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "pesanan-diproses",
+      "nodeId": "974:15008",
+      "name": "pesanan diproses",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "pesanan-ditolak",
+      "nodeId": "974:14127",
+      "name": "pesanan ditolak",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "konfirmasi-pesanan",
+      "nodeId": "974:14583",
+      "name": "konfirmasi pesanan",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "alasan-penolakan",
+      "nodeId": "974:14735",
+      "name": "alasan penolakan",
+      "width": 358,
+      "height": 460,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "selesai",
+      "nodeId": "660:11136",
+      "name": "selesai",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "admin-offline",
+      "nodeId": "877:2009",
+      "name": "Admin Offline",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "admin-online",
+      "nodeId": "882:13308",
+      "name": "Admin Online",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-saya",
+      "nodeId": "674:11497",
+      "name": "Menu Saya",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-saya-2",
+      "nodeId": "911:12863",
+      "name": "Menu Saya",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-berhasil-ditambahkan",
+      "nodeId": "719:12584",
+      "name": "menu berhasil ditambahkan",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "tambah-menu",
+      "nodeId": "847:4193",
+      "name": "Tambah menu",
+      "width": 390,
+      "height": 1382,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-diisi",
+      "nodeId": "847:11973",
+      "name": "menu diisi",
+      "width": 390,
+      "height": 1382,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "varian-ditambahkan",
+      "nodeId": "847:12447",
+      "name": "varian ditambahkan",
+      "width": 390,
+      "height": 1310,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "opsi-varian-2-diisi",
+      "nodeId": "917:14630",
+      "name": "opsi varian 2 diisi",
+      "width": 358,
+      "height": 262,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "opsi-varian-2-diisi-2",
+      "nodeId": "917:14637",
+      "name": "opsi varian 2 diisi",
+      "width": 358,
+      "height": 262,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "laporan",
+      "nodeId": "824:10372",
+      "name": "Laporan",
+      "width": 390,
+      "height": 3402,
+      "modal": false,
+      "harvested": {
+        "screenshot": "@0.5x",
+        "values": true,
+        "assets": true
+      },
+      "referenceNote": "@1x export exceeded transfer buffer (390x3402); cached at reference@0.5x.png (195x1701). values.json + tree.txt at full detail."
+    },
+    {
+      "slug": "kelola-menu",
+      "nodeId": "911:13132",
+      "name": "Kelola Menu",
+      "width": 358,
+      "height": 245,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "kelola-menu-2",
+      "nodeId": "928:3519",
+      "name": "Kelola menu",
+      "width": 358,
+      "height": 245,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "berhasil-ditambahkan",
+      "nodeId": "928:13345",
+      "name": "berhasil ditambahkan",
+      "width": 358,
+      "height": 174,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "berhasil-ditambahkan-2",
+      "nodeId": "993:15509",
+      "name": "berhasil ditambahkan",
+      "width": 358,
+      "height": 395,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "kelola-varian",
+      "nodeId": "911:13290",
+      "name": "Kelola Varian",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "varian-disimpan",
+      "nodeId": "917:14805",
+      "name": "varian disimpan",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "tambah-varian",
+      "nodeId": "923:11989",
+      "name": "tambah varian",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "tambah-varian-2",
+      "nodeId": "911:13348",
+      "name": "Tambah Varian",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "varian-diisi",
+      "nodeId": "917:13695",
+      "name": "varian diisi",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "tambah-opsi-2",
+      "nodeId": "917:14516",
+      "name": "tambah opsi 2",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "opsi-2-ditambahkan",
+      "nodeId": "917:14686",
+      "name": "opsi 2 ditambahkan",
+      "width": 390,
+      "height": 844,
+      "modal": false,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "opsi-varian-1",
+      "nodeId": "917:13889",
+      "name": "opsi varian 1",
+      "width": 358,
+      "height": 262,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "opsi-varian-1-diisi",
+      "nodeId": "917:13918",
+      "name": "opsi varian 1 diisi",
+      "width": 358,
+      "height": 262,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "menu-order-baru",
+      "trigger": "tap Item Two ",
+      "to": "menu-diproses",
+      "triggerNode": "Item Two ",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "tap Frame 49",
+      "to": "pesanan-ditolak",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "tap Frame 49",
+      "to": "menu-diproses",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru-2",
+      "trigger": "tap Frame 49",
+      "to": "pesanan-ditolak",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru-2",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru-2",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "login-default",
+      "trigger": "tap Rectangle 367",
+      "to": "login-tenantt",
+      "triggerNode": "Rectangle 367",
+      "source": "prototype"
+    },
+    {
+      "from": "login-tenantt",
+      "trigger": "tap Button",
+      "to": "menu-order-baru",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diproses",
+      "trigger": "tap Item Three",
+      "to": "selesai",
+      "triggerNode": "Item Three",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diproses",
+      "trigger": "tap Frame 49",
+      "to": "selesai",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diproses",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diproses",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diproses",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "pesanan-diproses",
+      "trigger": "tap Item Three",
+      "to": "selesai",
+      "triggerNode": "Item Three",
+      "source": "prototype"
+    },
+    {
+      "from": "pesanan-diproses",
+      "trigger": "tap Frame 49",
+      "to": "selesai",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "pesanan-diproses",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "pesanan-diproses",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "pesanan-diproses",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "alasan-penolakan",
+      "trigger": "tap Button",
+      "to": "konfirmasi-pesanan",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "selesai",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "selesai",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "selesai",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-offline",
+      "trigger": "nav→Order",
+      "to": "menu-order-baru",
+      "triggerNode": "Home-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-offline",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-offline",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-offline",
+      "trigger": "tap Button",
+      "to": "admin-online",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-online",
+      "trigger": "nav→Order",
+      "to": "menu-order-baru",
+      "triggerNode": "Home-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-online",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-online",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "admin-online",
+      "trigger": "tap Button",
+      "to": "admin-offline",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya",
+      "trigger": "nav→Order",
+      "to": "menu-order-baru",
+      "triggerNode": "Home-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya-2",
+      "trigger": "nav→Order",
+      "to": "menu-order-baru",
+      "triggerNode": "Home-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya-2",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-saya-2",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-berhasil-ditambahkan",
+      "trigger": "nav→Laporan",
+      "to": "laporan",
+      "triggerNode": "Imagine-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-berhasil-ditambahkan",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "tambah-menu",
+      "trigger": "tap Frame 2333",
+      "to": "menu-diisi",
+      "triggerNode": "Frame 2333",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-diisi",
+      "trigger": "tap Button",
+      "to": "tambah-varian",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "varian-ditambahkan",
+      "trigger": "back",
+      "to": "menu-berhasil-ditambahkan",
+      "triggerNode": "arrow-left-s-line",
+      "source": "prototype"
+    },
+    {
+      "from": "opsi-varian-2-diisi-2",
+      "trigger": "tap Frame 49",
+      "to": "opsi-2-ditambahkan",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "laporan",
+      "trigger": "nav→Order",
+      "to": "menu-order-baru",
+      "triggerNode": "Home-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "laporan",
+      "trigger": "nav→Menu Saya",
+      "to": "menu-saya",
+      "triggerNode": "Search-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "laporan",
+      "trigger": "nav→Admin",
+      "to": "admin-offline",
+      "triggerNode": "Message-Icon",
+      "source": "prototype"
+    },
+    {
+      "from": "kelola-menu",
+      "trigger": "tap Frame 2361",
+      "to": "kelola-varian",
+      "triggerNode": "Frame 2361",
+      "source": "prototype"
+    },
+    {
+      "from": "kelola-menu-2",
+      "trigger": "tap Frame 2361",
+      "to": "tambah-menu",
+      "triggerNode": "Frame 2361",
+      "source": "prototype"
+    },
+    {
+      "from": "kelola-menu-2",
+      "trigger": "tap Frame 2361",
+      "to": "kelola-varian",
+      "triggerNode": "Frame 2361",
+      "source": "prototype"
+    },
+    {
+      "from": "berhasil-ditambahkan",
+      "trigger": "tap berhasil ditambahkan",
+      "to": "menu-berhasil-ditambahkan",
+      "triggerNode": "berhasil ditambahkan",
+      "source": "prototype"
+    },
+    {
+      "from": "berhasil-ditambahkan-2",
+      "trigger": "tap Button",
+      "to": "pesanan-diproses",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "kelola-varian",
+      "trigger": "tap Button",
+      "to": "tambah-varian-2",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "tambah-varian",
+      "trigger": "tap Frame 49",
+      "to": "varian-ditambahkan",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    },
+    {
+      "from": "tambah-opsi-2",
+      "trigger": "tap Button",
+      "to": "varian-ditambahkan",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "opsi-2-ditambahkan",
+      "trigger": "tap Button",
+      "to": "varian-disimpan",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "opsi-varian-1-diisi",
+      "trigger": "tap Frame 49",
+      "to": "tambah-opsi-2",
+      "triggerNode": "Frame 49",
+      "source": "prototype"
+    }
+  ],
+  "bottomNav": {
+    "Order": "menu-order-baru",
+    "Menu Saya": "menu-saya",
+    "Laporan": "laporan",
+    "Admin": "admin-offline"
+  },
+  "assets": {
+    "dir": "assets/ (shared, globally deduped)",
+    "count": 40,
+    "images": [
+      "admin-hero.png",
+      "brand-kfc@2x.png",
+      "brand-kfc@3x.png",
+      "laporan-chart@2x.png",
+      "login-hero@2x.png",
+      "login-hero@3x.png",
+      "menu-photo-1@2x.png",
+      "menu-photo-1@3x.png",
+      "menu-photo-2@2x.png",
+      "menu-photo-2@3x.png",
+      "menu-photo-3@2x.png",
+      "menu-photo-3@3x.png",
+      "menu-photo-4@2x.png",
+      "menu-photo-4@3x.png",
+      "menu-photo-5@2x.png",
+      "menu-photo-5@3x.png",
+      "order-illustration@2x.png",
+      "role-busboy@2x.png",
+      "role-busboy@3x.png",
+      "role-tenan@2x.png",
+      "role-tenan@3x.png"
+    ],
+    "icons": [
+      "arrow-down-s-line.svg",
+      "arrow-right-s-line.svg",
+      "arrow-up-line.svg",
+      "check-line.svg",
+      "icon-bell.svg",
+      "icon-calendar-range.svg",
+      "icon-circle-minus.svg",
+      "icon-clock-3.svg",
+      "icon-cloud-download.svg",
+      "icon-file-plus-2.svg",
+      "icon-file-text.svg",
+      "icon-headset.svg",
+      "icon-image-plus.svg",
+      "icon-list.svg",
+      "icon-map-pin.svg",
+      "icon-plus.svg",
+      "icon-settings-2.svg",
+      "icon-star.svg",
+      "shop-bag-svgrepo-com-1.svg"
+    ],
+    "note": "Raster illustrations @2x/@3x (order-illustration, login-hero, role-tenan/busboy, admin-hero, brand-kfc, laporan-chart, menu-photo-1..5). Standard Lucide icons that failed standalone export (receipt-text, layout-list, store, user-round, lock-keyhole, eye, search, chart-no-axes-combined, add-line, arrow-left, chevron-down, starbucks/trash brand) are nested-instance children — use obra_icons ObraIcons.* equivalents. Decorative Line/Ellipse/Path/Border not exported."
+  }
+}

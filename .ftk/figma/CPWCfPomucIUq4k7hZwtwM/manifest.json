@@ -1,0 +1,567 @@
+{
+  "fileKey": "CPWCfPomucIUq4k7hZwtwM",
+  "pageNodeId": "624:1670",
+  "pageName": "🔴 HIFI Busboy",
+  "flavor": "busboy",
+  "harvestStatus": "harvested-via-figma-cli",
+  "harvestNote": "Harvested via figma-cli (Yolo failed — figma API unreachable over CDP in this Figma build; switched to Safe Mode plugin). All 17 screens have reference.png (@1x, includes ~4px shadow bleed on 390-wide frames), values.json (get) and tree.txt (structure, depth 12). Assets not yet exported per-icon. Flow is real prototype data.",
+  "screens": [
+    {
+      "slug": "login-default",
+      "nodeId": "1009:11396",
+      "name": "Login Default",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "login-tenantt",
+      "nodeId": "1009:11431",
+      "name": "login tenantt",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-order-baru",
+      "nodeId": "1009:11609",
+      "name": "Menu Order Baru",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "performa-v1",
+      "nodeId": "1121:4182",
+      "name": "Performa v1",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "performa-v2",
+      "nodeId": "1281:3309",
+      "name": "Performa v2",
+      "width": 390,
+      "height": 914,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "riwayat-hari-ini",
+      "nodeId": "1135:464",
+      "name": "Riwayat hari ini",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "akun",
+      "nodeId": "1144:14180",
+      "name": "Akun",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "riwayat-kemarin",
+      "nodeId": "1144:11884",
+      "name": "Riwayat kemarin",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "riwayat-7-hari",
+      "nodeId": "1144:11986",
+      "name": "riwayat 7 hari",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-order-selesai",
+      "nodeId": "1117:3852",
+      "name": "Menu Order selesai",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-order-antar",
+      "nodeId": "1080:11466",
+      "name": "Menu Order Antar",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "menu-order-baru-2",
+      "nodeId": "1036:14101",
+      "name": "Menu Order Baru",
+      "width": 390,
+      "height": 844,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "berhasil-ditambahkan",
+      "nodeId": "1080:11394",
+      "name": "berhasil ditambahkan",
+      "width": 358,
+      "height": 426,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "berhasil-ditambahkan-2",
+      "nodeId": "1117:3805",
+      "name": "berhasil ditambahkan",
+      "width": 358,
+      "height": 426,
+      "modal": true,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "detail-riwayat",
+      "nodeId": "1144:12136",
+      "name": "detail riwayat",
+      "width": 390,
+      "height": 950,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "profile-saya",
+      "nodeId": "1209:1010",
+      "name": "Profile Saya",
+      "width": 390,
+      "height": 1083,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    },
+    {
+      "slug": "detail-selesai",
+      "nodeId": "1144:14460",
+      "name": "Detail selesai",
+      "width": 390,
+      "height": 950,
+      "harvested": {
+        "screenshot": true,
+        "values": true,
+        "assets": true
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "login-default",
+      "trigger": "tap role card",
+      "to": "login-tenantt",
+      "triggerNode": "Group 15",
+      "source": "prototype"
+    },
+    {
+      "from": "login-tenantt",
+      "trigger": "tap Button",
+      "to": "menu-order-baru",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "tap row",
+      "to": "menu-order-baru-2",
+      "triggerNode": "Frame 2434",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608606",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "bottom-nav → riwayat-hari-ini",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2608607",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608608",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v1",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608609",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v1",
+      "trigger": "bottom-nav → riwayat-hari-ini",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2608610",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v1",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608611",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v2",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608609",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v2",
+      "trigger": "bottom-nav → riwayat-hari-ini",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2608610",
+      "source": "prototype"
+    },
+    {
+      "from": "performa-v2",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608611",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-hari-ini",
+      "trigger": "date tab",
+      "to": "riwayat-kemarin",
+      "triggerNode": "Frame 2440",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-hari-ini",
+      "trigger": "tap row",
+      "to": "detail-riwayat",
+      "triggerNode": "Frame 2590",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-hari-ini",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608612",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-hari-ini",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608613",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-hari-ini",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608614",
+      "source": "prototype"
+    },
+    {
+      "from": "akun",
+      "trigger": "tap profile",
+      "to": "profile-saya",
+      "triggerNode": "Frame 2613",
+      "source": "prototype"
+    },
+    {
+      "from": "akun",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608615",
+      "source": "prototype"
+    },
+    {
+      "from": "akun",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608616",
+      "source": "prototype"
+    },
+    {
+      "from": "akun",
+      "trigger": "bottom-nav → riwayat-hari-ini",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2608617",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-kemarin",
+      "trigger": "date tab",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2440",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-kemarin",
+      "trigger": "date tab",
+      "to": "riwayat-7-hari",
+      "triggerNode": "Frame 2440",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-kemarin",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608612",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-kemarin",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608613",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-kemarin",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608614",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "date tab",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2440",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "date tab",
+      "to": "riwayat-kemarin",
+      "triggerNode": "Frame 2440",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "tap row",
+      "to": "detail-riwayat",
+      "triggerNode": "Frame 2591",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "bottom-nav → menu-order-baru",
+      "to": "menu-order-baru",
+      "triggerNode": "Frame 2608612",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608613",
+      "source": "prototype"
+    },
+    {
+      "from": "riwayat-7-hari",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608614",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-selesai",
+      "trigger": "tap row",
+      "to": "detail-selesai",
+      "triggerNode": "Frame 2434",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-selesai",
+      "trigger": "bottom-nav → performa-v1",
+      "to": "performa-v1",
+      "triggerNode": "Frame 2608606",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-selesai",
+      "trigger": "bottom-nav → riwayat-hari-ini",
+      "to": "riwayat-hari-ini",
+      "triggerNode": "Frame 2608607",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-selesai",
+      "trigger": "bottom-nav → akun",
+      "to": "akun",
+      "triggerNode": "Frame 2608608",
+      "source": "prototype"
+    },
+    {
+      "from": "menu-order-baru-2",
+      "trigger": "back",
+      "to": "menu-order-baru",
+      "triggerNode": "arrow-left-s-line",
+      "source": "prototype"
+    },
+    {
+      "from": "berhasil-ditambahkan",
+      "trigger": "tap Button",
+      "to": "menu-order-antar",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "berhasil-ditambahkan-2",
+      "trigger": "tap Button",
+      "to": "menu-order-selesai",
+      "triggerNode": "Button",
+      "source": "prototype"
+    },
+    {
+      "from": "detail-riwayat",
+      "trigger": "back",
+      "to": "riwayat-7-hari",
+      "triggerNode": "arrow-left-s-line",
+      "source": "prototype"
+    },
+    {
+      "from": "profile-saya",
+      "trigger": "back",
+      "to": "akun",
+      "triggerNode": "arrow-left-s-line",
+      "source": "prototype"
+    },
+    {
+      "from": "detail-selesai",
+      "trigger": "back",
+      "to": "menu-order-selesai",
+      "triggerNode": "Frame 14",
+      "source": "prototype"
+    }
+  ],
+  "assets": {
+    "dir": "assets/  (shared, globally deduped)",
+    "count": 40,
+    "images": [
+      "brand-kfc@2x.png",
+      "brand-kfc@3x.png",
+      "login-hero@2x.png",
+      "login-hero@3x.png",
+      "order-badge@2x.png",
+      "order-badge@3x.png",
+      "order-illustration@2x.png",
+      "order-illustration@3x.png",
+      "role-busboy@2x.png",
+      "role-busboy@3x.png",
+      "role-tenan@2x.png",
+      "role-tenan@3x.png"
+    ],
+    "icons": [
+      "arrow-right-s-fill.svg",
+      "arrow-right-s-line.svg",
+      "arrow-up-line.svg",
+      "chevron-down.svg",
+      "icon-armchair.svg",
+      "icon-calendar-range.svg",
+      "icon-camera.svg",
+      "icon-chart-pie.svg",
+      "icon-chevron-right.svg",
+      "icon-circle-check.svg",
+      "icon-circle-help.svg",
+      "icon-clock.svg",
+      "icon-concierge-bell.svg",
+      "icon-eye.svg",
+      "icon-funnel.svg",
+      "icon-globe.svg",
+      "icon-hand-platter.svg",
+      "icon-history.svg",
+      "icon-lock-keyhole.svg",
+      "icon-log-out.svg",
+      "icon-phone-outgoing.svg",
+      "icon-search.svg",
+      "icon-shield-check.svg",
+      "icon-square.svg",
+      "icon-store.svg",
+      "icon-thumbs-up.svg",
+      "icon-timer.svg",
+      "icon-user-round.svg"
+    ],
+    "skipped": [
+      {
+        "name": "arrow-left-s-line",
+        "reason": "nested-instance child not exportable standalone; use a standard back-chevron icon (Icons.chevron_left)"
+      }
+    ],
+    "note": "Raster illustrations exported @2x/@3x PNG; icons as SVG. Names are semantic for the 6 rasters, figma-derived for icons. Decorative Line/Ellipse/Vector/status-bar paths were intentionally not exported."
+  }
+}

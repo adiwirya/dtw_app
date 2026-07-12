@@ -1,0 +1,18 @@
+{
+  "id": "917:13889",
+  "name": "opsi varian 1",
+  "type": "FRAME",
+  "x": 2559,
+  "y": 2367,
+  "width": 358,
+  "height": 262,
+  "visible": true,
+  "locked": false,
+  "opacity": 1,
+  "rotation": 0,
+  "cornerRadius": 16,
+  "layoutMode": "VERTICAL",
+  "fills": 1,
+  "strokes": 0,
+  "children": 3
+}

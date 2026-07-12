@@ -1,0 +1,7 @@
+
+✗ Not connected to Figma
+
+  Make sure Figma is running:
+  figma-ds-cli connect (Yolo Mode)
+  figma-ds-cli connect --safe (Safe Mode)
+
