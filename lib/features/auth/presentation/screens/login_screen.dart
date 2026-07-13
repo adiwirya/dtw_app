@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
@@ -5,6 +6,7 @@ import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/login_status_bar.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// The login screen, modelled as a two-step flow over the existing `/login`
@@ -15,10 +17,12 @@ import 'package:go_router/go_router.dart';
 /// * `/login/tenant` (`login-tenantt`) builds `LoginScreen(initialRole: ...)`
 ///   with a role pre-selected; tapping cards re-selects locally.
 ///
-/// This is the busboy flavor, so the Busboy card is the primary CTA and is the
-/// role `/login/tenant` pre-selects. Tapping "Masuk" enters the shell on the
-/// Order tab.
-class LoginScreen extends StatefulWidget {
+/// This is the busboy flavor's entrypoint, so the Busboy card is the primary
+/// CTA and is the role `/login/tenant` pre-selects. It also doubles as the
+/// app's single shared entry: tapping "Masuk" sets [appFlavorProvider] from
+/// the selected role, so picking **Tenan** switches the whole app to the
+/// tenant router (landing on its Order tab) instead of staying on busboy's.
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({this.initialRole, super.key});
 
   /// When non-null the screen renders the `login-tenantt` step with this role
@@ -26,10 +30,10 @@ class LoginScreen extends StatefulWidget {
   final LoginRole? initialRole;
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   LoginRole? _selectedRole;
@@ -60,8 +64,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onMasuk() {
     // TODO(open-question): auth is out of scope (Open Question 1) — "Masuk"
-    // only navigates; no credential validation is performed.
-    context.goNamed(AppRoutes.order);
+    // only picks the flavor matching the selected role; no credential
+    // validation is performed.
+    ref.read(isLoggedInProvider.notifier).state = true;
+    ref.read(appFlavorProvider.notifier).state =
+        (_selectedRole ?? LoginRole.busboy) == LoginRole.tenan
+            ? AppFlavor.tenant
+            : AppFlavor.busboy;
   }
 
   @override

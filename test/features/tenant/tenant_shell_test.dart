@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 Widget _bootTenant() => ProviderScope(
-      overrides: [appFlavorProvider.overrideWithValue(AppFlavor.tenant)],
+      overrides: [appFlavorProvider.overrideWith((ref) => AppFlavor.tenant)],
       child: const App(),
     );
 

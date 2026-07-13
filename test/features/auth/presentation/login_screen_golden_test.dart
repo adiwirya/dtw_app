@@ -1,6 +1,7 @@
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Self-goldens for the two login steps.
@@ -19,7 +20,9 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(home: child));
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp(home: child)),
+    );
     await tester.pumpAndSettle();
   }
 

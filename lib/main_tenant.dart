@@ -6,5 +6,5 @@ import 'package:dtw_app/core/flavor.dart';
 /// router (4-tab shell: Order / Menu Saya / Laporan / Admin). Run with:
 /// `flutter run -t lib/main_tenant.dart`.
 void main() => bootstrap(
-      overrides: [appFlavorProvider.overrideWithValue(AppFlavor.tenant)],
+      overrides: [appFlavorProvider.overrideWith((ref) => AppFlavor.tenant)],
     );

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/tenant_shell.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
@@ -296,9 +297,13 @@ class _OpsiVarianRouteScreenState extends State<_OpsiVarianRouteScreen> {
 
 @riverpod
 GoRouter tenantRouter(Ref ref) => GoRouter(
-      // Post-login lands on the Order tab; see login-tenantt → menu-order-baru
-      // in the tenant prototype flow.
-      initialLocation: TenantRoutes.loginPath,
+      // Post-login lands on the Order tab (see login-tenantt →
+      // menu-order-baru in the tenant prototype flow). [isLoggedInProvider] is
+      // what lets the shared login screen switch flavor and land straight on
+      // this router's Order tab instead of its own login screen.
+      initialLocation: ref.watch(isLoggedInProvider)
+          ? TenantRoutes.orderPath
+          : TenantRoutes.loginPath,
       routes: [
         // Login sits OUTSIDE the shell (root navigator, no bottom nav).
         GoRoute(

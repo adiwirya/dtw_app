@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/widgets/app_shell.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/placeholder_screen.dart';
@@ -115,9 +116,13 @@ class _RiwayatTabDeepLinkState extends ConsumerState<_RiwayatTabDeepLink> {
 
 @riverpod
 GoRouter appRouter(Ref ref) => GoRouter(
-      // Post-login lands on the Order tab; see login-tenantt → menu-order-baru
-      // in the prototype flow.
-      initialLocation: AppRoutes.loginPath,
+      // Post-login lands on the Order tab (see login-tenantt →
+      // menu-order-baru in the prototype flow). [isLoggedInProvider] is what
+      // lets the shared login screen switch flavor and land straight on this
+      // router's Order tab instead of its own login screen.
+      initialLocation: ref.watch(isLoggedInProvider)
+          ? AppRoutes.orderPath
+          : AppRoutes.loginPath,
       routes: [
         // Login sits OUTSIDE the shell (root navigator, no bottom nav).
         GoRoute(
