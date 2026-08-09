@@ -115,161 +115,173 @@ class _RiwayatTabDeepLinkState extends ConsumerState<_RiwayatTabDeepLink> {
 }
 
 @riverpod
-GoRouter appRouter(Ref ref) => GoRouter(
-      // Post-login lands on the Order tab (see login-tenantt →
-      // menu-order-baru in the prototype flow). [isLoggedInProvider] is what
-      // lets the shared login screen switch flavor and land straight on this
-      // router's Order tab instead of its own login screen.
-      initialLocation: ref.watch(isLoggedInProvider)
-          ? AppRoutes.orderPath
-          : AppRoutes.loginPath,
-      routes: [
-        // Login sits OUTSIDE the shell (root navigator, no bottom nav).
-        GoRoute(
-          path: AppRoutes.loginPath,
-          name: AppRoutes.login,
-          builder: (context, state) => const LoginScreen(),
-          routes: [
-            GoRoute(
-              path: 'tenant',
-              name: AppRoutes.loginTenant,
-              builder: (context, state) =>
-                  const LoginScreen(initialRole: LoginRole.busboy),
-            ),
-          ],
-        ),
+GoRouter appRouter(Ref ref) {
+  final loggedIn = ref.watch(isLoggedInProvider);
+  return GoRouter(
+    // Post-login lands on the Order tab (see login-tenantt →
+    // menu-order-baru in the prototype flow). [isLoggedInProvider] is what
+    // lets the shared login screen switch flavor and land straight on this
+    // router's Order tab instead of its own login screen.
+    initialLocation: loggedIn ? AppRoutes.orderPath : AppRoutes.loginPath,
+    // Session expiry (401, via dioProvider's interceptor) clears
+    // isLoggedInProvider mid-use; this guard makes that redirect to /login
+    // on the next navigation, not only at the router's initial construction.
+    redirect: (context, state) {
+      final onLogin =
+          state.matchedLocation == AppRoutes.loginPath ||
+          state.matchedLocation.startsWith('${AppRoutes.loginPath}/');
+      if (!loggedIn && !onLogin) return AppRoutes.loginPath;
+      if (loggedIn && onLogin) return AppRoutes.orderPath;
+      return null;
+    },
+    routes: [
+      // Login sits OUTSIDE the shell (root navigator, no bottom nav).
+      GoRoute(
+        path: AppRoutes.loginPath,
+        name: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+        routes: [
+          GoRoute(
+            path: 'tenant',
+            name: AppRoutes.loginTenant,
+            builder: (context, state) =>
+                const LoginScreen(initialRole: LoginRole.busboy),
+          ),
+        ],
+      ),
 
-        // Persistent 4-tab bottom-nav shell.
-        StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) =>
-              AppShell(navigationShell: navigationShell),
-          branches: [
-            // Tab 0 — Order.
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: AppRoutes.orderPath,
-                  name: AppRoutes.order,
-                  builder: (context, state) => const OrderScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'detail',
-                      name: AppRoutes.orderDetail,
-                      builder: (context, state) => const OrderDetailScreen(),
+      // Persistent 4-tab bottom-nav shell.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          // Tab 0 — Order.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.orderPath,
+                name: AppRoutes.order,
+                builder: (context, state) => const OrderScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'detail',
+                    name: AppRoutes.orderDetail,
+                    builder: (context, state) => const OrderDetailScreen(),
+                  ),
+                  // The Order home shows all three sub-tabs in place; these
+                  // routes deep-link into the right sub-tab by setting the
+                  // shared tab provider, then render the same screen.
+                  GoRoute(
+                    path: 'antar',
+                    name: AppRoutes.orderAntar,
+                    builder: (context, state) =>
+                        const _OrderTabDeepLink(status: OrderStatus.antar),
+                  ),
+                  GoRoute(
+                    path: 'berhasil',
+                    name: AppRoutes.orderBerhasil,
+                    builder: (context, state) => const PlaceholderScreen(
+                      title: 'Berhasil Ditambahkan',
                     ),
-                    // The Order home shows all three sub-tabs in place; these
-                    // routes deep-link into the right sub-tab by setting the
-                    // shared tab provider, then render the same screen.
-                    GoRoute(
-                      path: 'antar',
-                      name: AppRoutes.orderAntar,
-                      builder: (context, state) =>
-                          const _OrderTabDeepLink(status: OrderStatus.antar),
-                    ),
-                    GoRoute(
-                      path: 'berhasil',
-                      name: AppRoutes.orderBerhasil,
-                      builder: (context, state) => const PlaceholderScreen(
-                        title: 'Berhasil Ditambahkan',
+                  ),
+                  GoRoute(
+                    path: 'selesai',
+                    name: AppRoutes.orderSelesai,
+                    builder: (context, state) =>
+                        const _OrderTabDeepLink(status: OrderStatus.selesai),
+                    routes: [
+                      GoRoute(
+                        path: 'detail',
+                        name: AppRoutes.orderSelesaiDetail,
+                        builder: (context, state) =>
+                            const OrderSelesaiDetailScreen(),
                       ),
-                    ),
-                    GoRoute(
-                      path: 'selesai',
-                      name: AppRoutes.orderSelesai,
-                      builder: (context, state) =>
-                          const _OrderTabDeepLink(status: OrderStatus.selesai),
-                      routes: [
-                        GoRoute(
-                          path: 'detail',
-                          name: AppRoutes.orderSelesaiDetail,
-                          builder: (context, state) =>
-                              const OrderSelesaiDetailScreen(),
+                      GoRoute(
+                        path: 'berhasil',
+                        name: AppRoutes.orderSelesaiBerhasil,
+                        builder: (context, state) => const PlaceholderScreen(
+                          title: 'Berhasil Ditambahkan (Selesai)',
                         ),
-                        GoRoute(
-                          path: 'berhasil',
-                          name: AppRoutes.orderSelesaiBerhasil,
-                          builder: (context, state) => const PlaceholderScreen(
-                            title: 'Berhasil Ditambahkan (Selesai)',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // Tab 1 — Performa.
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/performa',
-                  name: AppRoutes.performa,
-                  builder: (context, state) => const PerformaScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'v2',
-                      name: AppRoutes.performaV2,
-                      builder: (context, state) => const PerformaV2Screen(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // Tab 2 — Riwayat.
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/riwayat',
-                  name: AppRoutes.riwayat,
-                  builder: (context, state) => const RiwayatScreen(),
-                  routes: [
-                    // The Riwayat home shows all three date tabs in place;
-                    // these routes deep-link into the right tab by setting the
-                    // shared tab provider, then render the same screen.
-                    GoRoute(
-                      path: 'kemarin',
-                      name: AppRoutes.riwayatKemarin,
-                      builder: (context, state) => const _RiwayatTabDeepLink(
-                        range: RiwayatRange.kemarin,
                       ),
-                    ),
-                    GoRoute(
-                      path: '7-hari',
-                      name: AppRoutes.riwayat7Hari,
-                      builder: (context, state) => const _RiwayatTabDeepLink(
-                        range: RiwayatRange.tujuhHari,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'detail',
-                      name: AppRoutes.riwayatDetail,
-                      builder: (context, state) => const RiwayatDetailScreen(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
 
-            // Tab 3 — Akun.
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/akun',
-                  name: AppRoutes.akun,
-                  builder: (context, state) => const AkunScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'profile',
-                      name: AppRoutes.akunProfile,
-                      builder: (context, state) => const ProfileSayaScreen(),
+          // Tab 1 — Performa.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/performa',
+                name: AppRoutes.performa,
+                builder: (context, state) => const PerformaScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'v2',
+                    name: AppRoutes.performaV2,
+                    builder: (context, state) => const PerformaV2Screen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Tab 2 — Riwayat.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/riwayat',
+                name: AppRoutes.riwayat,
+                builder: (context, state) => const RiwayatScreen(),
+                routes: [
+                  // The Riwayat home shows all three date tabs in place;
+                  // these routes deep-link into the right tab by setting the
+                  // shared tab provider, then render the same screen.
+                  GoRoute(
+                    path: 'kemarin',
+                    name: AppRoutes.riwayatKemarin,
+                    builder: (context, state) => const _RiwayatTabDeepLink(
+                      range: RiwayatRange.kemarin,
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
+                  ),
+                  GoRoute(
+                    path: '7-hari',
+                    name: AppRoutes.riwayat7Hari,
+                    builder: (context, state) => const _RiwayatTabDeepLink(
+                      range: RiwayatRange.tujuhHari,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'detail',
+                    name: AppRoutes.riwayatDetail,
+                    builder: (context, state) => const RiwayatDetailScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Tab 3 — Akun.
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/akun',
+                name: AppRoutes.akun,
+                builder: (context, state) => const AkunScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    name: AppRoutes.akunProfile,
+                    builder: (context, state) => const ProfileSayaScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}

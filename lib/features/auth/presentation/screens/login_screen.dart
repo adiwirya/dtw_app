@@ -1,8 +1,10 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/login_status_bar.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   LoginRole? _selectedRole;
   bool _rememberMe = false;
+  String? _validationMessage;
 
   @override
   void initState() {
@@ -62,19 +65,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _onMasuk() {
-    // TODO(open-question): auth is out of scope (Open Question 1) — "Masuk"
-    // only picks the flavor matching the selected role; no credential
-    // validation is performed.
-    ref.read(isLoggedInProvider.notifier).state = true;
-    ref.read(appFlavorProvider.notifier).state =
-        (_selectedRole ?? LoginRole.busboy) == LoginRole.tenan
-            ? AppFlavor.tenant
-            : AppFlavor.busboy;
+  Future<void> _onMasuk() async {
+    final effectiveRole = _selectedRole ?? LoginRole.busboy;
+    if (effectiveRole == LoginRole.tenan) {
+      // Tenant login is card/NFC-based and out of scope here — keep the
+      // existing mock flavor switch until that spec lands.
+      ref.read(isLoggedInProvider.notifier).state = true;
+      ref.read(appFlavorProvider.notifier).state = AppFlavor.tenant;
+      return;
+    }
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _validationMessage = 'Username dan password wajib diisi.');
+      return;
+    }
+    setState(() => _validationMessage = null);
+
+    await ref.read(authControllerProvider.notifier).login(
+          username: username,
+          password: password,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Stack(
@@ -121,7 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // 24px design gap + 3px to offset the shared AppInput label
                   // rendering ~2px shorter per field than the cached Input.
                   const SizedBox(height: 27),
-                  _buildForm(),
+                  _buildForm(authState),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -230,7 +247,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(AuthState authState) {
+    final error = authState.error;
+    final errorMessage = _validationMessage ??
+        (error == null
+            ? null
+            : (error is AuthException
+                ? error.message
+                : 'Terjadi kesalahan. Coba lagi.'));
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -252,8 +277,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 16),
           _buildRememberRow(),
+          if (errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              errorMessage,
+              style: const TextStyle(color: AppColors.dangerRed, fontSize: 14),
+            ),
+          ],
           const SizedBox(height: 40),
-          PrimaryButton(label: 'Masuk', onPressed: _onMasuk),
+          PrimaryButton(
+            label: 'Masuk',
+            onPressed: authState.isLoading ? null : _onMasuk,
+          ),
         ],
       ),
     );

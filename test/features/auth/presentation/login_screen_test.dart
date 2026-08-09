@@ -1,11 +1,16 @@
 import 'package:dtw_app/app.dart';
+import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../support/canned_dio.dart';
+import '../../../support/fake_local_storage.dart';
 
 /// Builds a minimal router exercising just the login flow so navigation
 /// targets can be asserted without standing up the whole app shell.
@@ -75,20 +80,54 @@ void main() {
 
   group('Masuk picks the flavor for the selected role (single shared entry)',
       () {
-    Future<void> pumpApp(WidgetTester tester) async {
+    Future<ProviderContainer> pumpApp(
+      WidgetTester tester, {
+      required int statusCode,
+      required Object? body,
+    }) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(const ProviderScope(child: App()));
+      final storage = FakeLocalStorage();
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            AuthRepository(dio: cannedDio(statusCode, body), localStorage: storage),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const App()),
+      );
       await tester.pumpAndSettle();
+      return container;
     }
 
     testWidgets(
-        'no role selected defaults to busboy and lands on its Order tab',
+        'no role selected defaults to busboy, calls the API, and lands on its Order tab',
         (tester) async {
-      await pumpApp(tester);
+      await pumpApp(
+        tester,
+        statusCode: 200,
+        body: {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_123',
+            'user': {'id': 'u1', 'username': 'budi'},
+          },
+        },
+      );
 
+      await tester.enterText(find.widgetWithText(AppInput, 'Username'), 'budi');
+      await tester.enterText(find.widgetWithText(AppInput, 'Password'), 'secret');
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
@@ -99,9 +138,45 @@ void main() {
       expect(find.text('Performa'), findsOneWidget);
     });
 
+    testWidgets('shows the mapped error message on a failed busboy login',
+        (tester) async {
+      await pumpApp(
+        tester,
+        statusCode: 401,
+        body: {
+          'meta': {
+            'success': false,
+            'message': 'Unauthorized',
+            'code': 401,
+            'trace_id': 'abc',
+          },
+          'errors': null,
+        },
+      );
+
+      await tester.enterText(find.widgetWithText(AppInput, 'Username'), 'budi');
+      await tester.enterText(find.widgetWithText(AppInput, 'Password'), 'wrong');
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Username atau password salah.'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
     testWidgets('picking Tenan switches the whole app to the tenant shell',
         (tester) async {
-      await pumpApp(tester);
+      await pumpApp(
+        tester,
+        statusCode: 200,
+        body: {
+          'meta': {
+            'success': true,
+            'message': 'ok',
+            'code': 200,
+            'trace_id': 'x',
+          },
+        },
+      );
 
       // Step 1 -> step 2 (always pre-selects Busboy); explicitly pick Tenan.
       await tester.tap(find.text('Tenan'));
@@ -112,7 +187,8 @@ void main() {
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
-      // The tenant Order home renders directly — no second login screen.
+      // The tenant Order home renders directly — no second login screen, no
+      // API call for this still-stubbed path.
       expect(find.byType(LoginScreen), findsNothing);
       expect(find.text('KFC\nFried Chicken'), findsOneWidget);
       // Tenant bottom nav labels confirm the flavor switch.

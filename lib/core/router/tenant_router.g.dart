@@ -6,7 +6,7 @@ part of 'tenant_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantRouterHash() => r'dc1040da31f319facd521dee7bcb303d3425a964';
+String _$tenantRouterHash() => r'cf3a68deb8049fb263a2f98ba98294e3316ab0c2';
 
 /// See also [tenantRouter].
 @ProviderFor(tenantRouter)

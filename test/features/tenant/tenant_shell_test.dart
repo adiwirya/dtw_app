@@ -1,6 +1,5 @@
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
-import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_login_screen.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,14 +25,21 @@ void main() {
   });
 
   testWidgets('Tab switching changes the hosted tenant screen', (tester) async {
-    await tester.pumpWidget(_bootTenant());
+    // Tab switching is independent of auth — authenticate directly via the
+    // provider so the redirect guard doesn't bounce back to /login.
+    final container = ProviderContainer(
+      overrides: [appFlavorProvider.overrideWith((ref) => AppFlavor.tenant)],
+    );
+    addTearDown(container.dispose);
+    container.read(isLoggedInProvider.notifier).state = true;
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const App()),
+    );
     await tester.pumpAndSettle();
 
-    // Enter the shell — post-login lands on the Order tab (menu-order-baru).
-    final router =
-        GoRouter.of(tester.element(find.text('Masuk Sebagai')))
-          ..go(TenantRoutes.orderPath);
-    await tester.pumpAndSettle();
+    // Already lands on the Order tab (post-login, menu-order-baru).
+    final router = GoRouter.of(tester.element(find.text('Order').first));
 
     // Order is active; the persistent 4-tab bottom nav is present with the
     // design labels (Order FAB / Menu / Laporan / Akun).

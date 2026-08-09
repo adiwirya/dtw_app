@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.summarecon.dtw_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage requires compileSdk 37 — flutter.compileSdkVersion
+    // (36) isn't high enough yet, so pin it explicitly (backward compatible).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

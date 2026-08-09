@@ -1,27 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'dio_provider.dart';
+part of 'secure_local_storage.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dioHash() => r'6d2a9716cee935d0442bed2394e965642e0eeef0';
+String _$localStorageHash() => r'2e4b4359d47b83122edb0182a50c20ac72b53ff6';
 
-/// See also [dio].
-@ProviderFor(dio)
-final dioProvider = AutoDisposeProvider<Dio>.internal(
-  dio,
-  name: r'dioProvider',
+/// See also [localStorage].
+@ProviderFor(localStorage)
+final localStorageProvider = AutoDisposeProvider<LocalStorage>.internal(
+  localStorage,
+  name: r'localStorageProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$dioHash,
+      : _$localStorageHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef DioRef = AutoDisposeProviderRef<Dio>;
+typedef LocalStorageRef = AutoDisposeProviderRef<LocalStorage>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

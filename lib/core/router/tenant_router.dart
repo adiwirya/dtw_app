@@ -61,8 +61,7 @@ abstract class TenantRoutes {
   // --- Tab 1: Menu Saya (home = menu-saya) ---
   static const menuSaya = 'tenantMenuSaya'; // menu-saya
   static const menuSayaV2 = 'tenantMenuSayaV2'; // menu-saya-2
-  static const menuBerhasil =
-      'tenantMenuBerhasil'; // menu-berhasil-ditambahkan
+  static const menuBerhasil = 'tenantMenuBerhasil'; // menu-berhasil-ditambahkan
   static const tambahMenu = 'tenantTambahMenu'; // tambah-menu
   static const menuDiisi = 'tenantMenuDiisi'; // menu-diisi
   static const kelolaMenu = 'tenantKelolaMenu'; // kelola-menu (modal)
@@ -290,348 +289,356 @@ class _OpsiVarianRouteScreenState extends State<_OpsiVarianRouteScreen> {
 
   @override
   Widget build(BuildContext context) => TambahVarianScreen(
-        prefilled: true,
-        options: widget.backdropOptions,
-      );
+    prefilled: true,
+    options: widget.backdropOptions,
+  );
 }
 
 @riverpod
-GoRouter tenantRouter(Ref ref) => GoRouter(
-      // Post-login lands on the Order tab (see login-tenantt →
-      // menu-order-baru in the tenant prototype flow). [isLoggedInProvider] is
-      // what lets the shared login screen switch flavor and land straight on
-      // this router's Order tab instead of its own login screen.
-      initialLocation: ref.watch(isLoggedInProvider)
-          ? TenantRoutes.orderPath
-          : TenantRoutes.loginPath,
-      routes: [
-        // Login sits OUTSIDE the shell (root navigator, no bottom nav).
-        GoRoute(
-          path: TenantRoutes.loginPath,
-          name: TenantRoutes.login,
-          builder: (context, state) => const TenantLoginScreen(),
-          routes: [
-            // login-tenantt pre-selects the Tenan primary role for this flavor.
-            GoRoute(
-              path: 'tenant',
-              name: TenantRoutes.loginTenant,
-              builder: (context, state) =>
-                  const TenantLoginScreen(initialRole: LoginRole.tenan),
-            ),
-          ],
-        ),
+GoRouter tenantRouter(Ref ref) {
+  final loggedIn = ref.watch(isLoggedInProvider);
+  return GoRouter(
+    // Post-login lands on the Order tab (see login-tenantt →
+    // menu-order-baru in the tenant prototype flow). [isLoggedInProvider] is
+    // what lets the shared login screen switch flavor and land straight on
+    // this router's Order tab instead of its own login screen.
+    initialLocation: loggedIn ? TenantRoutes.orderPath : TenantRoutes.loginPath,
+    // Session expiry (401, via dioProvider's interceptor) clears
+    // isLoggedInProvider mid-use; this guard makes that redirect to /login
+    // on the next navigation, not only at the router's initial construction.
+    redirect: (context, state) {
+      final onLogin =
+          state.matchedLocation == TenantRoutes.loginPath ||
+          state.matchedLocation.startsWith('${TenantRoutes.loginPath}/');
+      if (!loggedIn && !onLogin) return TenantRoutes.loginPath;
+      if (loggedIn && onLogin) return TenantRoutes.orderPath;
+      return null;
+    },
+    routes: [
+      // Login sits OUTSIDE the shell (root navigator, no bottom nav).
+      GoRoute(
+        path: TenantRoutes.loginPath,
+        name: TenantRoutes.login,
+        builder: (context, state) => const TenantLoginScreen(),
+        routes: [
+          // login-tenantt pre-selects the Tenan primary role for this flavor.
+          GoRoute(
+            path: 'tenant',
+            name: TenantRoutes.loginTenant,
+            builder: (context, state) =>
+                const TenantLoginScreen(initialRole: LoginRole.tenan),
+          ),
+        ],
+      ),
 
-        // Persistent 4-tab bottom-nav shell (Order / Menu Saya / Laporan /
-        // Admin).
-        StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) =>
-              TenantShell(navigationShell: navigationShell),
-          branches: [
-            // Tab 0 — Order (home = menu-order-baru).
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: TenantRoutes.orderPath,
-                  name: TenantRoutes.order,
-                  builder: (context, state) => const TenantOrderScreen(),
-                  routes: [
-                    // menu-order-baru-2: the Order view reached from a card
-                    // tap (a prototype duplicate of the Baru home).
-                    GoRoute(
-                      path: 'baru-2',
-                      name: TenantRoutes.orderDetail,
-                      builder: (context, state) =>
-                          const TenantOrderDetailScreen(),
+      // Persistent 4-tab bottom-nav shell (Order / Menu Saya / Laporan /
+      // Admin).
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            TenantShell(navigationShell: navigationShell),
+        branches: [
+          // Tab 0 — Order (home = menu-order-baru).
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: TenantRoutes.orderPath,
+                name: TenantRoutes.order,
+                builder: (context, state) => const TenantOrderScreen(),
+                routes: [
+                  // menu-order-baru-2: the Order view reached from a card
+                  // tap (a prototype duplicate of the Baru home).
+                  GoRoute(
+                    path: 'baru-2',
+                    name: TenantRoutes.orderDetail,
+                    builder: (context, state) =>
+                        const TenantOrderDetailScreen(),
+                  ),
+                  // menu-diproses: the same Order home seeded to the
+                  // "Diproses" sub-tab.
+                  GoRoute(
+                    path: 'diproses',
+                    name: TenantRoutes.menuDiproses,
+                    builder: (context, state) => const TenantOrderScreen(
+                      initialStatus: IncomingOrderStatus.diproses,
                     ),
-                    // menu-diproses: the same Order home seeded to the
-                    // "Diproses" sub-tab.
-                    GoRoute(
-                      path: 'diproses',
-                      name: TenantRoutes.menuDiproses,
-                      builder: (context, state) => const TenantOrderScreen(
-                        initialStatus: IncomingOrderStatus.diproses,
-                      ),
+                  ),
+                  // pesanan-diproses: same Diproses sub-tab view.
+                  GoRoute(
+                    path: 'pesanan-diproses',
+                    name: TenantRoutes.pesananDiproses,
+                    builder: (context, state) => const TenantOrderScreen(
+                      initialStatus: IncomingOrderStatus.diproses,
                     ),
-                    // pesanan-diproses: same Diproses sub-tab view.
-                    GoRoute(
-                      path: 'pesanan-diproses',
-                      name: TenantRoutes.pesananDiproses,
-                      builder: (context, state) => const TenantOrderScreen(
-                        initialStatus: IncomingOrderStatus.diproses,
-                      ),
+                  ),
+                  // pesanan-ditolak: the reject screen, all items available.
+                  GoRoute(
+                    path: 'ditolak',
+                    name: TenantRoutes.pesananDitolak,
+                    builder: (context, state) =>
+                        const TenantRejectOrderScreen(),
+                  ),
+                  // konfirmasi-pesanan: the same reject screen deep-linked to
+                  // the confirmed state (one item pre-rejected).
+                  GoRoute(
+                    path: 'konfirmasi',
+                    name: TenantRoutes.konfirmasiPesanan,
+                    builder: (context, state) => const TenantRejectOrderScreen(
+                      initialRejectedName: 'Es Lemon Tea',
                     ),
-                    // pesanan-ditolak: the reject screen, all items available.
-                    GoRoute(
-                      path: 'ditolak',
-                      name: TenantRoutes.pesananDitolak,
-                      builder: (context, state) =>
-                          const TenantRejectOrderScreen(),
+                  ),
+                  // alasan-penolakan (modal): reason capture. Primary UX is a
+                  // bottom sheet raised from the reject screen; this route is
+                  // a deep-link entry rendering the same sheet as a page.
+                  GoRoute(
+                    path: 'alasan-penolakan',
+                    name: TenantRoutes.alasanPenolakan,
+                    builder: (context, state) =>
+                        const _AlasanPenolakanRouteScreen(),
+                  ),
+                  // selesai: same Order home seeded to the "Selesai" sub-tab.
+                  GoRoute(
+                    path: 'selesai',
+                    name: TenantRoutes.selesai,
+                    builder: (context, state) => const TenantOrderScreen(
+                      initialStatus: IncomingOrderStatus.selesai,
                     ),
-                    // konfirmasi-pesanan: the same reject screen deep-linked to
-                    // the confirmed state (one item pre-rejected).
-                    GoRoute(
-                      path: 'konfirmasi',
-                      name: TenantRoutes.konfirmasiPesanan,
-                      builder: (context, state) =>
-                          const TenantRejectOrderScreen(
-                        initialRejectedName: 'Es Lemon Tea',
-                      ),
-                    ),
-                    // alasan-penolakan (modal): reason capture. Primary UX is a
-                    // bottom sheet raised from the reject screen; this route is
-                    // a deep-link entry rendering the same sheet as a page.
-                    GoRoute(
-                      path: 'alasan-penolakan',
-                      name: TenantRoutes.alasanPenolakan,
-                      builder: (context, state) =>
-                          const _AlasanPenolakanRouteScreen(),
-                    ),
-                    // selesai: same Order home seeded to the "Selesai" sub-tab.
-                    GoRoute(
-                      path: 'selesai',
-                      name: TenantRoutes.selesai,
-                      builder: (context, state) => const TenantOrderScreen(
-                        initialStatus: IncomingOrderStatus.selesai,
-                      ),
-                    ),
-                    // berhasil-ditambahkan-2 (modal): rejection confirmation.
-                    // Primary UX is a dialog raised from the reject screen;
-                    // this route is a deep-link entry presenting that dialog.
-                    GoRoute(
-                      path: 'pesanan-berhasil',
-                      name: TenantRoutes.pesananBerhasil,
-                      builder: (context, state) =>
-                          const _PesananBerhasilRouteScreen(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  // berhasil-ditambahkan-2 (modal): rejection confirmation.
+                  // Primary UX is a dialog raised from the reject screen;
+                  // this route is a deep-link entry presenting that dialog.
+                  GoRoute(
+                    path: 'pesanan-berhasil',
+                    name: TenantRoutes.pesananBerhasil,
+                    builder: (context, state) =>
+                        const _PesananBerhasilRouteScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
 
-            // Tab 1 — Menu Saya (home = menu-saya).
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: TenantRoutes.menuSayaPath,
-                  name: TenantRoutes.menuSaya,
-                  builder: (context, state) => const MenuSayaScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'v2',
-                      name: TenantRoutes.menuSayaV2,
-                      builder: (context, state) => const MenuSayaScreen(),
+          // Tab 1 — Menu Saya (home = menu-saya).
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: TenantRoutes.menuSayaPath,
+                name: TenantRoutes.menuSaya,
+                builder: (context, state) => const MenuSayaScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'v2',
+                    name: TenantRoutes.menuSayaV2,
+                    builder: (context, state) => const MenuSayaScreen(),
+                  ),
+                  // menu-berhasil-ditambahkan: the list after a successful
+                  // add (header → "+ Tambah Menu", new row shown).
+                  GoRoute(
+                    path: 'berhasil',
+                    name: TenantRoutes.menuBerhasil,
+                    builder: (context, state) =>
+                        const MenuSayaScreen(recentlyAdded: true),
+                  ),
+                  GoRoute(
+                    path: 'tambah',
+                    name: TenantRoutes.tambahMenu,
+                    builder: (context, state) => const TambahMenuScreen(),
+                  ),
+                  // menu-diisi: the same form seeded to its filled state.
+                  GoRoute(
+                    path: 'diisi',
+                    name: TenantRoutes.menuDiisi,
+                    builder: (context, state) =>
+                        const TambahMenuScreen(prefilled: true),
+                  ),
+                  // kelola-menu (modal): Tambah Menu / Kelola Varian chooser.
+                  GoRoute(
+                    path: 'kelola',
+                    name: TenantRoutes.kelolaMenu,
+                    builder: (context, state) => const _KelolaMenuRouteScreen(),
+                  ),
+                  GoRoute(
+                    path: 'kelola-2',
+                    name: TenantRoutes.kelolaMenu2,
+                    builder: (context, state) => const _KelolaMenuRouteScreen(),
+                  ),
+                  // berhasil-ditambahkan (modal): menu-added confirmation.
+                  GoRoute(
+                    path: 'berhasil-modal',
+                    name: TenantRoutes.berhasilDitambahkan,
+                    builder: (context, state) =>
+                        const _BerhasilDitambahkanRouteScreen(),
+                  ),
+                  // kelola-varian: the variant manage screen (empty state).
+                  GoRoute(
+                    path: 'varian',
+                    name: TenantRoutes.kelolaVarian,
+                    builder: (context, state) => const KelolaVarianScreen(),
+                  ),
+                  // varian-ditambahkan: the menu form with the picked
+                  // variants attached; back returns to
+                  // menu-berhasil-ditambahkan (prototype).
+                  GoRoute(
+                    path: 'varian-ditambahkan',
+                    name: TenantRoutes.varianDitambahkan,
+                    builder: (context, state) => TambahMenuScreen(
+                      prefilled: true,
+                      variants: attachedMenuVariants,
+                      onBack: () => context.goNamed(TenantRoutes.menuBerhasil),
                     ),
-                    // menu-berhasil-ditambahkan: the list after a successful
-                    // add (header → "+ Tambah Menu", new row shown).
-                    GoRoute(
-                      path: 'berhasil',
-                      name: TenantRoutes.menuBerhasil,
-                      builder: (context, state) =>
-                          const MenuSayaScreen(recentlyAdded: true),
-                    ),
-                    GoRoute(
-                      path: 'tambah',
-                      name: TenantRoutes.tambahMenu,
-                      builder: (context, state) => const TambahMenuScreen(),
-                    ),
-                    // menu-diisi: the same form seeded to its filled state.
-                    GoRoute(
-                      path: 'diisi',
-                      name: TenantRoutes.menuDiisi,
-                      builder: (context, state) =>
-                          const TambahMenuScreen(prefilled: true),
-                    ),
-                    // kelola-menu (modal): Tambah Menu / Kelola Varian chooser.
-                    GoRoute(
-                      path: 'kelola',
-                      name: TenantRoutes.kelolaMenu,
-                      builder: (context, state) =>
-                          const _KelolaMenuRouteScreen(),
-                    ),
-                    GoRoute(
-                      path: 'kelola-2',
-                      name: TenantRoutes.kelolaMenu2,
-                      builder: (context, state) =>
-                          const _KelolaMenuRouteScreen(),
-                    ),
-                    // berhasil-ditambahkan (modal): menu-added confirmation.
-                    GoRoute(
-                      path: 'berhasil-modal',
-                      name: TenantRoutes.berhasilDitambahkan,
-                      builder: (context, state) =>
-                          const _BerhasilDitambahkanRouteScreen(),
-                    ),
-                    // kelola-varian: the variant manage screen (empty state).
-                    GoRoute(
-                      path: 'varian',
-                      name: TenantRoutes.kelolaVarian,
-                      builder: (context, state) => const KelolaVarianScreen(),
-                    ),
-                    // varian-ditambahkan: the menu form with the picked
-                    // variants attached; back returns to
-                    // menu-berhasil-ditambahkan (prototype).
-                    GoRoute(
-                      path: 'varian-ditambahkan',
-                      name: TenantRoutes.varianDitambahkan,
-                      builder: (context, state) => TambahMenuScreen(
-                        prefilled: true,
-                        variants: attachedMenuVariants,
-                        onBack: () =>
-                            context.goNamed(TenantRoutes.menuBerhasil),
-                      ),
-                    ),
-                    // varian-disimpan: the manage screen seeded to the saved
-                    // (filled) state.
-                    GoRoute(
-                      path: 'varian-disimpan',
-                      name: TenantRoutes.varianDisimpan,
-                      builder: (context, state) =>
-                          const KelolaVarianScreen(saved: true),
-                    ),
-                    // tambah-varian: the "Pilih Varian" picker (attach existing
-                    // variants); "Tambah" advances to varian-ditambahkan.
-                    GoRoute(
-                      path: 'tambah-varian',
-                      name: TenantRoutes.tambahVarian,
-                      builder: (context, state) => const PilihVarianScreen(),
-                    ),
-                    // tambah-varian-2: the empty add-variant form; "+ Tambah
-                    // Opsi" opens the option modal, Simpan → tambah-opsi-2.
-                    GoRoute(
-                      path: 'tambah-varian-2',
-                      name: TenantRoutes.tambahVarian2,
-                      builder: (context, state) => TambahVarianScreen(
-                        onTambahOpsi: (ctx) => _openOpsiVarianModal(
-                          ctx,
-                          next: TenantRoutes.tambahOpsi2,
-                        ),
-                      ),
-                    ),
-                    // varian-diisi: the same form seeded to its filled state.
-                    GoRoute(
-                      path: 'varian-diisi',
-                      name: TenantRoutes.varianDiisi,
-                      builder: (context, state) => TambahVarianScreen(
-                        prefilled: true,
-                        onTambahOpsi: (ctx) => _openOpsiVarianModal(
-                          ctx,
-                          next: TenantRoutes.tambahOpsi2,
-                        ),
-                      ),
-                    ),
-                    // tambah-opsi-2: the variant form with one option (Small /
-                    // Gratis) added; Simpan Varian → varian-ditambahkan.
-                    GoRoute(
-                      path: 'tambah-opsi-2',
-                      name: TenantRoutes.tambahOpsi2,
-                      builder: (context, state) => TambahVarianScreen(
-                        prefilled: true,
-                        options: const [_smallOption],
-                        onSave: () =>
-                            context.goNamed(TenantRoutes.varianDitambahkan),
-                        onTambahOpsi: (ctx) => _openOpsiVarianModal(
-                          ctx,
-                          next: TenantRoutes.opsi2Ditambahkan,
-                        ),
-                      ),
-                    ),
-                    // opsi-2-ditambahkan: the variant form with two options
-                    // (Small / +Rp3.000 Medium); Simpan Varian → varian-disimpan.
-                    GoRoute(
-                      path: 'opsi-2-ditambahkan',
-                      name: TenantRoutes.opsi2Ditambahkan,
-                      builder: (context, state) => TambahVarianScreen(
-                        prefilled: true,
-                        options: _twoOptions,
-                        onSave: () =>
-                            context.goNamed(TenantRoutes.varianDisimpan),
-                        onTambahOpsi: (ctx) => _openOpsiVarianModal(
-                          ctx,
-                          next: TenantRoutes.opsi2Ditambahkan,
-                        ),
-                      ),
-                    ),
-                    // opsi-varian-1 (modal): empty option add form; Simpan →
-                    // tambah-opsi-2.
-                    GoRoute(
-                      path: 'opsi-varian-1',
-                      name: TenantRoutes.opsiVarian1,
-                      builder: (context, state) => const _OpsiVarianRouteScreen(
+                  ),
+                  // varian-disimpan: the manage screen seeded to the saved
+                  // (filled) state.
+                  GoRoute(
+                    path: 'varian-disimpan',
+                    name: TenantRoutes.varianDisimpan,
+                    builder: (context, state) =>
+                        const KelolaVarianScreen(saved: true),
+                  ),
+                  // tambah-varian: the "Pilih Varian" picker (attach existing
+                  // variants); "Tambah" advances to varian-ditambahkan.
+                  GoRoute(
+                    path: 'tambah-varian',
+                    name: TenantRoutes.tambahVarian,
+                    builder: (context, state) => const PilihVarianScreen(),
+                  ),
+                  // tambah-varian-2: the empty add-variant form; "+ Tambah
+                  // Opsi" opens the option modal, Simpan → tambah-opsi-2.
+                  GoRoute(
+                    path: 'tambah-varian-2',
+                    name: TenantRoutes.tambahVarian2,
+                    builder: (context, state) => TambahVarianScreen(
+                      onTambahOpsi: (ctx) => _openOpsiVarianModal(
+                        ctx,
                         next: TenantRoutes.tambahOpsi2,
                       ),
                     ),
-                    // opsi-varian-1-diisi (modal): filled (Small / 0); Simpan →
-                    // tambah-opsi-2.
-                    GoRoute(
-                      path: 'opsi-varian-1-diisi',
-                      name: TenantRoutes.opsiVarian1Diisi,
-                      builder: (context, state) => const _OpsiVarianRouteScreen(
+                  ),
+                  // varian-diisi: the same form seeded to its filled state.
+                  GoRoute(
+                    path: 'varian-diisi',
+                    name: TenantRoutes.varianDiisi,
+                    builder: (context, state) => TambahVarianScreen(
+                      prefilled: true,
+                      onTambahOpsi: (ctx) => _openOpsiVarianModal(
+                        ctx,
                         next: TenantRoutes.tambahOpsi2,
-                        initialName: 'Small',
-                        initialPrice: '0',
                       ),
                     ),
-                    // opsi-varian-2-diisi (modal): the second option's empty
-                    // form over the one-option backdrop; Simpan → opsi-2-...
-                    GoRoute(
-                      path: 'opsi-varian-2-diisi',
-                      name: TenantRoutes.opsiVarian2Diisi,
-                      builder: (context, state) => const _OpsiVarianRouteScreen(
+                  ),
+                  // tambah-opsi-2: the variant form with one option (Small /
+                  // Gratis) added; Simpan Varian → varian-ditambahkan.
+                  GoRoute(
+                    path: 'tambah-opsi-2',
+                    name: TenantRoutes.tambahOpsi2,
+                    builder: (context, state) => TambahVarianScreen(
+                      prefilled: true,
+                      options: const [_smallOption],
+                      onSave: () =>
+                          context.goNamed(TenantRoutes.varianDitambahkan),
+                      onTambahOpsi: (ctx) => _openOpsiVarianModal(
+                        ctx,
                         next: TenantRoutes.opsi2Ditambahkan,
-                        backdropOptions: [_smallOption],
                       ),
                     ),
-                    // opsi-varian-2-diisi-2 (modal): filled (Medium / 3000);
-                    // Simpan → opsi-2-ditambahkan.
-                    GoRoute(
-                      path: 'opsi-varian-2-diisi-2',
-                      name: TenantRoutes.opsiVarian2Diisi2,
-                      builder: (context, state) => const _OpsiVarianRouteScreen(
+                  ),
+                  // opsi-2-ditambahkan: the variant form with two options
+                  // (Small / +Rp3.000 Medium); Simpan Varian → varian-disimpan.
+                  GoRoute(
+                    path: 'opsi-2-ditambahkan',
+                    name: TenantRoutes.opsi2Ditambahkan,
+                    builder: (context, state) => TambahVarianScreen(
+                      prefilled: true,
+                      options: _twoOptions,
+                      onSave: () =>
+                          context.goNamed(TenantRoutes.varianDisimpan),
+                      onTambahOpsi: (ctx) => _openOpsiVarianModal(
+                        ctx,
                         next: TenantRoutes.opsi2Ditambahkan,
-                        initialName: 'Medium',
-                        initialPrice: '3000',
-                        backdropOptions: [_smallOption],
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-
-            // Tab 2 — Laporan (home = laporan).
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: TenantRoutes.laporanPath,
-                  name: TenantRoutes.laporan,
-                  builder: (context, state) => const LaporanScreen(),
-                ),
-              ],
-            ),
-
-            // Tab 3 — Admin (home = admin-offline).
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: TenantRoutes.adminPath,
-                  name: TenantRoutes.admin,
-                  builder: (context, state) => const AdminStatusScreen(),
-                  routes: [
-                    // admin-online: same screen, seeded online. The prototype
-                    // "Set Online" button flips state in place, so this route
-                    // is a secondary entry point (e.g. deep-link), not the
-                    // toggle's target.
-                    GoRoute(
-                      path: 'online',
-                      name: TenantRoutes.adminOnline,
-                      builder: (context, state) =>
-                          const AdminStatusScreen(initialOnline: true),
+                  ),
+                  // opsi-varian-1 (modal): empty option add form; Simpan →
+                  // tambah-opsi-2.
+                  GoRoute(
+                    path: 'opsi-varian-1',
+                    name: TenantRoutes.opsiVarian1,
+                    builder: (context, state) => const _OpsiVarianRouteScreen(
+                      next: TenantRoutes.tambahOpsi2,
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
+                  ),
+                  // opsi-varian-1-diisi (modal): filled (Small / 0); Simpan →
+                  // tambah-opsi-2.
+                  GoRoute(
+                    path: 'opsi-varian-1-diisi',
+                    name: TenantRoutes.opsiVarian1Diisi,
+                    builder: (context, state) => const _OpsiVarianRouteScreen(
+                      next: TenantRoutes.tambahOpsi2,
+                      initialName: 'Small',
+                      initialPrice: '0',
+                    ),
+                  ),
+                  // opsi-varian-2-diisi (modal): the second option's empty
+                  // form over the one-option backdrop; Simpan → opsi-2-...
+                  GoRoute(
+                    path: 'opsi-varian-2-diisi',
+                    name: TenantRoutes.opsiVarian2Diisi,
+                    builder: (context, state) => const _OpsiVarianRouteScreen(
+                      next: TenantRoutes.opsi2Ditambahkan,
+                      backdropOptions: [_smallOption],
+                    ),
+                  ),
+                  // opsi-varian-2-diisi-2 (modal): filled (Medium / 3000);
+                  // Simpan → opsi-2-ditambahkan.
+                  GoRoute(
+                    path: 'opsi-varian-2-diisi-2',
+                    name: TenantRoutes.opsiVarian2Diisi2,
+                    builder: (context, state) => const _OpsiVarianRouteScreen(
+                      next: TenantRoutes.opsi2Ditambahkan,
+                      initialName: 'Medium',
+                      initialPrice: '3000',
+                      backdropOptions: [_smallOption],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Tab 2 — Laporan (home = laporan).
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: TenantRoutes.laporanPath,
+                name: TenantRoutes.laporan,
+                builder: (context, state) => const LaporanScreen(),
+              ),
+            ],
+          ),
+
+          // Tab 3 — Admin (home = admin-offline).
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: TenantRoutes.adminPath,
+                name: TenantRoutes.admin,
+                builder: (context, state) => const AdminStatusScreen(),
+                routes: [
+                  // admin-online: same screen, seeded online. The prototype
+                  // "Set Online" button flips state in place, so this route
+                  // is a secondary entry point (e.g. deep-link), not the
+                  // toggle's target.
+                  GoRoute(
+                    path: 'online',
+                    name: TenantRoutes.adminOnline,
+                    builder: (context, state) =>
+                        const AdminStatusScreen(initialOnline: true),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}

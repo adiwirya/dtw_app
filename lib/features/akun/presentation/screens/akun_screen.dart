@@ -4,6 +4,7 @@ import 'package:dtw_app/features/akun/presentation/providers/akun_provider.dart'
 import 'package:dtw_app/features/akun/presentation/widgets/account_menu_tile.dart';
 import 'package:dtw_app/features/akun/presentation/widgets/akun_header.dart';
 import 'package:dtw_app/features/akun/presentation/widgets/profile_summary_card.dart';
+import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,9 +26,8 @@ class AkunScreen extends ConsumerWidget {
     // Bahasa, Bantuan & FAQ, Kebijakan Privasi have no destination flow yet.
   }
 
-  void _onLogout(BuildContext context) {
-    // TODO(open-question): logout/auth is UI-only (Open Question 1). Wire this
-    // to the real sign-out flow once auth is specified.
+  Future<void> _onLogout(WidgetRef ref) {
+    return ref.read(authControllerProvider.notifier).logout();
   }
 
   @override
@@ -54,7 +54,7 @@ class AkunScreen extends ConsumerWidget {
                   _MenuCard(
                     account: account,
                     onItemTap: (item) => _onMenuTap(context, item),
-                    onLogout: () => _onLogout(context),
+                    onLogout: () => _onLogout(ref),
                   ),
                 ],
               ),

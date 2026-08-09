@@ -1,9 +1,15 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/akun/presentation/screens/akun_screen.dart';
+import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../support/canned_dio.dart';
+import '../../../support/fake_local_storage.dart';
 
 GoRouter _testRouter() => GoRouter(
       initialLocation: '/akun',
@@ -71,5 +77,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PROFILE SAYA SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('tapping Keluar logs out and clears isLoggedInProvider',
+      (tester) async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          AuthRepository(
+            dio: cannedDio(200, {
+              'meta': {
+                'success': true,
+                'message': 'Success',
+                'code': 200,
+                'trace_id': 'abc',
+              },
+            }),
+            localStorage: storage,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(isLoggedInProvider.notifier).state = true;
+
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: _testRouter()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Keluar'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(isLoggedInProvider), isFalse);
   });
 }
