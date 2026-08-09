@@ -50,12 +50,12 @@ class AdminStatusScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                 children: [
-                  OnlineStatusToggle(
-                    online: online,
-                    onToggle: (next) =>
-                        ref.read(statusProvider.notifier).set(value: next),
-                  ),
-                  const SizedBox(height: 16),
+                  // OnlineStatusToggle(
+                  //   online: online,
+                  //   onToggle: (next) =>
+                  //       ref.read(statusProvider.notifier).set(value: next),
+                  // ),
+                  // const SizedBox(height: 16),
                   _JamOperasionalCard(info: info),
                   const SizedBox(height: 16),
                   _InformasiTenantCard(info: info),
