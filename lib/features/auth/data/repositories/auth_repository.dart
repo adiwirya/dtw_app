@@ -33,7 +33,10 @@ class AuthRepository {
       final loginResponse = LoginResponse.fromJson(response.data!);
       await _localStorage.write(authTokenStorageKey, loginResponse.accessToken);
     } on DioException catch (error) {
-      throw _mapError(error);
+      throw mapDioError(
+        error,
+        unauthorizedMessage: (_) => 'Username atau password salah.',
+      );
     }
   }
 
@@ -47,43 +50,6 @@ class AuthRepository {
     }
   }
 
-  AuthException _mapError(DioException error) {
-    final statusCode = error.response?.statusCode;
-
-    if (statusCode == 422) {
-      final rawErrors = error.response?.data is Map
-          ? (error.response?.data as Map)['errors']
-          : null;
-      final fieldErrors = <String, List<String>>{};
-      if (rawErrors is Map) {
-        rawErrors.forEach((key, value) {
-          if (value is List) {
-            fieldErrors[key.toString()] =
-                value.map((m) => m.toString()).toList();
-          }
-        });
-      }
-      final message = fieldErrors.values.expand((m) => m).join(' ');
-      return AuthException(
-        message: message.isEmpty ? 'Data tidak valid.' : message,
-        fieldErrors: fieldErrors.isEmpty ? null : fieldErrors,
-      );
-    }
-
-    if (statusCode == 401) {
-      return AuthException(message: 'Username atau password salah.');
-    }
-
-    if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.receiveTimeout) {
-      return AuthException(
-        message: 'Tidak bisa terhubung ke server. Cek koneksi internet.',
-      );
-    }
-
-    return AuthException(message: 'Terjadi kesalahan. Coba lagi.');
-  }
 }
 
 @riverpod
