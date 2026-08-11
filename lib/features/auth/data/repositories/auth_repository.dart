@@ -18,7 +18,7 @@ class AuthRepository {
   final Dio _dio;
   final LocalStorage _localStorage;
 
-  Future<void> loginWithPassword({
+  Future<LoginResponse> loginWithPassword({
     required String username,
     required String password,
   }) async {
@@ -32,6 +32,15 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data!);
       await _localStorage.write(authTokenStorageKey, loginResponse.accessToken);
+      if (loginResponse.branchId != null) {
+        await _localStorage.write(
+          tenantBranchIdStorageKey,
+          loginResponse.branchId!,
+        );
+      } else {
+        await _localStorage.delete(tenantBranchIdStorageKey);
+      }
+      return loginResponse;
     } on DioException catch (error) {
       throw mapDioError(
         error,
@@ -47,6 +56,7 @@ class AuthRepository {
       // Best-effort: still clear the local session even if the server call fails.
     } finally {
       await _localStorage.delete(authTokenStorageKey);
+      await _localStorage.delete(tenantBranchIdStorageKey);
     }
   }
 

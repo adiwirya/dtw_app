@@ -30,6 +30,37 @@ void main() {
     await repository.loginWithPassword(username: 'budi', password: 'secret');
 
     expect(storage.values[authTokenStorageKey], 'tok_123');
+    expect(storage.values.containsKey(tenantBranchIdStorageKey), isFalse);
+  });
+
+  test('loginWithPassword persists the branch id for a branch-scoped login',
+      () async {
+    final storage = FakeLocalStorage();
+    final repository = AuthRepository(
+      dio: cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {
+          'access_token': 'tok_123',
+          'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+          'abilities': <dynamic>[],
+          'scopes': [
+            {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+          ],
+        },
+      }),
+      localStorage: storage,
+    );
+
+    final response =
+        await repository.loginWithPassword(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(response.branchId, 'branch-1');
+    expect(storage.values[tenantBranchIdStorageKey], 'branch-1');
   });
 
   test('loginWithPassword throws AuthException with fieldErrors on 422', () async {

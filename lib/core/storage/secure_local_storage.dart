@@ -10,6 +10,11 @@ part 'secure_local_storage.g.dart';
 /// interceptors in `dioProvider`.
 const authTokenStorageKey = 'auth_token';
 
+/// Key the tenant branch id is stored under (only present for a
+/// branch-scoped/tenant session) — read by [TenantOrderBoard] to know which
+/// `branch_id` to fetch/subscribe with.
+const tenantBranchIdStorageKey = 'tenant_branch_id';
+
 /// [LocalStorage] backed by the platform Keychain (iOS) / EncryptedShared
 /// Preferences+Keystore (Android) via `flutter_secure_storage`.
 class SecureLocalStorage implements LocalStorage {
