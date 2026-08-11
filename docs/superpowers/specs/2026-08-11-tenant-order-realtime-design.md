@@ -45,11 +45,13 @@ so this spec integrates a WebSocket client instead of polling.
 - A `TenantOrder` domain model (plain `@immutable`, matching this
   codebase's existing hand-rolled model convention — no freezed/
   json_serializable, consistent with every other model in the repo).
-- Real-time new-order delivery via Laravel Reverb (`pusher_channels_flutter`
+- Real-time new-order delivery via Laravel Reverb (`laravel_reverb`
   package), replacing the `TenantOrderBoard` mock with an async, stream-fed
   provider.
-- Extending `AuthUser`/`LoginResponse` to carry the tenant branch id needed
-  to pick the right private channel.
+- Extending `LoginResponse` to carry the tenant branch id needed to pick
+  the right private channel — confirmed live (see Data Flow) to live at
+  `data.scopes[].tenant_branch_id` for the entry where `type == "branch"`,
+  not on `data.user`.
 - Lifecycle wiring: connect Reverb on login/session-restore, disconnect on
   logout/401.
 
@@ -67,8 +69,8 @@ so this spec integrates a WebSocket client instead of polling.
   else) — the existing UI mock already flags this as unresolved; this spec
   sends `reason` on the `CANCELLED` PATCH if the API accepts it, verified
   live during implementation, and does not invent new backend behavior.
-- Reconnect/backoff tuning beyond what `pusher_channels_flutter` provides
-  out of the box.
+- Reconnect/backoff tuning beyond what `laravel_reverb` provides out of the
+  box.
 
 ## Approach
 
@@ -84,13 +86,21 @@ follows the auth feature's precedent):
   benefit big enough to justify ignoring existing infra.
 - **B — Manual `web_socket_channel` implementing the Pusher wire protocol
   by hand** (subscribe handshake, ping/pong, private-channel auth,
-  reconnect). Rejected — reimplements what an official SDK already does
-  correctly; more code, more failure surface, no benefit over A for this
+  reconnect). Rejected — reimplements what an existing package already does
+  correctly; more code, more failure surface, no benefit over C for this
   codebase's scale.
-- **C — `pusher_channels_flutter` (chosen)**: official Pusher Channels
-  Flutter SDK, wire-compatible with Reverb. Handles connection lifecycle,
-  private-channel auth callback, and reconnection; this spec only needs to
-  supply connection config, the auth endpoint, and one event handler.
+- **C — `laravel_reverb` package (chosen)**: purpose-built Dart/Flutter
+  client for self-hosted Laravel Reverb (not the official
+  `pusher_channels_flutter`, which was the original pick during
+  brainstorming but turned out to be cloud-cluster-only — it has no
+  host/port override and cannot reach a self-hosted Reverb server at all;
+  caught before implementation by checking its README). `laravel_reverb`
+  takes an explicit `host`/`port`/`useTls`, an async `authHeaders` callback
+  (fits attaching a live bearer token) plus `authEndpoint`, a
+  `.private(channel).listen(event, callback)` subscribe API, an
+  exponential-backoff auto-reconnect, a `states` stream, and an
+  `onReconnected()` hook — the last one is a direct fit for this spec's
+  replay-on-reconnect requirement.
 
 ## Architecture
 
@@ -109,7 +119,9 @@ lib/
                                        connect/disconnect/subscribe)
   features/
     auth/
-      data/models/login_response.dart (+ branchId field on AuthUser)
+      data/models/login_response.dart (+ branchId field on LoginResponse,
+                                          parsed from data.scopes, not
+                                          from data.user)
     tenant/
       data/
         models/
@@ -139,42 +151,68 @@ lib/
   reverse-proxied on the same host/port as the REST API since it's "the
   same domain" — **verify on first real connection attempt**; if it fails,
   the actual Reverb port needs to be obtained separately).
-- **`TenantRealtimeService`**: wraps a `PusherChannelsFlutter` client.
+- **`TenantRealtimeService`**: wraps a `laravel_reverb` `Reverb` client.
   - `Future<void> connect({required String token, required String
-    branchId})` — initializes the client with `ReverbConfig`, sets the
-    private-channel auth endpoint to `POST https://dtw-cms.gadingemerald.com
-    /broadcasting/auth` with header `Authorization: Bearer $token`, then
-    subscribes to `private-branch.$branchId`.
-  - `Stream<Map<String, dynamic>> get orderCreated` — binds to the
-    `order.created` event (the channel uses `broadcastAs`, so the client
-    listens for the literal string `order.created`, not a class name) and
-    exposes each decoded payload.
+    branchId})` — constructs `Reverb(host: ReverbConfig.host, port: 443,
+    appKey: ReverbConfig.key, useTls: true, authEndpoint:
+    'https://${ReverbConfig.host}/broadcasting/auth', authHeaders: () async
+    => {'Authorization': 'Bearer $token'})`, calls `connect()`, then
+    `.private('branch.$branchId').listen('order.created', ...)` (the
+    channel name the package's `.private()` helper produces is prefixed
+    with `private-` automatically per the package's convention — verify
+    this against the literal `private-branch.{branchId}` name during
+    implementation and pass the raw name instead if the helper's prefix
+    doesn't match).
+  - `Stream<Map<String, dynamic>> get orderCreated` — the decoded payload
+    stream from the `order.created` binding above.
+  - `Stream<dynamic> get connectionStates` / `onReconnected` — re-exposes
+    the underlying `Reverb.states` stream / `onReconnected()` hook so the
+    provider (see below) knows when to run the replay gap-fill.
   - `Future<void> disconnect()` — unsubscribe + disconnect, called on
     logout and on 401.
   - Exposed as `@riverpod TenantRealtimeService tenantRealtimeService(Ref
     ref) => TenantRealtimeService()` (keepAlive, singleton-per-app-session).
-- **`TenantOrder`** model: fields mirroring what `GET /v1/orders` and the
-  `order.created` payload need to render the existing UI (`orderId`,
-  `tableName`, `time`, `status`, `items`, `total`, `note`,
-  `broadcastEventId` — the last one nullable, present only on payloads that
-  arrived via the socket, used for replay bookkeeping). `TenantOrderStatus`
-  enum mirrors the backend's `OrderStatus` (`pending`, `preparing`, `ready`,
-  `completed`, `partialCompleted`, `cancelled`) — a **new** enum distinct
-  from the existing UI-only `IncomingOrderStatus` (`baru`/`diproses`/
-  `selesai`); a small mapper function
-  (`IncomingOrderStatus fromBackend(TenantOrderStatus)`) translates for the
-  screens, so the three existing UI tabs don't need to change:
+- **`TenantOrder`** model: fields confirmed live from `GET /v1/orders?
+  branch_id=` (`id`, `order_group_id`, `branch_id`, `receipt_number`,
+  `grand_total`, `order_status`, `created_at`, `updated_at`, `items` —
+  the last one an empty array on every live sample seen; see the "table
+  name / item detail gap" open follow-up below) plus `broadcastEventId`
+  (nullable, present only on payloads that arrived via the socket, used
+  for replay bookkeeping). `TenantOrderStatus` enum mirrors the backend's
+  `order_status` (confirmed live: values are UPPER_SNAKE_CASE strings,
+  e.g. `"PENDING"` — `pending`, `preparing`, `ready`, `completed`,
+  `partialCompleted`, `cancelled` per the `dtw-cms-api-structure` memory's
+  previously-extracted enum) — a **new** enum distinct from the existing
+  UI-only `IncomingOrderStatus` (`baru`/`diproses`/`selesai`); a small
+  mapper function (`IncomingOrderStatus fromBackend(TenantOrderStatus)`)
+  translates for the screens, so the three existing UI tabs don't need to
+  change:
   - `pending` → `baru`
   - `preparing` → `diproses`
   - `ready`, `completed` → `selesai`
   - `cancelled` → excluded from the board entirely
   - `partialCompleted` → treated as `selesai` for now (no dedicated UI tab
     exists for it; revisit if the product wants one)
+
+  **Table name / item detail gap (confirmed live, decision made):** the
+  live `GET /v1/orders` response has no `table_name` field at all, and
+  `items` was an empty array on the one live test order available (`?
+  include=items` / `?with=items` / `?expand=items` all made no
+  difference); no `GET /v1/orders/{id}` or `/orders/{order_group_id}`
+  detail endpoint was found (both 404). Per the user's explicit decision,
+  this spec does **not** block on discovering where table/item detail
+  actually lives — `IncomingOrderData.tableName` is populated from
+  `receiptNumber` (real data, just a repurposed display value) and
+  `.items` stays `const []` until the real shape is found in a follow-up.
+  `.note` stays `null` (no equivalent field exists). `.time` is formatted
+  as `HH:mm` directly from `created_at`'s time portion, with no timezone
+  label appended (the API's timestamp timezone was not confirmed, so no
+  `WIB` suffix is invented).
 - **`TenantOrderRepository`** (constructor-injected `Dio dio`):
   - `Future<List<TenantOrder>> fetchOrders({required String branchId})` →
-    `GET /v1/orders` (query param name/shape for branch scoping verified
-    live — the API spec documents this list endpoint's item shape
-    ambiguously per the `dtw-cms-api-structure` memory's noted gap).
+    `GET /v1/orders?branch_id=<branchId>` — confirmed live: `branch_id` is
+    a **required** query param (a request without it 422s with `"The
+    branch id field is required."`).
   - `Future<void> updateStatus(String orderId, {required
     TenantOrderStatus status, String? reason})` → `PATCH /v1/orders/{id}
     /status`.
@@ -208,13 +246,16 @@ lib/
 
 ## Data flow
 
-**Branch id resolution:** `AuthUser` gains a `branchId` field (nullable —
-some login responses, e.g. a future non-branch-scoped role, might omit
-it). `LoginResponse.fromJson` reads whatever key the live response actually
-uses (`branch_id` or `tenant_branch_id` — **verify live during
-implementation**, do not guess both into existence speculatively). The
-branch id is persisted alongside the auth token in `SecureLocalStorage` (a
-second key, e.g. `tenant_branch_id_key`) so it survives app restart without
+**Branch id resolution:** confirmed live against the real API
+(`POST /v1/auth/login` with the tenant test credentials): the response is
+`{data: {access_token, user: {id, username}, abilities: [...], scopes:
+[{type: "branch", tenant_branch_id: "<uuid>"}]}}` — the branch id is
+**not** on `user` at all, it's the `tenant_branch_id` of whichever `scopes`
+entry has `type == "branch"`. `LoginResponse.fromJson` parses `data.scopes`
+and extracts this (`null` if no branch-typed scope exists — e.g. a
+non-tenant/busboy login). The branch id is persisted alongside the auth
+token in `SecureLocalStorage` (a second key,
+`tenant_branch_id_storage_key`) so it survives app restart without
 re-parsing the original login response.
 
 **Login → realtime connect:** After `AuthController.login()` succeeds and
@@ -230,20 +271,23 @@ and branch id are present, connects the realtime service before the first
 frame — matching the existing "no visible splash screen" constraint.
 
 **Board display:** `TenantOrderBoard.build()` fetches once, then the
-screen's three sub-tabs keep filtering by `IncomingOrderStatus` exactly as
-today (via the `fromBackend` mapper) — no screen/widget changes needed
-beyond consuming `AsyncValue` instead of a plain list (existing
-`TODO(open-question)` comments already anticipated this exact migration
-shape).
+screen maps each `TenantOrder` to an `IncomingOrderData` (via
+`fromBackend` for the status + the table-name/items fallback described
+above) before its existing sub-tab filtering by `IncomingOrderStatus`
+runs unchanged. So the screen's *change* is: consume `AsyncValue`
+instead of a plain list, and map `TenantOrder → IncomingOrderData` right
+after unwrapping it — the filtering/rendering logic below that point is
+untouched (existing `TODO(open-question)` comments already anticipated
+this general migration shape, just not the exact mapping step).
 
 **New order arrives (socket):** `order.created` payload → `TenantOrder` →
 prepended to state → screen rebuilds → new card appears in the "Baru" tab
 with no user action, no polling delay.
 
 **Reconnect:** connection drop (e.g. backgrounding, network blip) →
-`pusher_channels_flutter` auto-reconnects → provider detects the
-reconnection callback → `fetchMissedEvents(afterId: lastSeenId, branchId)`
-→ merge → resume.
+`laravel_reverb` auto-reconnects with exponential backoff → its
+`onReconnected()` hook fires → provider calls
+`fetchMissedEvents(afterId: lastSeenId, branchId)` → merge → resume.
 
 **Terima / Tolak / Siap Diambil:** unchanged user-facing flow; underlying
 action now issues a real `PATCH` instead of a pure in-memory transition,
@@ -284,15 +328,25 @@ with optimistic UI update + rollback-on-error.
 
 ## Open follow-ups (not blocking this spec)
 
-- Exact JSON key for branch id in the login response, and the exact query
-  param(s) `GET /v1/orders` uses for branch scoping — verify against the
-  live API at implementation time (the `dtw-cms-api-structure` memory
-  already flags the orders-list shape as an unverified spec gap).
-  Update the memory once verified.
+- **Resolved during this spec's writing** (kept here for record, no longer
+  open): branch id lives at `data.scopes[].tenant_branch_id`
+  (`type == "branch"`) in the login response, not on `user`; `GET
+  /v1/orders` requires a `branch_id` query param; `order_status` values
+  are confirmed UPPER_SNAKE_CASE. All verified against the live API with
+  real tenant credentials.
+- Where table name and item line-item detail actually live (not on the
+  `GET /v1/orders` item shape at all — confirmed live, see the "table
+  name / item detail gap" note above). Likely lives under `order_group_id`
+  via an endpoint not yet found; revisit once either the API docs render
+  properly in a browser tool or a backend dev points at the right route.
 - Whether `PATCH /v1/orders/{id}/status` actually accepts a `reason` field
-  for `CANCELLED` — verify live; if not accepted, `reason`/
-  `rejectedItemNames` stay UI-only exactly as they are in today's mock
-  (i.e., no regression, just no persistence yet).
+  for `CANCELLED`, and the exact body key for the status itself (this spec
+  assumes `order_status` for consistency with the list response's field
+  name, but this is a mutating call and was deliberately **not** probed
+  live against the one real test order without explicit sign-off) — verify
+  live at the start of implementation (see plan). If `reason` isn't
+  accepted, `reason`/`rejectedItemNames` stay UI-only exactly as they are
+  in today's mock (i.e., no regression, just no persistence yet).
 - Confirm the real Reverb port/scheme if the "same domain as API, port 443"
   assumption doesn't connect on the first try.
 - Multi-device status-change sync (needs the backend to also broadcast an
