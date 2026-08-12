@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../support/canned_dio.dart';
 import '../../../../support/fake_local_storage.dart';
+import '../../../../support/fake_tenant_realtime_service.dart';
 
 AuthRepository _repositoryReturning(
   int statusCode,
@@ -54,6 +56,8 @@ void main() {
   test('login sets appFlavorProvider to tenant for a branch-scoped response',
       () async {
     final storage = FakeLocalStorage();
+    final realtime = FakeTenantRealtimeService();
+    addTearDown(realtime.close);
     final container = ProviderContainer(
       overrides: [
         authRepositoryProvider.overrideWithValue(
@@ -74,6 +78,7 @@ void main() {
             },
           }, storage),
         ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
       ],
     );
     addTearDown(container.dispose);
@@ -137,5 +142,101 @@ void main() {
     await container.read(authControllerProvider.notifier).logout();
 
     expect(container.read(isLoggedInProvider), isFalse);
+  });
+
+  test('login connects the realtime service for a branch-scoped response',
+      () async {
+    final storage = FakeLocalStorage();
+    final realtime = FakeTenantRealtimeService();
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+              ],
+            },
+          }, storage),
+        ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(realtime.connectCalls, [(token: 'tok_123', branchId: 'branch-1')]);
+  });
+
+  test('login does not connect the realtime service for a busboy response',
+      () async {
+    final storage = FakeLocalStorage();
+    final realtime = FakeTenantRealtimeService();
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'budi'},
+            },
+          }, storage),
+        ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'budi', password: 'secret');
+
+    expect(realtime.connectCalls, isEmpty);
+  });
+
+  test('logout disconnects the realtime service', () async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final realtime = FakeTenantRealtimeService();
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(realtime.disconnectCallCount, 1);
   });
 }

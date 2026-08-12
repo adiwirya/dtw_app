@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -30,6 +31,7 @@ Dio dio(Ref ref) {
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
           await ref.read(localStorageProvider).delete(authTokenStorageKey);
+          await ref.read(tenantRealtimeServiceProvider).disconnect();
           ref.read(isLoggedInProvider.notifier).state = false;
         }
         handler.next(error);

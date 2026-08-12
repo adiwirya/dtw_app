@@ -1,4 +1,5 @@
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -34,8 +35,15 @@ class AuthController extends _$AuthController {
             password: password,
           );
       ref.read(isLoggedInProvider.notifier).state = true;
+      final branchId = response.branchId;
       ref.read(appFlavorProvider.notifier).state =
-          response.branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
+          branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
+      if (branchId != null) {
+        await ref.read(tenantRealtimeServiceProvider).connect(
+              token: response.accessToken,
+              branchId: branchId,
+            );
+      }
       state = const AuthState();
     } catch (error) {
       state = AuthState(error: error);
@@ -43,6 +51,7 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> logout() async {
+    await ref.read(tenantRealtimeServiceProvider).disconnect();
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
   }
