@@ -9,126 +9,186 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('fetchOrders', () {
-    test('parses the live response shape and passes branch_id as a query param', () async {
-      final dio = cannedDio(200, {
-        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-        'data': [
-          {
-            'id': 'order-1',
-            'order_group_id': 'group-1',
-            'branch_id': 'branch-1',
-            'receipt_number': 'RCP-1',
-            'grand_total': 21000,
-            'order_status': 'PENDING',
-            'created_at': '2026-08-07 09:24:08',
-            'updated_at': '2026-08-07 09:24:08',
-            'items': <dynamic>[],
+    test(
+      'parses the live response shape and passes branch_id as a query param',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc'
           },
-        ],
-      });
-      final repository = TenantOrderRepository(dio: dio);
+          'data': [
+            {
+              'id': 'order-1',
+              'order_group_id': 'group-1',
+              'branch_id': 'branch-1',
+              'receipt_number': 'RCP-1',
+              'grand_total': 21000,
+              'order_status': 'PENDING',
+              'created_at': '2026-08-07 09:24:08',
+              'updated_at': '2026-08-07 09:24:08',
+              'items': <dynamic>[],
+            },
+          ],
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      final orders = await repository.fetchOrders(branchId: 'branch-1');
+        final orders = await repository.fetchOrders(branchId: 'branch-1');
 
-      expect(orders, hasLength(1));
-      expect(orders.single.id, 'order-1');
-      expect(
-        (dio.httpClientAdapter as CannedAdapter).lastRequest!.queryParameters,
-        {'branch_id': 'branch-1'},
-      );
-    });
+        expect(orders, hasLength(1));
+        expect(orders.single.id, 'order-1');
+        expect(
+          (dio.httpClientAdapter as CannedAdapter)
+              .lastRequest!
+              .queryParameters,
+          {'branch_id': 'branch-1'},
+        );
+      },
+    );
 
-    test('throws ApiException with the required-field message on 422', () async {
-      final dio = cannedDio(422, {
-        'meta': {'success': false, 'message': 'Validation failed.', 'code': 422, 'trace_id': 'abc'},
-        'errors': {
-          'branch_id': ['The branch id field is required.'],
-        },
-      });
-      final repository = TenantOrderRepository(dio: dio);
+    test(
+      'throws ApiException with the required-field message on 422',
+      () async {
+        final dio = cannedDio(422, {
+          'meta': {
+            'success': false,
+            'message': 'Validation failed.',
+            'code': 422,
+            'trace_id': 'abc'
+          },
+          'errors': {
+            'branch_id': ['The branch id field is required.'],
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      await expectLater(
-        repository.fetchOrders(branchId: 'branch-1'),
-        throwsA(
-          isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            'The branch id field is required.',
+        await expectLater(
+          repository.fetchOrders(branchId: 'branch-1'),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              'The branch id field is required.',
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 
   group('updateStatus', () {
-    test('PATCHes order_status with the wire enum value', () async {
-      final dio = cannedDio(200, {
-        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-      });
-      final repository = TenantOrderRepository(dio: dio);
+    test(
+      'PATCHes order_status with the wire enum value',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc'
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      await repository.updateStatus('order-1', status: TenantOrderStatus.preparing);
+        await repository.updateStatus(
+          'order-1',
+          status: TenantOrderStatus.preparing,
+        );
 
-      final adapter = dio.httpClientAdapter as CannedAdapter;
-      expect(adapter.lastRequest!.path, '/v1/orders/order-1/status');
-      expect(adapter.lastRequest!.method, 'PATCH');
-      expect(adapter.lastRequest!.data, {'order_status': 'PREPARING'});
-    });
+        final adapter = dio.httpClientAdapter as CannedAdapter;
+        expect(adapter.lastRequest!.path, '/v1/orders/order-1/status');
+        expect(adapter.lastRequest!.method, 'PATCH');
+        expect(adapter.lastRequest!.data, {'order_status': 'PREPARING'});
+      },
+    );
 
-    test('includes reason when provided', () async {
-      final dio = cannedDio(200, {
-        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-      });
-      final repository = TenantOrderRepository(dio: dio);
+    test(
+      'includes reason when provided',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc'
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      await repository.updateStatus(
-        'order-1',
-        status: TenantOrderStatus.cancelled,
-        reason: 'Stok Habis',
-      );
+        await repository.updateStatus(
+          'order-1',
+          status: TenantOrderStatus.cancelled,
+          reason: 'Stok Habis',
+        );
 
-      final adapter = dio.httpClientAdapter as CannedAdapter;
-      expect(adapter.lastRequest!.data, {
-        'order_status': 'CANCELLED',
-        'reason': 'Stok Habis',
-      });
-    });
+        final adapter = dio.httpClientAdapter as CannedAdapter;
+        expect(adapter.lastRequest!.data, {
+          'order_status': 'CANCELLED',
+          'reason': 'Stok Habis',
+        });
+      },
+    );
 
-    test('throws a mapped ApiException on failure', () async {
-      final dio = cannedDio(500, {
-        'meta': {'success': false, 'message': 'Error', 'code': 500, 'trace_id': 'abc'},
-      });
-      final repository = TenantOrderRepository(dio: dio);
+    test(
+      'throws a mapped ApiException on failure',
+      () async {
+        final dio = cannedDio(500, {
+          'meta': {
+            'success': false,
+            'message': 'Error',
+            'code': 500,
+            'trace_id': 'abc'
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      await expectLater(
-        repository.updateStatus('order-1', status: TenantOrderStatus.preparing),
-        throwsA(
-          isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            'Terjadi kesalahan. Coba lagi.',
+        await expectLater(
+          repository.updateStatus(
+            'order-1',
+            status: TenantOrderStatus.preparing,
           ),
-        ),
-      );
-    });
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              'Terjadi kesalahan. Coba lagi.',
+            ),
+          ),
+        );
+      },
+    );
   });
 
   group('fetchMissedEvents', () {
-    test('passes branch_id and after_id as query params', () async {
-      final dio = cannedDio(200, {
-        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-        'data': <dynamic>[],
-      });
-      final repository = TenantOrderRepository(dio: dio);
+    test(
+      'passes branch_id and after_id as query params',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc'
+          },
+          'data': <dynamic>[],
+        });
+        final repository = TenantOrderRepository(dio: dio);
 
-      final orders =
-          await repository.fetchMissedEvents(branchId: 'branch-1', afterId: 42);
+        final orders = await repository.fetchMissedEvents(
+          branchId: 'branch-1',
+          afterId: 42,
+        );
 
-      expect(orders, isEmpty);
-      expect(
-        (dio.httpClientAdapter as CannedAdapter).lastRequest!.queryParameters,
-        {'branch_id': 'branch-1', 'after_id': 42},
-      );
-    });
+        expect(orders, isEmpty);
+        expect(
+          (dio.httpClientAdapter as CannedAdapter)
+              .lastRequest!
+              .queryParameters,
+          {'branch_id': 'branch-1', 'after_id': 42},
+        );
+      },
+    );
   });
 }

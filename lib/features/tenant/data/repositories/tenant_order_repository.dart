@@ -8,7 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'tenant_order_repository.g.dart';
 
 class TenantOrderRepository {
-  TenantOrderRepository({required Dio dio}) : _dio = dio;
+  const TenantOrderRepository({required this._dio});
 
   final Dio _dio;
 
@@ -37,7 +37,7 @@ class TenantOrderRepository {
         '/v1/orders/$orderId/status',
         data: {
           'order_status': tenantOrderStatusToWire(status),
-          if (reason != null) 'reason': reason,
+          if (reason case final String r) 'reason': r,
         },
       );
     } on DioException catch (error) {
