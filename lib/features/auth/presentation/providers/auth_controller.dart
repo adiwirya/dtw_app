@@ -29,12 +29,13 @@ class AuthController extends _$AuthController {
   }) async {
     state = const AuthState(isLoading: true);
     try {
-      await ref.read(authRepositoryProvider).loginWithPassword(
+      final response = await ref.read(authRepositoryProvider).loginWithPassword(
             username: username,
             password: password,
           );
       ref.read(isLoggedInProvider.notifier).state = true;
-      ref.read(appFlavorProvider.notifier).state = AppFlavor.busboy;
+      ref.read(appFlavorProvider.notifier).state =
+          response.branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
       state = const AuthState();
     } catch (error) {
       state = AuthState(error: error);

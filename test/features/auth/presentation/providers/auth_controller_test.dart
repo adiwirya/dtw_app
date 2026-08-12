@@ -51,6 +51,40 @@ void main() {
     expect(container.read(authControllerProvider).error, isNull);
   });
 
+  test('login sets appFlavorProvider to tenant for a branch-scoped response',
+      () async {
+    final storage = FakeLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+              ],
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(container.read(appFlavorProvider), AppFlavor.tenant);
+  });
+
   test('login sets an error with the mapped AuthException on 401', () async {
     final storage = FakeLocalStorage();
     final container = ProviderContainer(
