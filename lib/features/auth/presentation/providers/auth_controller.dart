@@ -68,5 +68,11 @@ class AuthController extends _$AuthController {
     }
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
+    // Logout must clear the flavor as well, mirroring the 401 interceptor in
+    // `dioProvider`: `App` renders whichever router [appFlavorProvider]
+    // names, so a tenant logout that left the flavor on tenant would land
+    // back on `tenantRouter`'s `/login` rather than the real shared
+    // `LoginScreen`.
+    ref.read(appFlavorProvider.notifier).state = AppFlavor.busboy;
   }
 }

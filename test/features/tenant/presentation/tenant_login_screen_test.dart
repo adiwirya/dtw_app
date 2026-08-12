@@ -3,6 +3,7 @@ import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_login_screen.dart';
 import 'package:flutter/material.dart';
@@ -85,52 +86,65 @@ void main() {
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
-  group('Masuk picks the flavor for the selected role (single shared entry)',
-      () {
-    Future<void> pumpTenantApp(WidgetTester tester) async {
+  // "Masuk" used to fabricate a session outright: it set
+  // `isLoggedInProvider = true` with no API call at all, so the app walked
+  // straight into the tenant shell holding a token that was never issued.
+  // That was invisible while the tenant flavor made no authenticated
+  // requests; once the order board started calling the live API it became a
+  // guaranteed 401. This screen now performs no authentication — it hands off
+  // to the real, shared `LoginScreen` by resetting the flavor.
+  group('Masuk hands off to the real login instead of faking a session', () {
+    Future<ProviderContainer> pumpTenantApp(WidgetTester tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
-      // Boots straight into the tenant flavor (as if the shared login had
-      // already switched here) so `TenantLoginScreen` is what's on screen.
-      // `/order` (landed on post-"Masuk") hosts `TenantOrderScreen`, which
-      // reads the real `tenantOrderBoardProvider` — without a fake local
-      // storage the board's initial fetch hangs on an unmocked
-      // `flutter_secure_storage` platform channel instead of resolving.
+      // Boots straight into the tenant flavor, the way `main_tenant.dart`
+      // does, so `TenantLoginScreen` is what's on screen.
+      final container = ProviderContainer(
+        overrides: [
+          appFlavorProvider.overrideWith((ref) => AppFlavor.tenant),
+          localStorageProvider.overrideWithValue(FakeLocalStorage()),
+          tenantRealtimeServiceProvider
+              .overrideWithValue(FakeTenantRealtimeService()),
+        ],
+      );
+      addTearDown(container.dispose);
+
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            appFlavorProvider.overrideWith((ref) => AppFlavor.tenant),
-            localStorageProvider.overrideWithValue(FakeLocalStorage()),
-            tenantRealtimeServiceProvider
-                .overrideWithValue(FakeTenantRealtimeService()),
-          ],
-          child: const App(),
-        ),
+        UncontrolledProviderScope(container: container, child: const App()),
       );
       await tester.pumpAndSettle();
+      return container;
     }
 
-    testWidgets(
-        'no role selected defaults to tenan and lands on the tenant Order '
-        'tab', (tester) async {
-      await pumpTenantApp(tester);
+    testWidgets('Masuk lands on the real busboy LoginScreen', (tester) async {
+      final container = await pumpTenantApp(tester);
 
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
-      // The real tenant Order home renders directly — no second login screen.
+      expect(container.read(appFlavorProvider), AppFlavor.busboy);
       expect(find.byType(TenantLoginScreen), findsNothing);
-      expect(find.text('KFC\nFried Chicken'), findsOneWidget);
-      expect(find.text('Menu'), findsOneWidget);
-      expect(find.text('Laporan'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets(
-        'picking Busboy switches the whole app back to the busboy shell',
+    testWidgets('Masuk does NOT log the user in', (tester) async {
+      final container = await pumpTenantApp(tester);
+
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      // No credentials were ever checked, so no session may exist — and with
+      // none, nothing from the tenant shell may be on screen.
+      expect(container.read(isLoggedInProvider), isFalse);
+      expect(find.text('KFC\nFried Chicken'), findsNothing);
+      expect(find.text('Laporan'), findsNothing);
+    });
+
+    testWidgets('picking Busboy first reaches the same real login',
         (tester) async {
-      await pumpTenantApp(tester);
+      final container = await pumpTenantApp(tester);
 
       // Step 1 -> step 2 (always pre-selects Tenan); explicitly pick Busboy.
       await tester.tap(find.text('Busboy'));
@@ -141,10 +155,8 @@ void main() {
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
-      // The real busboy Order home renders its Ambil/Antar/Selesai sub-tabs.
-      expect(find.byType(TenantLoginScreen), findsNothing);
-      expect(find.text('Ambil'), findsOneWidget);
-      expect(find.text('Performa'), findsOneWidget);
+      expect(container.read(isLoggedInProvider), isFalse);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
   });
 }

@@ -40,6 +40,13 @@ Dio dio(Ref ref) {
             // Swallowed intentionally — see comment above.
           }
           ref.read(isLoggedInProvider.notifier).state = false;
+          // Reset the flavor too, not just the login flag: `App` picks its
+          // router off [appFlavorProvider], so leaving it on
+          // [AppFlavor.tenant] would strand an expired tenant session on
+          // `tenantRouter`'s own `/login` instead of the real, shared
+          // busboy `LoginScreen`. Session expiry must clear both flags
+          // symmetrically — same as `AuthController.logout()`.
+          ref.read(appFlavorProvider.notifier).state = AppFlavor.busboy;
         }
         handler.next(error);
       },

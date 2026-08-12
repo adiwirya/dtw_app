@@ -28,9 +28,15 @@ import 'package:go_router/go_router.dart';
 /// parameterizing the shared widget) keeps the busboy login untouched.
 ///
 /// This is the tenant flavor, so the Tenan card is the primary CTA and the role
-/// `/login/tenant` pre-selects. Tapping "Masuk" sets [appFlavorProvider] from
-/// the selected role, same as the busboy `LoginScreen` — picking **Busboy**
-/// here switches the whole app back to the busboy router on its Order tab.
+/// `/login/tenant` pre-selects.
+///
+/// It performs **no authentication of its own**. Only the shared busboy
+/// `LoginScreen` talks to `AuthController.login`, and the real login response
+/// is what decides the flavor (branch-scoped -> tenant). So "Masuk" here just
+/// flips [appFlavorProvider] back to [AppFlavor.busboy], which swaps `App`
+/// over to `appRouter` and lands on that real login screen. This screen is
+/// only ever reachable as the boot screen of the `main_tenant.dart`
+/// entrypoint, since logout and session expiry both reset the flavor.
 class TenantLoginScreen extends ConsumerStatefulWidget {
   const TenantLoginScreen({this.initialRole, super.key});
 
@@ -75,14 +81,17 @@ class _TenantLoginScreenState extends ConsumerState<TenantLoginScreen> {
   }
 
   void _onMasuk() {
-    // TODO(open-question): auth is out of scope (Open Question 1) — "Masuk"
-    // only picks the flavor matching the selected role; no credential
-    // validation is performed.
-    ref.read(isLoggedInProvider.notifier).state = true;
-    ref.read(appFlavorProvider.notifier).state =
-        (_selectedRole ?? LoginRole.tenan) == LoginRole.busboy
-            ? AppFlavor.busboy
-            : AppFlavor.tenant;
+    // Hand off to the REAL login screen instead of fabricating a session.
+    //
+    // This used to set `isLoggedInProvider = true` directly, with no API
+    // call — harmless while the tenant flavor made no authenticated
+    // requests, but a genuine hole once the tenant order board started
+    // calling the live API: the board would immediately 401 against a token
+    // that was never issued. Flipping the flavor (and *only* the flavor)
+    // makes `App` swap to `appRouter`, whose `/login` hosts the shared
+    // `LoginScreen` backed by `AuthController.login` — that screen resolves
+    // the flavor for real, from the login response's scopes.
+    ref.read(appFlavorProvider.notifier).state = AppFlavor.busboy;
   }
 
   @override

@@ -120,6 +120,40 @@ void main() {
     expect(container.read(isLoggedInProvider), isFalse);
   });
 
+  // Logout has to clear the FLAVOR too, not just the login flag: `App` picks
+  // its router off `appFlavorProvider`, so a tenant logout that left the
+  // flavor on tenant landed back on `tenantRouter`'s own `/login` rather than
+  // the real shared `LoginScreen`.
+  test('logout resets appFlavorProvider to busboy, not just the login flag',
+      () async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final realtime = FakeTenantRealtimeService();
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(isLoggedInProvider.notifier).state = true;
+    container.read(appFlavorProvider.notifier).state = AppFlavor.tenant;
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(container.read(isLoggedInProvider), isFalse);
+    expect(container.read(appFlavorProvider), AppFlavor.busboy);
+  });
+
   test('logout clears isLoggedInProvider', () async {
     final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
     final container = ProviderContainer(

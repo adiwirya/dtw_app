@@ -15,6 +15,19 @@ class ApiException implements Exception {
 /// checks continue to work unchanged.
 typedef AuthException = ApiException;
 
+/// The user-facing Indonesian message to show for an arbitrary caught
+/// [error].
+///
+/// Repositories already map transport failures to [ApiException] (see
+/// [mapDioError]), so its [ApiException.message] is the specific, actionable
+/// copy. Anything else reaching the UI is a bug rather than an expected
+/// failure mode, so it degrades to the same generic fallback [mapDioError]
+/// uses. Single-sourced here because every failure-capable notifier call in a
+/// screen renders its SnackBar/error state through this.
+String errorMessage(Object error) => error is ApiException
+    ? error.message
+    : 'Terjadi kesalahan. Coba lagi.';
+
 /// Maps a [DioException] to an [ApiException] with an Indonesian
 /// user-facing message. [unauthorizedMessage] lets a call site override the
 /// default 401 copy (the login flow uses a login-specific message; every
