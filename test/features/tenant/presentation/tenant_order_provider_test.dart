@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
@@ -54,6 +56,14 @@ void main() {
     );
     addTearDown(c.dispose);
     addTearDown(realtime.close);
+    // tenantOrderBoardProvider autoDisposes (see the provider's dartdoc for
+    // why that matters in production): without an active listener, Riverpod
+    // schedules it for teardown as soon as a bare `container.read` call
+    // returns, which would reset state between this test's `container.read`
+    // statements. The real `TenantOrderScreen` keeps it alive by
+    // continuously `ref.watch`-ing it while mounted; this listener mirrors
+    // that so the provider survives for the lifetime of the test.
+    c.listen(tenantOrderBoardProvider, (_, _) {});
     return c;
   }
 
@@ -129,6 +139,47 @@ void main() {
       final orders = container.read(tenantOrderBoardProvider).value!;
       expect(orders, hasLength(1));
     });
+
+    test(
+        'an order.created event during the initial fetch is merged, '
+        'not dropped', () async {
+      storage = FakeLocalStorage()
+        ..values[tenantBranchIdStorageKey] = 'branch-1';
+      realtime = FakeTenantRealtimeService();
+      addTearDown(realtime.close);
+      final fetchGate = Completer<void>();
+      final fetchDio = cannedDio(
+        200,
+        listBody([_orderJson(id: '1', status: 'PENDING')]),
+      );
+      final delayedRepository = _DelayedFetchRepository(
+        dio: fetchDio,
+        fetchGate: fetchGate.future,
+      );
+      container = ProviderContainer(
+        overrides: [
+          localStorageProvider.overrideWithValue(storage),
+          tenantOrderRepositoryProvider.overrideWithValue(delayedRepository),
+          tenantRealtimeServiceProvider.overrideWithValue(realtime),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(tenantOrderBoardProvider, (_, _) {});
+
+      final orderBoardFuture = container.read(tenantOrderBoardProvider.future);
+      // Let build() run up to (and suspend on) the gated fetchOrders call —
+      // that's also where the orderCreated subscription gets wired up, so
+      // this event lands squarely in the "fetch still in flight" window.
+      await Future<void>.delayed(Duration.zero);
+
+      realtime.emitOrderCreated(_orderJson(id: '2', status: 'PENDING'));
+      await Future<void>.delayed(Duration.zero);
+
+      fetchGate.complete();
+      final orders = await orderBoardFuture;
+
+      expect(orders.map((o) => o.id), containsAll(['1', '2']));
+    });
   });
 
   group('accept / reject / markReady', () {
@@ -196,6 +247,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(tenantOrderBoardProvider, (_, _) {});
       await container.read(tenantOrderBoardProvider.future);
 
       await expectLater(
@@ -232,6 +284,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      container.listen(tenantOrderBoardProvider, (_, _) {});
       await container.read(tenantOrderBoardProvider.future);
 
       await expectLater(
@@ -266,6 +319,39 @@ class _FailingUpdateRepository implements TenantOrderRepository {
   }) {
     throw ApiException(message: 'Terjadi kesalahan. Coba lagi.');
   }
+
+  @override
+  Future<List<TenantOrder>> fetchMissedEvents({
+    required String branchId,
+    required int afterId,
+  }) =>
+      _delegate.fetchMissedEvents(branchId: branchId, afterId: afterId);
+}
+
+/// A repository whose [fetchOrders] delegates to a real (canned) [Dio] but
+/// only resolves once [fetchGate] completes, so a test can deterministically
+/// keep the initial fetch "in flight" long enough to exercise the
+/// during-fetch realtime-event buffering path.
+class _DelayedFetchRepository implements TenantOrderRepository {
+  _DelayedFetchRepository({required Dio dio, required this.fetchGate})
+      : _delegate = TenantOrderRepository(dio: dio);
+
+  final TenantOrderRepository _delegate;
+  final Future<void> fetchGate;
+
+  @override
+  Future<List<TenantOrder>> fetchOrders({required String branchId}) async {
+    await fetchGate;
+    return _delegate.fetchOrders(branchId: branchId);
+  }
+
+  @override
+  Future<void> updateStatus(
+    String orderId, {
+    required TenantOrderStatus status,
+    String? reason,
+  }) =>
+      _delegate.updateStatus(orderId, status: status, reason: reason);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({

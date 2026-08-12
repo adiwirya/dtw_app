@@ -6,7 +6,7 @@ part of 'tenant_order_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantOrderBoardHash() => r'0a820c180d21a7e7eaa256b1edc1ff77c2dddd2a';
+String _$tenantOrderBoardHash() => r'48f23e31961097d8dcea0abab08d590d9528b72d';
 
 /// The tenant "Order" board: fetches once from the real API, then stays
 /// live via `TenantRealtimeService.orderCreated` — no polling. [accept],
@@ -14,15 +14,22 @@ String _$tenantOrderBoardHash() => r'0a820c180d21a7e7eaa256b1edc1ff77c2dddd2a';
 /// repository, and revert-and-rethrow on failure so the screen can show an
 /// error (see `TenantOrderScreen`).
 ///
-/// Kept alive (not the `@riverpod` default autoDispose) because its
-/// `build()` opens the realtime subscriptions that keep the board live —
-/// those must not be torn down just because the screen briefly stops being
-/// watched (e.g. a transient rebuild), only on session end/logout.
+/// AutoDisposes (the `@riverpod` default) rather than `keepAlive: true`:
+/// `TenantOrderScreen` continuously watches this provider while mounted, so
+/// autoDispose never fires mid-session in production, and tearing the board
+/// down on logout/navigate-away is what makes switching branches safe —
+/// nothing else invalidates this provider on logout, so a `keepAlive`
+/// notifier would keep the previous branch's stale order list (and its
+/// still-open realtime subscription would keep appending the *new* branch's
+/// live events onto it).
 ///
 /// Copied from [TenantOrderBoard].
 @ProviderFor(TenantOrderBoard)
 final tenantOrderBoardProvider =
-    AsyncNotifierProvider<TenantOrderBoard, List<TenantOrder>>.internal(
+    AutoDisposeAsyncNotifierProvider<
+      TenantOrderBoard,
+      List<TenantOrder>
+    >.internal(
       TenantOrderBoard.new,
       name: r'tenantOrderBoardProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -32,6 +39,6 @@ final tenantOrderBoardProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$TenantOrderBoard = AsyncNotifier<List<TenantOrder>>;
+typedef _$TenantOrderBoard = AutoDisposeAsyncNotifier<List<TenantOrder>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -14,11 +14,15 @@ part 'tenant_order_provider.g.dart';
 /// repository, and revert-and-rethrow on failure so the screen can show an
 /// error (see `TenantOrderScreen`).
 ///
-/// Kept alive (not the `@riverpod` default autoDispose) because its
-/// `build()` opens the realtime subscriptions that keep the board live —
-/// those must not be torn down just because the screen briefly stops being
-/// watched (e.g. a transient rebuild), only on session end/logout.
-@Riverpod(keepAlive: true)
+/// AutoDisposes (the `@riverpod` default) rather than `keepAlive: true`:
+/// `TenantOrderScreen` continuously watches this provider while mounted, so
+/// autoDispose never fires mid-session in production, and tearing the board
+/// down on logout/navigate-away is what makes switching branches safe —
+/// nothing else invalidates this provider on logout, so a `keepAlive`
+/// notifier would keep the previous branch's stale order list (and its
+/// still-open realtime subscription would keep appending the *new* branch's
+/// live events onto it).
+@riverpod
 class TenantOrderBoard extends _$TenantOrderBoard {
   StreamSubscription<Map<String, dynamic>>? _orderCreatedSubscription;
   StreamSubscription<void>? _reconnectedSubscription;
@@ -42,13 +46,33 @@ class TenantOrderBoard extends _$TenantOrderBoard {
       unawaited(_reconnectedSubscription?.cancel() ?? Future.value());
     });
 
-    _orderCreatedSubscription = realtime.orderCreated.listen(_onOrderCreated);
+    // `state.value` is null until the initial fetch below resolves, so
+    // `_onOrderCreated` (which bails out when `state.value == null`) can't
+    // merge events that arrive during that window. Buffer them here instead
+    // of dropping them, then fold them into the fetched list once it's
+    // ready — after that, later events go through `_onOrderCreated` as
+    // normal.
+    final pendingDuringFetch = <TenantOrder>[];
+    _orderCreatedSubscription = realtime.orderCreated.listen((payload) {
+      if (state.value == null) {
+        pendingDuringFetch.add(TenantOrder.fromJson(payload));
+      } else {
+        _onOrderCreated(payload);
+      }
+    });
     _reconnectedSubscription =
         realtime.reconnected.listen((_) => _onReconnected(repository));
 
     final orders = await repository.fetchOrders(branchId: branchId);
     _trackBroadcastEventId(orders);
-    return _excludeCancelled(orders);
+    final fetched = _excludeCancelled(orders);
+    if (pendingDuringFetch.isEmpty) return fetched;
+
+    _trackBroadcastEventId(pendingDuringFetch);
+    final fetchedIds = fetched.map((o) => o.id).toSet();
+    final fresh = _excludeCancelled(pendingDuringFetch)
+        .where((o) => !fetchedIds.contains(o.id));
+    return [...fresh, ...fetched];
   }
 
   void _onOrderCreated(Map<String, dynamic> payload) {
