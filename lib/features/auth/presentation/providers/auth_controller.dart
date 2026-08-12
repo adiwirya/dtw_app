@@ -34,16 +34,23 @@ class AuthController extends _$AuthController {
             username: username,
             password: password,
           );
-      ref.read(isLoggedInProvider.notifier).state = true;
+      // For a branch-scoped (tenant) login, `connect()` must succeed before
+      // `isLoggedInProvider` flips — the router navigates away from the
+      // login screen the instant that flag is true, so a connect failure
+      // surfaced afterwards would render on a screen the user can no longer
+      // see. Flipping the flags only once the socket is up keeps a failed
+      // connect indistinguishable from a failed login: the user stays on
+      // the login screen and sees the error.
       final branchId = response.branchId;
-      ref.read(appFlavorProvider.notifier).state =
-          branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
       if (branchId != null) {
         await ref.read(tenantRealtimeServiceProvider).connect(
               token: response.accessToken,
               branchId: branchId,
             );
       }
+      ref.read(isLoggedInProvider.notifier).state = true;
+      ref.read(appFlavorProvider.notifier).state =
+          branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
       state = const AuthState();
     } catch (error) {
       state = AuthState(error: error);
@@ -51,7 +58,14 @@ class AuthController extends _$AuthController {
   }
 
   Future<void> logout() async {
-    await ref.read(tenantRealtimeServiceProvider).disconnect();
+    // Disconnecting the realtime socket is best-effort cleanup, not a gate
+    // on logout — a failure here must never strand the user in a logged-in
+    // state.
+    try {
+      await ref.read(tenantRealtimeServiceProvider).disconnect();
+    } on Object catch (_) {
+      // Swallowed intentionally — see comment above.
+    }
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
   }

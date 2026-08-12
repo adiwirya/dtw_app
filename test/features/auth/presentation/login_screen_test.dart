@@ -1,4 +1,5 @@
 import 'package:dtw_app/app.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
@@ -11,6 +12,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../support/canned_dio.dart';
 import '../../../support/fake_local_storage.dart';
+import '../../../support/fake_tenant_realtime_service.dart';
 
 /// Builds a minimal router exercising just the login flow so navigation
 /// targets can be asserted without standing up the whole app shell.
@@ -90,11 +92,14 @@ void main() {
       addTearDown(tester.view.reset);
 
       final storage = FakeLocalStorage();
+      final realtime = FakeTenantRealtimeService();
+      addTearDown(realtime.close);
       final container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(
             AuthRepository(dio: cannedDio(statusCode, body), localStorage: storage),
           ),
+          tenantRealtimeServiceProvider.overrideWithValue(realtime),
         ],
       );
       addTearDown(container.dispose);

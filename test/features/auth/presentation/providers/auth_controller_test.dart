@@ -214,6 +214,46 @@ void main() {
     expect(realtime.connectCalls, isEmpty);
   });
 
+  test(
+      'login does not log the user in when the realtime connect fails for a '
+      'branch-scoped response', () async {
+    final storage = FakeLocalStorage();
+    final realtime = FakeTenantRealtimeService()
+      ..connectError = Exception('socket unreachable');
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+              ],
+            },
+          }, storage),
+        ),
+        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(container.read(isLoggedInProvider), isFalse);
+    expect(container.read(authControllerProvider).error, isNotNull);
+  });
+
   test('logout disconnects the realtime service', () async {
     final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
     final realtime = FakeTenantRealtimeService();

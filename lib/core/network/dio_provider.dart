@@ -31,7 +31,14 @@ Dio dio(Ref ref) {
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
           await ref.read(localStorageProvider).delete(authTokenStorageKey);
-          await ref.read(tenantRealtimeServiceProvider).disconnect();
+          // Best-effort cleanup — a disconnect failure must never stop
+          // `handler.next(error)` below from running, or every authenticated
+          // request's 401-handling breaks with it.
+          try {
+            await ref.read(tenantRealtimeServiceProvider).disconnect();
+          } on Object catch (_) {
+            // Swallowed intentionally — see comment above.
+          }
           ref.read(isLoggedInProvider.notifier).state = false;
         }
         handler.next(error);
