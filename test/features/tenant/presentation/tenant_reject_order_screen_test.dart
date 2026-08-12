@@ -1,8 +1,7 @@
 import 'package:dtw_app/core/router/tenant_router.dart';
-import 'package:dtw_app/core/storage/secure_local_storage.dart';
-import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/app_toggle.dart';
-import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
+import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_order_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_reject_order_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
@@ -12,41 +11,52 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../support/canned_dio.dart';
-import '../../../support/fake_local_storage.dart';
-import '../../../support/fake_tenant_realtime_service.dart';
+import '../../../support/tenant_board.dart';
+
+/// The one order on the board in these tests.
+const _orderId = 'order-1';
+
+/// The bottom confirm CTA. [PrimaryButton] carries its enabled state as a
+/// nullable `onPressed`, so tests assert on that rather than on pixels.
+PrimaryButton _confirmButton(WidgetTester tester) =>
+    tester.widget<PrimaryButton>(find.byType(PrimaryButton));
 
 /// Hosts the reject screen in a minimal router so `context.goNamed(...)`
-/// targets (pesanan-diproses) resolve, and the modals can push/pop.
-Future<GoRouter> _pump(WidgetTester tester, {Widget? screen}) async {
+/// targets (pesanan-diproses) resolve and the success modal can push/pop.
+///
+/// [orderId] is what the screen is asked to reject; point it at something not
+/// in the seeded board to exercise the not-found path. The returned
+/// [CannedAdapter] records the last request, so a test can prove the
+/// rejection actually reached `PATCH /v1/orders/{id}/status` rather than
+/// stopping at a success modal.
+Future<CannedAdapter> _pump(
+  WidgetTester tester, {
+  String orderId = _orderId,
+  String? initialReason,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final storage = FakeLocalStorage()..values[tenantBranchIdStorageKey] = 'branch-1';
-  final dio = cannedDio(200, {
-    'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-    'data': [
-      {
-        'id': '92842',
-        'order_group_id': 'group-92842',
-        'branch_id': 'branch-1',
-        'receipt_number': 'RCP-92842',
-        'grand_total': 40000,
-        'order_status': 'PENDING',
-        'created_at': '2026-08-07 09:24:08',
-        'updated_at': '2026-08-07 09:24:08',
-        'items': <dynamic>[],
-      },
-    ],
-  });
+  final dio = cannedOrderListDio([
+    tenantOrderJson(
+      id: _orderId,
+      status: 'PENDING',
+      grandTotal: 40000,
+      receiptNumber: 'RCP-92842',
+      createdAt: '2024-05-10 10:36:00',
+    ),
+  ]);
 
   final router = GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) =>
-            screen ?? const TenantRejectOrderScreen(),
+        builder: (context, state) => TenantRejectOrderScreen(
+          orderId: orderId,
+          initialReason: initialReason,
+        ),
       ),
       GoRoute(
         path: '/diproses',
@@ -60,16 +70,12 @@ Future<GoRouter> _pump(WidgetTester tester, {Widget? screen}) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        localStorageProvider.overrideWithValue(storage),
-        tenantOrderRepositoryProvider.overrideWithValue(TenantOrderRepository(dio: dio)),
-        tenantRealtimeServiceProvider.overrideWithValue(FakeTenantRealtimeService()),
-      ],
+      overrides: tenantBoardOverrides(dio: dio),
       child: MaterialApp.router(routerConfig: router),
     ),
   );
   await tester.pumpAndSettle();
-  return router;
+  return dio.httpClientAdapter as CannedAdapter;
 }
 
 void main() {
@@ -80,85 +86,139 @@ void main() {
     expect(formatRupiah(0), 'Rp0');
   });
 
-  testWidgets('renders the order info, banner and per-item rows',
+  testWidgets('renders the real order off the board, not seeded mock data',
       (tester) async {
     await _pump(tester);
 
     expect(find.text('Tolak Pesanan'), findsOneWidget);
-    expect(find.text('#92842'), findsOneWidget);
-    expect(find.text('Anda dapat menolak sebagian item'), findsOneWidget);
-    expect(find.text('Daftar Item'), findsOneWidget);
-    expect(find.text('Paket Super Besar'), findsOneWidget);
-    expect(find.text('Es Lemon Tea'), findsOneWidget);
-    // Both items available → both show the Tersedia chip, total = 40.000.
-    expect(find.text('Tersedia'), findsNWidgets(2));
-    expect(find.text('2 item tersedia'), findsOneWidget);
+    expect(find.text('#$_orderId'), findsOneWidget);
+    // Receipt number + formatted createdAt come from the board entry.
+    expect(find.text('RCP-92842'), findsOneWidget);
+    expect(find.text('10 Mei 2024 10:36 WIB'), findsOneWidget);
+    // The order total, not a recomputed "accepted" subtotal.
     expect(find.text('Rp40.000'), findsOneWidget);
-    expect(find.text('Konfirmasi Pesanan'), findsOneWidget);
+    // The old hardcoded mock items and order number are gone.
+    expect(find.text('#92842'), findsNothing);
+    expect(find.text('Paket Super Besar'), findsNothing);
+    expect(find.text('Es Lemon Tea'), findsNothing);
   });
 
-  testWidgets(
-    'rejecting an item via the reason modal switches the row to rejected + '
-    'updates the summary',
-    (tester) async {
+  group('all-or-nothing rejection (no partial fulfillment)', () {
+    testWidgets('offers no per-item availability toggles', (tester) async {
       await _pump(tester);
 
-      // Toggle Es Lemon Tea (the second item) off → the reason sheet opens.
-      await tester.tap(find.byType(AppToggle).at(1));
-      await tester.pumpAndSettle();
-      expect(find.text('Alasan Menolak Item'), findsOneWidget);
+      expect(find.byType(AppToggle), findsNothing);
+      expect(find.byType(OrderItemAvailabilityRow), findsNothing);
+      expect(find.text('Tersedia'), findsNothing);
+      expect(find.text('Daftar Item'), findsNothing);
+    });
 
-      // Pick a preset reason and save.
-      await tester.tap(find.text('Stok Habis'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Simpan Alasan'));
-      await tester.pumpAndSettle();
+    testWidgets('copy says the whole order is cancelled', (tester) async {
+      await _pump(tester);
 
-      // The rejected row + confirmation banner + recomputed summary.
-      expect(find.text('Tidak Tersedia'), findsOneWidget);
-      expect(find.text('Alasan : '), findsOneWidget);
-      expect(find.text('Stok Habis'), findsOneWidget);
-      expect(find.text('1 item ditolak oleh tenant'), findsOneWidget);
-      expect(find.text('1 dari 2 item tersedia'), findsOneWidget);
-      // Accepted total drops to Paket Super Besar only.
-      expect(find.text('Rp35.000'), findsWidgets);
-    },
-  );
-
-  testWidgets('konfirmasi deep-link seeds the confirmed state', (tester) async {
-    await _pump(
-      tester,
-      screen: const TenantRejectOrderScreen(
-        initialRejectedName: 'Es Lemon Tea',
-      ),
-    );
-
-    expect(find.text('Tidak Tersedia'), findsOneWidget);
-    expect(find.text('Alasan : '), findsOneWidget);
-    expect(find.text('Stok Habis'), findsOneWidget);
-    expect(find.text('1 item ditolak oleh tenant'), findsOneWidget);
+      expect(find.text(wholeOrderRejectionTitle), findsOneWidget);
+      expect(find.text(wholeOrderRejectionBody), findsOneWidget);
+      expect(find.text(rejectOrderConfirmLabel), findsOneWidget);
+      // The old partial-fulfillment promises.
+      expect(find.text('Anda dapat menolak sebagian item'), findsNothing);
+      expect(
+        find.text('Pelanggan tetap akan menerima item yang tersedia'),
+        findsNothing,
+      );
+    });
   });
 
-  testWidgets('Konfirmasi Pesanan raises the success modal → Diproses',
-      (tester) async {
-    await _pump(
-      tester,
-      screen: const TenantRejectOrderScreen(
-        initialRejectedName: 'Es Lemon Tea',
-      ),
-    );
+  group('reason capture', () {
+    testWidgets('confirm is disabled until a reason is given', (tester) async {
+      await _pump(tester);
 
-    await tester.tap(find.text('Konfirmasi Pesanan'));
-    await tester.pumpAndSettle();
+      expect(_confirmButton(tester).onPressed, isNull);
 
-    // The berhasil-ditambahkan-2 modal.
-    expect(find.text('Pesanan dikonfirmasi'), findsOneWidget);
-    expect(find.text('1 item diterima'), findsOneWidget);
-    expect(find.text('1 item ditolak'), findsOneWidget);
+      await tester.tap(find.text('Stok Habis'));
+      await tester.pumpAndSettle();
 
-    // Confirm → lands on the Diproses order home.
-    await tester.tap(find.text('Konfirmasi Pesanan').last);
-    await tester.pumpAndSettle();
-    expect(find.byType(TenantOrderScreen), findsOneWidget);
+      expect(_confirmButton(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('a free-text reason overrides the selected preset',
+        (tester) async {
+      final adapter = await _pump(tester);
+
+      await tester.tap(find.text('Stok Habis'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Alasan Lainnya'),
+        'Kompor rusak',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(rejectOrderConfirmLabel));
+      await tester.pumpAndSettle();
+
+      expect(adapter.lastRequest?.data, {
+        'order_status': 'CANCELLED',
+        'reason': 'Kompor rusak',
+      });
+    });
+
+    testWidgets('konfirmasi deep-link seeds the chosen-reason state',
+        (tester) async {
+      await _pump(tester, initialReason: 'Stok Habis');
+
+      expect(_confirmButton(tester).onPressed, isNotNull);
+    });
+  });
+
+  group('confirm flow', () {
+    // The regression test for the silent-failure bug: rejecting an order that
+    // IS on the board has to actually PATCH the backend.
+    testWidgets('confirming an order on the board calls updateStatus',
+        (tester) async {
+      final adapter = await _pump(tester, initialReason: 'Stok Habis');
+
+      await tester.tap(find.text(rejectOrderConfirmLabel));
+      await tester.pumpAndSettle();
+
+      expect(adapter.lastRequest?.method, 'PATCH');
+      expect(
+        adapter.lastRequest?.path,
+        '/v1/orders/$_orderId/status',
+      );
+      expect(adapter.lastRequest?.data, {
+        'order_status': 'CANCELLED',
+        'reason': 'Stok Habis',
+      });
+    });
+
+    testWidgets('a successful rejection raises the rejected modal → Diproses',
+        (tester) async {
+      await _pump(tester, initialReason: 'Stok Habis');
+
+      await tester.tap(find.text(rejectOrderConfirmLabel));
+      await tester.pumpAndSettle();
+
+      expect(find.text(rejectedOrderModalTitle), findsOneWidget);
+      // No accepted-vs-rejected breakdown — nothing was accepted.
+      expect(find.text('1 item diterima'), findsNothing);
+
+      await tester.tap(find.text('Selesai'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TenantOrderScreen), findsOneWidget);
+    });
+
+    // The other half of the regression: an order id that is NOT on the board
+    // must never reach a success modal. It used to, because the board's
+    // `_transition` returned silently on an unknown id.
+    testWidgets('an order id not on the board surfaces not-found, no confirm',
+        (tester) async {
+      final adapter = await _pump(tester, orderId: 'ghost-order');
+
+      expect(find.text(orderNotFoundMessage), findsOneWidget);
+      // No confirm affordance at all, so no way to fake a success.
+      expect(find.text(rejectOrderConfirmLabel), findsNothing);
+      expect(find.text(rejectedOrderModalTitle), findsNothing);
+      // Only the board's own GET happened — nothing was PATCHed.
+      expect(adapter.lastRequest?.method, 'GET');
+    });
   });
 }

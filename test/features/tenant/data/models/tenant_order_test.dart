@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   group('TenantOrder.fromJson', () {
     test('parses the live GET /v1/orders item shape', () {
-      final order = TenantOrder.fromJson({
+      final order = TenantOrder.fromJson(const {
         'id': '76257d18-9f17-41dd-81a3-98404a81eddc',
         'order_group_id': 'ae6322b3-e165-49ca-a6ba-7baf30377cad',
         'branch_id': '0bac8a76-dd70-4345-9d16-742c585e676a',
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('parses a socket payload carrying broadcast_event_id', () {
-      final order = TenantOrder.fromJson({
+      final order = TenantOrder.fromJson(const {
         'id': 'order-1',
         'order_group_id': 'group-1',
         'branch_id': 'branch-1',
@@ -101,7 +101,7 @@ void main() {
     test(
         'maps receiptNumber to tableName, formats time, leaves items empty',
         () {
-      final order = TenantOrder.fromJson({
+      final order = TenantOrder.fromJson(const {
         'id': 'order-1',
         'order_group_id': 'group-1',
         'branch_id': 'branch-1',
@@ -127,7 +127,7 @@ void main() {
 
   group('TenantOrder.copyWith', () {
     test('overrides only status, keeps every other field', () {
-      final order = TenantOrder.fromJson({
+      final order = TenantOrder.fromJson(const {
         'id': 'order-1',
         'order_group_id': 'group-1',
         'branch_id': 'branch-1',

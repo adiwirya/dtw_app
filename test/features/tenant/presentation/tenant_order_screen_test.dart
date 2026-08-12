@@ -1,6 +1,4 @@
 import 'package:dtw_app/core/router/tenant_router.dart';
-import 'package:dtw_app/core/storage/secure_local_storage.dart';
-import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_order_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:flutter/material.dart';
@@ -8,71 +6,57 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../support/canned_dio.dart';
-import '../../../support/fake_local_storage.dart';
-import '../../../support/fake_tenant_realtime_service.dart';
-import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
-
-Map<String, dynamic> _orderJson({required String id, required String status}) => {
-      'id': id,
-      'order_group_id': 'group-$id',
-      'branch_id': 'branch-1',
-      'receipt_number': 'RCP-$id',
-      'grand_total': 21000,
-      'order_status': status,
-      'created_at': '2026-08-07 09:24:08',
-      'updated_at': '2026-08-07 09:24:08',
-      'items': <dynamic>[],
-    };
+import '../../../support/tenant_board.dart';
 
 /// Pumps [TenantOrderScreen] inside a minimal router, with the order board
-/// backed by a fake repository seeded with 2 pending, 1 preparing, 1 ready
+/// backed by a canned repository seeded with 2 pending, 1 preparing, 1 ready
 /// order (matching the old mock's Baru/Diproses/Selesai split) so the
 /// existing sub-tab assertions stay meaningful.
-Future<void> _pumpScreen(
+///
+/// Returns the router so a test can assert where a card action navigated to.
+Future<GoRouter> _pumpScreen(
   WidgetTester tester, {
   IncomingOrderStatus initialStatus = IncomingOrderStatus.baru,
 }) async {
-  final storage = FakeLocalStorage()..values[tenantBranchIdStorageKey] = 'branch-1';
-  final dio = cannedDio(200, {
-    'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-    'data': [
-      _orderJson(id: '1', status: 'PENDING'),
-      _orderJson(id: '2', status: 'PENDING'),
-      _orderJson(id: '3', status: 'PREPARING'),
-      _orderJson(id: '4', status: 'READY'),
-    ],
-  });
+  final dio = cannedOrderListDio([
+    tenantOrderJson(id: '1', status: 'PENDING'),
+    tenantOrderJson(id: '2', status: 'PENDING'),
+    tenantOrderJson(id: '3', status: 'PREPARING'),
+    tenantOrderJson(id: '4', status: 'READY'),
+  ]);
 
   final router = GoRouter(
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => TenantOrderScreen(initialStatus: initialStatus),
+        builder: (context, state) =>
+            TenantOrderScreen(initialStatus: initialStatus),
       ),
+      // Mirrors the real route's `:orderId` path parameter so a navigation
+      // that forgot to pass the id would throw here instead of quietly
+      // landing on a screen with no order.
       GoRoute(
-        path: '/ditolak',
+        path: '/ditolak/:orderId',
         name: TenantRoutes.pesananDitolak,
-        builder: (context, state) => const SizedBox.shrink(),
+        builder: (context, state) =>
+            Text('ditolak:${state.pathParameters['orderId']}'),
       ),
     ],
   );
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        localStorageProvider.overrideWithValue(storage),
-        tenantOrderRepositoryProvider.overrideWithValue(TenantOrderRepository(dio: dio)),
-        tenantRealtimeServiceProvider.overrideWithValue(FakeTenantRealtimeService()),
-      ],
+      overrides: tenantBoardOverrides(dio: dio),
       child: MaterialApp.router(routerConfig: router),
     ),
   );
   await tester.pumpAndSettle();
+  return router;
 }
 
 void main() {
   group('TenantOrderScreen in-place status sub-filtering', () {
-    testWidgets('starts on Order Baru and lists only baru orders', (tester) async {
+    testWidgets('starts on Order Baru and lists only baru orders',
+        (tester) async {
       await _pumpScreen(tester);
 
       expect(find.byType(IncomingOrderCard), findsNWidgets(2));
@@ -113,6 +97,38 @@ void main() {
 
       expect(find.text('Siap Diambil'), findsOneWidget);
       expect(find.text('Terima (29s)'), findsNothing);
+    });
+  });
+
+  group('reject navigation', () {
+    // Regression test: "Tolak" used to navigate with NO order id, so the
+    // reject screen fell back to a hardcoded placeholder and its confirm
+    // silently no-oped. The id of the tapped card must reach the route.
+    testWidgets('Tolak carries the tapped order id into the route',
+        (tester) async {
+      final router = await _pumpScreen(tester);
+
+      await tester.tap(find.text('Tolak').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        '/ditolak/1',
+      );
+      expect(find.text('ditolak:1'), findsOneWidget);
+    });
+
+    testWidgets("Tolak on the second card carries that card's id",
+        (tester) async {
+      final router = await _pumpScreen(tester);
+
+      await tester.tap(find.text('Tolak').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        '/ditolak/2',
+      );
     });
   });
 }

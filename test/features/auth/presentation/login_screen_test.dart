@@ -15,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import '../../../support/canned_dio.dart';
 import '../../../support/fake_local_storage.dart';
 import '../../../support/fake_tenant_realtime_service.dart';
+import '../../../support/tenant_board.dart';
 
 /// Builds a minimal router exercising just the login flow so navigation
 /// targets can be asserted without standing up the whole app shell.
@@ -99,17 +100,16 @@ void main() {
       // Shared with `localStorageProvider` below so a branch-scoped login
       // response's `branch_id` (written by `AuthRepository`) is visible to
       // `TenantOrderBoard` when the tenant shell lands on `/order`.
-      final orderDio = cannedDio(200, {
-        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-        'data': <dynamic>[],
-      });
+      final orderDio = cannedOrderListDio([]);
       final container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(
             AuthRepository(dio: cannedDio(statusCode, body), localStorage: storage),
           ),
           localStorageProvider.overrideWithValue(storage),
-          tenantOrderRepositoryProvider.overrideWithValue(TenantOrderRepository(dio: orderDio)),
+          tenantOrderRepositoryProvider.overrideWithValue(
+            TenantOrderRepository(dio: orderDio),
+          ),
           tenantRealtimeServiceProvider.overrideWithValue(realtime),
         ],
       );

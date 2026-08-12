@@ -1,17 +1,12 @@
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
-import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
-import 'package:dtw_app/core/storage/secure_local_storage.dart';
-import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_login_screen.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../support/canned_dio.dart';
-import '../../support/fake_local_storage.dart';
-import '../../support/fake_tenant_realtime_service.dart';
+import '../../support/tenant_board.dart';
 
 Widget _bootTenant() => ProviderScope(
       overrides: [appFlavorProvider.overrideWith((ref) => AppFlavor.tenant)],
@@ -22,19 +17,10 @@ Widget _bootTenant() => ProviderScope(
 /// reads the real, realtime-fed `tenantOrderBoardProvider` — it needs a
 /// branch-scoped local storage, a repository and a realtime service so the
 /// board's initial fetch resolves instead of hanging on an unmocked platform
-/// channel (`flutter_secure_storage` never replies in a widget test).
-List<Override> _tenantBoardOverrides() {
-  final storage = FakeLocalStorage()..values[tenantBranchIdStorageKey] = 'branch-1';
-  final dio = cannedDio(200, {
-    'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
-    'data': <dynamic>[],
-  });
-  return [
-    localStorageProvider.overrideWithValue(storage),
-    tenantOrderRepositoryProvider.overrideWithValue(TenantOrderRepository(dio: dio)),
-    tenantRealtimeServiceProvider.overrideWithValue(FakeTenantRealtimeService()),
-  ];
-}
+/// channel (`flutter_secure_storage` never replies in a widget test). An
+/// empty board is enough; this file asserts tab wiring, not order rendering.
+List<Override> _tenantBoardOverrides() =>
+    tenantBoardOverrides(dio: cannedOrderListDio([]));
 
 void main() {
   testWidgets('Tenant flavor boots on the login screen (outside the shell)',

@@ -69,11 +69,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
               clipBehavior: Clip.antiAlias,
               child: boardAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(
-                  child: Text(
-                    error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.',
-                  ),
-                ),
+                error: (error, _) => Center(child: Text(errorMessage(error))),
                 data: (board) => _buildBoard(context, board, status),
               ),
             ),
@@ -89,7 +85,9 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
     IncomingOrderStatus status,
   ) {
     final data = board.map((o) => o.toIncomingOrderData()).toList();
-    final orders = data.where((o) => o.status == status).toList(growable: false);
+    final orders = data
+        .where((o) => o.status == status)
+        .toList(growable: false);
     final baruCount = _countFor(data, IncomingOrderStatus.baru);
     final diprosesCount = _countFor(data, IncomingOrderStatus.diproses);
 
@@ -106,13 +104,19 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                 label: 'Order Baru',
                 badge: baruCount == 0
                     ? null
-                    : OrderTabBadge(count: baruCount, color: AppColors.orderBadgeRed),
+                    : OrderTabBadge(
+                        count: baruCount,
+                        color: AppColors.orderBadgeRed,
+                      ),
               ),
               SegmentedTabItem(
                 label: 'Diproses',
                 badge: diprosesCount == 0
                     ? null
-                    : OrderTabBadge(count: diprosesCount, color: AppColors.orderBadgeAmber),
+                    : OrderTabBadge(
+                        count: diprosesCount,
+                        color: AppColors.orderBadgeAmber,
+                      ),
               ),
               const SegmentedTabItem(label: 'Selesai'),
             ],
@@ -125,29 +129,44 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                   orders: orders,
                   onAccept: (order) => _runAction(
                     context,
-                    () => ref.read(tenantOrderBoardProvider.notifier).accept(order.orderId),
+                    () => ref
+                        .read(tenantOrderBoardProvider.notifier)
+                        .accept(order.orderId),
                   ),
                   onPickupReady: (order) => _runAction(
                     context,
-                    () => ref.read(tenantOrderBoardProvider.notifier).markReady(order.orderId),
+                    () => ref
+                        .read(tenantOrderBoardProvider.notifier)
+                        .markReady(order.orderId),
                   ),
-                  onReject: (order) => context.goNamed(TenantRoutes.pesananDitolak),
-                  onOpenDetail: (order) => context.goNamed(TenantRoutes.orderDetail),
+                  // The order id MUST reach the reject screen: it is what
+                  // scopes the screen's data and its `reject` call. Dropping
+                  // it here was what let the rejection silently no-op.
+                  onReject: (order) => context.goNamed(
+                    TenantRoutes.pesananDitolak,
+                    pathParameters: {'orderId': order.orderId},
+                  ),
+                  onOpenDetail: (order) =>
+                      context.goNamed(TenantRoutes.orderDetail),
                 ),
         ),
       ],
     );
   }
 
-  Future<void> _runAction(BuildContext context, Future<void> Function() action) async {
+  Future<void> _runAction(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
     try {
       await action();
-    } catch (error) {
+    } on Object catch (error) {
+      // Deliberately broad: alongside the repository's mapped ApiException
+      // this also catches the StateError the board raises for a mutation
+      // aimed at an order that is not on it, so neither can pass as success.
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.'),
-        ),
+        SnackBar(content: Text(errorMessage(error))),
       );
     }
   }

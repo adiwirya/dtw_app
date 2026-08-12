@@ -104,14 +104,14 @@ class _RejectReasonSheetState extends State<RejectReasonSheet> {
           ),
           const SizedBox(height: 12),
           for (final option in RejectReasonOption.values) ...[
-            _ReasonOptionRow(
+            RejectReasonOptionRow(
               option: option,
               selected: _selected == option,
               onTap: () => setState(() => _selected = option),
             ),
             const SizedBox(height: 12),
           ],
-          _OtherReasonField(
+          RejectOtherReasonField(
             controller: _other,
             onChanged: (_) => setState(() {}),
           ),
@@ -236,11 +236,16 @@ class _ReasonItemCard extends StatelessWidget {
 }
 
 /// One radio row: a circular selector + title/subtitle.
-class _ReasonOptionRow extends StatelessWidget {
-  const _ReasonOptionRow({
+/// One selectable preset reason (radio + title + subtitle).
+///
+/// Public so `TenantRejectOrderScreen` can render the same preset list inline
+/// for a whole-order cancellation instead of duplicating the styling.
+class RejectReasonOptionRow extends StatelessWidget {
+  const RejectReasonOptionRow({
     required this.option,
     required this.selected,
     required this.onTap,
+    super.key,
   });
 
   final RejectReasonOption option;
@@ -319,8 +324,15 @@ class _ReasonOptionRow extends StatelessWidget {
 }
 
 /// The "Alasan Lainnya" labelled free-text field.
-class _OtherReasonField extends StatelessWidget {
-  const _OtherReasonField({required this.controller, required this.onChanged});
+///
+/// Public because `TenantRejectOrderScreen` captures a whole-order
+/// cancellation reason inline (no sheet) and must offer the same field.
+class RejectOtherReasonField extends StatelessWidget {
+  const RejectOtherReasonField({
+    required this.controller,
+    required this.onChanged,
+    super.key,
+  });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;

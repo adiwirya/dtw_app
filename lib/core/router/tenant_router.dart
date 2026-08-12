@@ -370,20 +370,32 @@ GoRouter tenantRouter(Ref ref) {
                       initialStatus: IncomingOrderStatus.diproses,
                     ),
                   ),
-                  // pesanan-ditolak: the reject screen, all items available.
+                  // pesanan-ditolak: the reject screen for ONE real order.
+                  //
+                  // The order id is a path parameter, not `extra`: it is the
+                  // whole identity of the screen, so it has to survive a deep
+                  // link / process restart (`extra` does not), and the screen
+                  // reads every other value it shows off the board entry for
+                  // this id. Before it was threaded through, the screen fell
+                  // back to a hardcoded id and its confirm flow silently
+                  // no-oped against an order that did not exist.
                   GoRoute(
-                    path: 'ditolak',
+                    path: 'ditolak/:orderId',
                     name: TenantRoutes.pesananDitolak,
-                    builder: (context, state) =>
-                        const TenantRejectOrderScreen(),
+                    builder: (context, state) => TenantRejectOrderScreen(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
                   ),
                   // konfirmasi-pesanan: the same reject screen deep-linked to
-                  // the confirmed state (one item pre-rejected).
+                  // its reason-chosen state. The seeded reason is prototype
+                  // frame state (like `initialStatus` / `prefilled`
+                  // elsewhere in this router), not order data.
                   GoRoute(
-                    path: 'konfirmasi',
+                    path: 'konfirmasi/:orderId',
                     name: TenantRoutes.konfirmasiPesanan,
-                    builder: (context, state) => const TenantRejectOrderScreen(
-                      initialRejectedName: 'Es Lemon Tea',
+                    builder: (context, state) => TenantRejectOrderScreen(
+                      orderId: state.pathParameters['orderId']!,
+                      initialReason: RejectReasonOption.stokHabis.title,
                     ),
                   ),
                   // alasan-penolakan (modal): reason capture. Primary UX is a
