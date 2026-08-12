@@ -163,37 +163,90 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets('picking Tenan switches the whole app to the tenant shell',
-        (tester) async {
+    testWidgets(
+        'a branch-scoped login response lands on the tenant shell '
+        'regardless of the tapped role card', (tester) async {
       await pumpApp(
         tester,
         statusCode: 200,
         body: {
           'meta': {
             'success': true,
-            'message': 'ok',
+            'message': 'Success',
             'code': 200,
-            'trace_id': 'x',
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_123',
+            'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+            'abilities': <dynamic>[],
+            'scopes': [
+              {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+            ],
           },
         },
       );
 
-      // Step 1 -> step 2 (always pre-selects Busboy); explicitly pick Tenan.
-      await tester.tap(find.text('Tenan'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Tenan'));
+      // Tap Busboy (not Tenan) to prove the flavor comes from the response,
+      // not from which role card was tapped.
+      await tester.tap(find.text('Busboy'));
       await tester.pumpAndSettle();
 
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'janji_jiwa_smlb',
+      );
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Password'),
+        'secret',
+      );
       await tester.tap(find.byType(PrimaryButton));
       await tester.pumpAndSettle();
 
-      // The tenant Order home renders directly — no second login screen, no
-      // API call for this still-stubbed path.
+      // The tenant Order home renders — no second login screen.
       expect(find.byType(LoginScreen), findsNothing);
       expect(find.text('KFC\nFried Chicken'), findsOneWidget);
       // Tenant bottom nav labels confirm the flavor switch.
       expect(find.text('Menu'), findsOneWidget);
       expect(find.text('Laporan'), findsOneWidget);
+    });
+
+    testWidgets('tapping Tenan and submitting also calls the real API',
+        (tester) async {
+      await pumpApp(
+        tester,
+        statusCode: 401,
+        body: {
+          'meta': {
+            'success': false,
+            'message': 'Unauthorized',
+            'code': 401,
+            'trace_id': 'abc',
+          },
+          'errors': null,
+        },
+      );
+
+      await tester.tap(find.text('Tenan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tenan'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'janji_jiwa_smlb',
+      );
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Password'),
+        'wrong',
+      );
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      // A real API call was made and its 401 error surfaced — today's stub
+      // would have flipped straight to the tenant shell instead.
+      expect(find.text('Username atau password salah.'), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
   });
 }

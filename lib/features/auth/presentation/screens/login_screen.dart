@@ -1,5 +1,4 @@
 import 'package:dtw_app/core/exceptions.dart';
-import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
@@ -21,9 +20,11 @@ import 'package:go_router/go_router.dart';
 ///
 /// This is the busboy flavor's entrypoint, so the Busboy card is the primary
 /// CTA and is the role `/login/tenant` pre-selects. It also doubles as the
-/// app's single shared entry: tapping "Masuk" sets [appFlavorProvider] from
-/// the selected role, so picking **Tenan** switches the whole app to the
-/// tenant router (landing on its Order tab) instead of staying on busboy's.
+/// app's single shared entry: tapping "Masuk" always calls the real login
+/// API via `AuthController`, which derives the app flavor from the login
+/// response (a branch-scoped response switches the whole app to the tenant
+/// router, landing on its Order tab) rather than from which role card was
+/// tapped.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({this.initialRole, super.key});
 
@@ -66,15 +67,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _onMasuk() async {
-    final effectiveRole = _selectedRole ?? LoginRole.busboy;
-    if (effectiveRole == LoginRole.tenan) {
-      // Tenant login is card/NFC-based and out of scope here — keep the
-      // existing mock flavor switch until that spec lands.
-      ref.read(isLoggedInProvider.notifier).state = true;
-      ref.read(appFlavorProvider.notifier).state = AppFlavor.tenant;
-      return;
-    }
-
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
     if (username.isEmpty || password.isEmpty) {
