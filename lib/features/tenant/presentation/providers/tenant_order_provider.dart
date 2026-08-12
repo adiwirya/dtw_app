@@ -1,147 +1,140 @@
-import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
+import 'dart:async';
+
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'tenant_order_provider.g.dart';
 
-// TODO(open-question): the tenant order data source and the real
-// Baru → Diproses → Selesai state transitions are unresolved (an Open
-// Question on this work item). Everything below is hard-coded, in-memory mock
-// data harvested from the `menu-order-baru` / `menu-diproses` / `selesai`
-// tenant Figma references, and accept()/markReady() are UI-only mock
-// transitions. When the real source lands, replace this synchronous notifier
-// with an async repository fetch (`Future<List<IncomingOrderData>>` backed by
-// dio, per knowledge/riverpod-patterns.md) and have the screen consume the
-// resulting AsyncValue.
-const List<IncomingOrderData> _mockTenantOrders = [
-  // --- Order Baru (menu-order-baru: two cards) ---
-  IncomingOrderData(
-    orderId: '92842',
-    tableName: 'Meja A-12',
-    time: '10:36 WIB',
-    status: IncomingOrderStatus.baru,
-    items: [
-      OrderLineItem(name: 'Paket Super Besar', price: 'Rp35.000'),
-      OrderLineItem(name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-  ),
-  IncomingOrderData(
-    orderId: '92842',
-    tableName: 'Meja A-14',
-    time: '10:36 WIB',
-    status: IncomingOrderStatus.baru,
-    items: [
-      OrderLineItem(name: 'Paket Komplit', price: 'Rp32.000'),
-    ],
-    total: 'Rp32.000',
-    note: 'extra sauce ya..',
-  ),
-  // --- Diproses (menu-diproses: one card, both items) ---
-  IncomingOrderData(
-    orderId: '92842',
-    tableName: 'Meja A-12',
-    time: '10:36 WIB',
-    status: IncomingOrderStatus.diproses,
-    items: [
-      OrderLineItem(name: 'Paket Super Besar', price: 'Rp35.000'),
-      OrderLineItem(name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-  ),
-  // --- Selesai (selesai: one card, no actions) ---
-  IncomingOrderData(
-    orderId: '92842',
-    tableName: 'Meja A-12',
-    time: '10:36 WIB',
-    status: IncomingOrderStatus.selesai,
-    items: [
-      OrderLineItem(name: 'Paket Super Besar', price: 'Rp35.000'),
-      OrderLineItem(name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-  ),
-];
-
-/// The mock tenant "Order" board: a flat list of [IncomingOrderData] spanning
-/// the three sub-tabs (`baru` / `diproses` / `selesai`). The screen filters by
-/// [IncomingOrderData.status] to render each sub-tab in place.
+/// The tenant "Order" board: fetches once from the real API, then stays
+/// live via `TenantRealtimeService.orderCreated` — no polling. [accept],
+/// [reject] and [markReady] optimistically update local state, call the
+/// repository, and revert-and-rethrow on failure so the screen can show an
+/// error (see `TenantOrderScreen`).
 ///
-/// A class-based `@riverpod` notifier so mutations go through `state`
-/// (per this work item's Riverpod constraint). [accept] and [markReady] are
-/// UI-only mock transitions.
-@riverpod
+/// Kept alive (not the `@riverpod` default autoDispose) because its
+/// `build()` opens the realtime subscriptions that keep the board live —
+/// those must not be torn down just because the screen briefly stops being
+/// watched (e.g. a transient rebuild), only on session end/logout.
+@Riverpod(keepAlive: true)
 class TenantOrderBoard extends _$TenantOrderBoard {
+  StreamSubscription<Map<String, dynamic>>? _orderCreatedSubscription;
+  StreamSubscription<void>? _reconnectedSubscription;
+  int? _lastBroadcastEventId;
+  late String _branchId;
+
   @override
-  List<IncomingOrderData> build() => _mockTenantOrders;
+  Future<List<TenantOrder>> build() async {
+    final branchId =
+        await ref.read(localStorageProvider).read(tenantBranchIdStorageKey);
+    if (branchId == null) {
+      throw StateError('TenantOrderBoard requires a tenant-scoped session');
+    }
+    _branchId = branchId;
 
-  /// UI-only: promote the first `Baru` order matching [orderId] to `Diproses`
-  /// (the card's "Terima" action). No-op if no such order exists.
-  void accept(String orderId) => _transition(
-        orderId,
-        from: IncomingOrderStatus.baru,
-        to: IncomingOrderStatus.diproses,
-      );
+    final repository = ref.watch(tenantOrderRepositoryProvider);
+    final realtime = ref.watch(tenantRealtimeServiceProvider);
 
-  /// UI-only: promote the first `Diproses` order matching [orderId] to
-  /// `Selesai` (the card's "Siap Diambil" action). No-op if none matches.
-  void markReady(String orderId) => _transition(
-        orderId,
-        from: IncomingOrderStatus.diproses,
-        to: IncomingOrderStatus.selesai,
-      );
+    ref.onDispose(() {
+      unawaited(_orderCreatedSubscription?.cancel() ?? Future.value());
+      unawaited(_reconnectedSubscription?.cancel() ?? Future.value());
+    });
 
-  /// UI-only: confirm a (partial) rejection of the first `Baru` order matching
-  /// [orderId]. The tenant marked one or more items unavailable on the
-  /// `pesanan-ditolak` screen; [rejectedItemNames] carries those names and
-  /// [reason] the shared rejection reason captured in the `alasan-penolakan`
-  /// modal.
-  ///
-  /// Per the prototype flow the order still proceeds with its remaining
-  /// available items, so the confirmed order advances Baru → Diproses (the
-  /// success modal then lands on the Diproses sub-tab). No-op if no matching
-  /// Baru order exists.
-  // TODO(open-question): real partial-rejection semantics (which items the
-  // customer keeps, whether a fully-rejected order is cancelled vs. processed,
-  // where [reason]/[rejectedItemNames] are persisted) are unresolved. This is a
-  // UI-only mock: it records nothing and simply advances the order to Diproses.
-  void reject(
+    _orderCreatedSubscription = realtime.orderCreated.listen(_onOrderCreated);
+    _reconnectedSubscription =
+        realtime.reconnected.listen((_) => _onReconnected(repository));
+
+    final orders = await repository.fetchOrders(branchId: branchId);
+    _trackBroadcastEventId(orders);
+    return _excludeCancelled(orders);
+  }
+
+  void _onOrderCreated(Map<String, dynamic> payload) {
+    final order = TenantOrder.fromJson(payload);
+    final current = state.value;
+    if (current == null) return;
+    if (current.any((o) => o.id == order.id)) return;
+    _trackBroadcastEventId([order]);
+    state = AsyncData([order, ...current]);
+  }
+
+  Future<void> _onReconnected(TenantOrderRepository repository) async {
+    final afterId = _lastBroadcastEventId;
+    if (afterId == null) return;
+    final missed = await repository.fetchMissedEvents(
+      branchId: _branchId,
+      afterId: afterId,
+    );
+    final current = state.value;
+    if (current == null || missed.isEmpty) return;
+    final currentIds = current.map((o) => o.id).toSet();
+    final fresh = missed.where((o) => !currentIds.contains(o.id));
+    _trackBroadcastEventId(missed);
+    state = AsyncData([...fresh, ...current]);
+  }
+
+  void _trackBroadcastEventId(List<TenantOrder> orders) {
+    for (final order in orders) {
+      final id = order.broadcastEventId;
+      if (id != null &&
+          (_lastBroadcastEventId == null || id > _lastBroadcastEventId!)) {
+        _lastBroadcastEventId = id;
+      }
+    }
+  }
+
+  List<TenantOrder> _excludeCancelled(List<TenantOrder> orders) =>
+      orders.where((o) => o.status != TenantOrderStatus.cancelled).toList();
+
+  Future<void> accept(String orderId) =>
+      _transition(orderId, TenantOrderStatus.preparing);
+
+  Future<void> markReady(String orderId) =>
+      _transition(orderId, TenantOrderStatus.ready);
+
+  Future<void> reject(
     String orderId, {
     required String reason,
     List<String>? rejectedItemNames,
   }) =>
-      _transition(
-        orderId,
-        from: IncomingOrderStatus.baru,
-        to: IncomingOrderStatus.diproses,
-      );
+      // rejectedItemNames is UI-only for now (open follow-up: whether the
+      // API supports partial-item rejection) — not sent to the backend.
+      _transition(orderId, TenantOrderStatus.cancelled, reason: reason);
 
-  void _transition(
-    String orderId, {
-    required IncomingOrderStatus from,
-    required IncomingOrderStatus to,
-  }) {
-    final index = state.indexWhere(
-      (order) => order.orderId == orderId && order.status == from,
-    );
+  Future<void> _transition(
+    String orderId,
+    TenantOrderStatus target, {
+    String? reason,
+  }) async {
+    final current = state.value;
+    if (current == null) return;
+    final index = current.indexWhere((o) => o.id == orderId);
     if (index == -1) return;
-    state = [
-      for (var i = 0; i < state.length; i++)
-        if (i == index) _withStatus(state[i], to) else state[i],
-    ];
-  }
+    final previous = current[index];
 
-  IncomingOrderData _withStatus(
-    IncomingOrderData order,
-    IncomingOrderStatus status,
-  ) {
-    return IncomingOrderData(
-      orderId: order.orderId,
-      tableName: order.tableName,
-      time: order.time,
-      status: status,
-      items: order.items,
-      total: order.total,
-      note: order.note,
-    );
+    // A cancelled order is excluded from the board entirely (see
+    // `incomingOrderStatusFromBackend`, which deliberately throws for
+    // `cancelled` — it must never reach the mapper), so "reject" removes
+    // the row instead of updating it in place like accept/markReady do.
+    final optimistic = target == TenantOrderStatus.cancelled
+        ? [for (final o in current) if (o.id != orderId) o]
+        : [
+            for (final o in current)
+              if (o.id == orderId) previous.copyWith(status: target) else o,
+          ];
+    state = AsyncData(optimistic);
+
+    try {
+      await ref.read(tenantOrderRepositoryProvider).updateStatus(
+            orderId,
+            status: target,
+            reason: reason,
+          );
+    } catch (error) {
+      state = AsyncData(current);
+      rethrow;
+    }
   }
 }

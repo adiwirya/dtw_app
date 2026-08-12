@@ -6,23 +6,23 @@ part of 'tenant_order_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantOrderBoardHash() => r'bc2611862fed32a13957dfc1e8f08f72b04373e4';
+String _$tenantOrderBoardHash() => r'0a820c180d21a7e7eaa256b1edc1ff77c2dddd2a';
 
-/// The mock tenant "Order" board: a flat list of [IncomingOrderData] spanning
-/// the three sub-tabs (`baru` / `diproses` / `selesai`). The screen filters by
-/// [IncomingOrderData.status] to render each sub-tab in place.
+/// The tenant "Order" board: fetches once from the real API, then stays
+/// live via `TenantRealtimeService.orderCreated` — no polling. [accept],
+/// [reject] and [markReady] optimistically update local state, call the
+/// repository, and revert-and-rethrow on failure so the screen can show an
+/// error (see `TenantOrderScreen`).
 ///
-/// A class-based `@riverpod` notifier so mutations go through `state`
-/// (per this work item's Riverpod constraint). [accept] and [markReady] are
-/// UI-only mock transitions.
+/// Kept alive (not the `@riverpod` default autoDispose) because its
+/// `build()` opens the realtime subscriptions that keep the board live —
+/// those must not be torn down just because the screen briefly stops being
+/// watched (e.g. a transient rebuild), only on session end/logout.
 ///
 /// Copied from [TenantOrderBoard].
 @ProviderFor(TenantOrderBoard)
 final tenantOrderBoardProvider =
-    AutoDisposeNotifierProvider<
-      TenantOrderBoard,
-      List<IncomingOrderData>
-    >.internal(
+    AsyncNotifierProvider<TenantOrderBoard, List<TenantOrder>>.internal(
       TenantOrderBoard.new,
       name: r'tenantOrderBoardProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -32,6 +32,6 @@ final tenantOrderBoardProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$TenantOrderBoard = AutoDisposeNotifier<List<IncomingOrderData>>;
+typedef _$TenantOrderBoard = AsyncNotifier<List<TenantOrder>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
