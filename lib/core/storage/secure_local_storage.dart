@@ -11,7 +11,7 @@ part 'secure_local_storage.g.dart';
 const authTokenStorageKey = 'auth_token';
 
 /// Key the tenant branch id is stored under (only present for a
-/// branch-scoped/tenant session) — read by [TenantOrderBoard] to know which
+/// branch-scoped/tenant session) — read by `TenantOrderBoard` to know which
 /// `branch_id` to fetch/subscribe with.
 const tenantBranchIdStorageKey = 'tenant_branch_id';
 

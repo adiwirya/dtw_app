@@ -56,8 +56,10 @@ void main() {
       localStorage: storage,
     );
 
-    final response =
-        await repository.loginWithPassword(username: 'janji_jiwa_smlb', password: 'secret');
+    final response = await repository.loginWithPassword(
+      username: 'janji_jiwa_smlb',
+      password: 'secret',
+    );
 
     expect(response.branchId, 'branch-1');
     expect(storage.values[tenantBranchIdStorageKey], 'branch-1');
