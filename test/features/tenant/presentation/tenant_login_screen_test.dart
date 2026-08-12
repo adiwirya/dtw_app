@@ -1,5 +1,7 @@
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_login_screen.dart';
@@ -7,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../support/fake_local_storage.dart';
+import '../../../support/fake_tenant_realtime_service.dart';
 
 /// Minimal router exercising just the tenant login flow so navigation targets
 /// (`tenantLoginTenant`) can be asserted without standing up the whole tenant
@@ -89,10 +94,17 @@ void main() {
 
       // Boots straight into the tenant flavor (as if the shared login had
       // already switched here) so `TenantLoginScreen` is what's on screen.
+      // `/order` (landed on post-"Masuk") hosts `TenantOrderScreen`, which
+      // reads the real `tenantOrderBoardProvider` — without a fake local
+      // storage the board's initial fetch hangs on an unmocked
+      // `flutter_secure_storage` platform channel instead of resolving.
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             appFlavorProvider.overrideWith((ref) => AppFlavor.tenant),
+            localStorageProvider.overrideWithValue(FakeLocalStorage()),
+            tenantRealtimeServiceProvider
+                .overrideWithValue(FakeTenantRealtimeService()),
           ],
           child: const App(),
         ),

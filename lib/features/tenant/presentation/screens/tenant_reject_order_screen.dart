@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/utils/currency.dart';
@@ -128,12 +129,23 @@ class _TenantRejectOrderScreenState
         .firstWhere((l) => !l.available, orElse: () => _lines.first)
         .reason;
 
-    ref.read(tenantOrderBoardProvider.notifier).reject(
-          widget.orderId,
-          reason: reason ?? '',
-          rejectedItemNames: rejectedNames,
-        );
+    try {
+      await ref.read(tenantOrderBoardProvider.notifier).reject(
+            widget.orderId,
+            reason: reason ?? '',
+            rejectedItemNames: rejectedNames,
+          );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.'),
+        ),
+      );
+      return;
+    }
 
+    if (!mounted) return;
     await showRejectConfirmedModal(
       context,
       acceptedCount: _availableCount,

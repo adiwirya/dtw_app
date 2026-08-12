@@ -1,7 +1,9 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
+import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/tenant_order_header.dart';
@@ -13,10 +15,11 @@ import 'package:go_router/go_router.dart';
 ///
 /// One screen hosts all three sub-tabs (Order Baru / Diproses / Selesai); the
 /// shared [SegmentedTabBar] switches the list in place (mirroring the busboy
-/// `OrderScreen` pattern). The visible list is filtered from the mock
-/// [tenantOrderBoardProvider] by [IncomingOrderStatus]; "Terima" promotes a
-/// Baru order to Diproses and "Siap Diambil" promotes a Diproses order to
-/// Selesai, both UI-only mock transitions.
+/// `OrderScreen` pattern). The visible list is filtered from the real,
+/// realtime-fed [tenantOrderBoardProvider] by [IncomingOrderStatus]; "Terima"
+/// promotes a Baru order to Diproses and "Siap Diambil" promotes a Diproses
+/// order to Selesai, both backed by the board's `accept`/`markReady` API
+/// calls.
 ///
 /// [initialStatus] seeds the active sub-tab so the `/order/diproses`,
 /// `/order/pesanan-diproses` and `/order/selesai` routes can reuse this screen.
@@ -47,12 +50,8 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final board = ref.watch(tenantOrderBoardProvider);
+    final boardAsync = ref.watch(tenantOrderBoardProvider);
     final status = _statuses[_selected];
-    final orders =
-        board.where((order) => order.status == status).toList(growable: false);
-    final baruCount = _countFor(board, IncomingOrderStatus.baru);
-    final diprosesCount = _countFor(board, IncomingOrderStatus.diproses);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -68,63 +67,89 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SegmentedTabBar(
-                      selectedIndex: _selected,
-                      onChanged: (i) => setState(() => _selected = i),
-                      items: [
-                        SegmentedTabItem(
-                          label: 'Order Baru',
-                          badge: baruCount == 0
-                              ? null
-                              : OrderTabBadge(
-                                  count: baruCount,
-                                  color: AppColors.orderBadgeRed,
-                                ),
-                        ),
-                        SegmentedTabItem(
-                          label: 'Diproses',
-                          badge: diprosesCount == 0
-                              ? null
-                              : OrderTabBadge(
-                                  count: diprosesCount,
-                                  color: AppColors.orderBadgeAmber,
-                                ),
-                        ),
-                        const SegmentedTabItem(label: 'Selesai'),
-                      ],
-                    ),
+              child: boardAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Text(
+                    error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.',
                   ),
-                  Expanded(
-                    child: orders.isEmpty
-                        ? const _EmptyOrders()
-                        : _OrderList(
-                            orders: orders,
-                            onAccept: (order) => ref
-                                .read(tenantOrderBoardProvider.notifier)
-                                .accept(order.orderId),
-                            onPickupReady: (order) => ref
-                                .read(tenantOrderBoardProvider.notifier)
-                                .markReady(order.orderId),
-                            onReject: (order) =>
-                                context.goNamed(TenantRoutes.pesananDitolak),
-                            // Tapping a card opens the order view
-                            // (menu-order-baru-2).
-                            onOpenDetail: (order) =>
-                                context.goNamed(TenantRoutes.orderDetail),
-                          ),
-                  ),
-                ],
+                ),
+                data: (board) => _buildBoard(context, board, status),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildBoard(
+    BuildContext context,
+    List<TenantOrder> board,
+    IncomingOrderStatus status,
+  ) {
+    final data = board.map((o) => o.toIncomingOrderData()).toList();
+    final orders = data.where((o) => o.status == status).toList(growable: false);
+    final baruCount = _countFor(data, IncomingOrderStatus.baru);
+    final diprosesCount = _countFor(data, IncomingOrderStatus.diproses);
+
+    return Column(
+      children: [
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SegmentedTabBar(
+            selectedIndex: _selected,
+            onChanged: (i) => setState(() => _selected = i),
+            items: [
+              SegmentedTabItem(
+                label: 'Order Baru',
+                badge: baruCount == 0
+                    ? null
+                    : OrderTabBadge(count: baruCount, color: AppColors.orderBadgeRed),
+              ),
+              SegmentedTabItem(
+                label: 'Diproses',
+                badge: diprosesCount == 0
+                    ? null
+                    : OrderTabBadge(count: diprosesCount, color: AppColors.orderBadgeAmber),
+              ),
+              const SegmentedTabItem(label: 'Selesai'),
+            ],
+          ),
+        ),
+        Expanded(
+          child: orders.isEmpty
+              ? const _EmptyOrders()
+              : _OrderList(
+                  orders: orders,
+                  onAccept: (order) => _runAction(
+                    context,
+                    () => ref.read(tenantOrderBoardProvider.notifier).accept(order.orderId),
+                  ),
+                  onPickupReady: (order) => _runAction(
+                    context,
+                    () => ref.read(tenantOrderBoardProvider.notifier).markReady(order.orderId),
+                  ),
+                  onReject: (order) => context.goNamed(TenantRoutes.pesananDitolak),
+                  onOpenDetail: (order) => context.goNamed(TenantRoutes.orderDetail),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _runAction(BuildContext context, Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.'),
+        ),
+      );
+    }
   }
 }
 

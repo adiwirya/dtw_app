@@ -1,10 +1,12 @@
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,11 +96,20 @@ void main() {
       final storage = FakeLocalStorage();
       final realtime = FakeTenantRealtimeService();
       addTearDown(realtime.close);
+      // Shared with `localStorageProvider` below so a branch-scoped login
+      // response's `branch_id` (written by `AuthRepository`) is visible to
+      // `TenantOrderBoard` when the tenant shell lands on `/order`.
+      final orderDio = cannedDio(200, {
+        'meta': {'success': true, 'message': 'Success', 'code': 200, 'trace_id': 'abc'},
+        'data': <dynamic>[],
+      });
       final container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(
             AuthRepository(dio: cannedDio(statusCode, body), localStorage: storage),
           ),
+          localStorageProvider.overrideWithValue(storage),
+          tenantOrderRepositoryProvider.overrideWithValue(TenantOrderRepository(dio: orderDio)),
           tenantRealtimeServiceProvider.overrideWithValue(realtime),
         ],
       );
