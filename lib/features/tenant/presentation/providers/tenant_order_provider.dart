@@ -4,6 +4,7 @@ import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'tenant_order_provider.g.dart';
@@ -52,10 +53,26 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     // of dropping them, then fold them into the fetched list once it's
     // ready — after that, later events go through `_onOrderCreated` as
     // normal.
-    final pendingDuringFetch = <TenantOrder>[];
+    //
+    // Keyed by order id, not a plain list: the socket can deliver two events
+    // for the same brand-new order inside the fetch window (a redelivery, or
+    // a create followed by an immediate update), and the merge below only
+    // dedups the buffer against the *fetched* list — so without this a
+    // same-id pair would both survive and render as duplicate rows.
+    final pendingDuringFetch = <String, TenantOrder>{};
+    // Buffering is strictly a fetch-window measure. `build()` can also
+    // *fail* (no branch id, `fetchOrders` throws), leaving `state.value`
+    // null forever — and an unbounded buffer growing on every incoming
+    // event for the rest of the session with it. Flipping this the moment
+    // the fetch settles (resolved OR threw) bounds the buffer to that
+    // window; events after a failed build are dropped by `_onOrderCreated`,
+    // which is correct — there is no list to merge them into, and the next
+    // successful build refetches from scratch.
+    var initialFetchSettled = false;
     _orderCreatedSubscription = realtime.orderCreated.listen((payload) {
-      if (state.value == null) {
-        pendingDuringFetch.add(TenantOrder.fromJson(payload));
+      if (state.value == null && !initialFetchSettled) {
+        final order = TenantOrder.fromJson(payload);
+        pendingDuringFetch[order.id] = order;
       } else {
         _onOrderCreated(payload);
       }
@@ -63,15 +80,21 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     _reconnectedSubscription =
         realtime.reconnected.listen((_) => _onReconnected(repository));
 
-    final orders = await repository.fetchOrders(branchId: branchId);
+    final List<TenantOrder> orders;
+    try {
+      orders = await repository.fetchOrders(branchId: branchId);
+    } finally {
+      initialFetchSettled = true;
+    }
     _trackBroadcastEventId(orders);
     final fetched = _excludeCancelled(orders);
     if (pendingDuringFetch.isEmpty) return fetched;
 
-    _trackBroadcastEventId(pendingDuringFetch);
+    final buffered = pendingDuringFetch.values.toList();
+    _trackBroadcastEventId(buffered);
     final fetchedIds = fetched.map((o) => o.id).toSet();
-    final fresh = _excludeCancelled(pendingDuringFetch)
-        .where((o) => !fetchedIds.contains(o.id));
+    final fresh =
+        _excludeCancelled(buffered).where((o) => !fetchedIds.contains(o.id));
     return [...fresh, ...fetched];
   }
 
@@ -87,10 +110,27 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   Future<void> _onReconnected(TenantOrderRepository repository) async {
     final afterId = _lastBroadcastEventId;
     if (afterId == null) return;
-    final missed = await repository.fetchMissedEvents(
-      branchId: _branchId,
-      afterId: afterId,
-    );
+    // This runs from a stream listener (`realtime.reconnected.listen`), so
+    // nothing is awaiting its future — an escaping exception would surface as
+    // an uncaught async error (and in tests, fail an unrelated test) rather
+    // than as anything the user could act on. A failed gap-fill is also not
+    // fatal: the board's current list is still valid, just possibly missing
+    // orders created while the socket was down, and the next reconnect
+    // retries with the same `afterId`. So swallow it and leave `state`
+    // untouched.
+    final List<TenantOrder> missed;
+    try {
+      missed = await repository.fetchMissedEvents(
+        branchId: _branchId,
+        afterId: afterId,
+      );
+    } on Object catch (error) {
+      // Same best-effort pattern as `dioProvider`'s realtime disconnect and
+      // `AuthController.logout`: log for diagnosis, never propagate.
+      debugPrint('TenantOrderBoard gap-fill failed, keeping current list: '
+          '$error');
+      return;
+    }
     final current = state.value;
     if (current == null || missed.isEmpty) return;
     final currentIds = current.map((o) => o.id).toSet();
@@ -118,13 +158,10 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   Future<void> markReady(String orderId) =>
       _transition(orderId, TenantOrderStatus.ready);
 
-  Future<void> reject(
-    String orderId, {
-    required String reason,
-    List<String>? rejectedItemNames,
-  }) =>
-      // rejectedItemNames is UI-only for now (open follow-up: whether the
-      // API supports partial-item rejection) — not sent to the backend.
+  /// Cancels the WHOLE order. The API has no partial-item rejection (see
+  /// `TenantRejectOrderScreen`, which is all-or-nothing for that reason), so
+  /// [reason] is the one cancellation reason for the order as a unit.
+  Future<void> reject(String orderId, {required String reason}) =>
       _transition(orderId, TenantOrderStatus.cancelled, reason: reason);
 
   Future<void> _transition(
@@ -132,10 +169,28 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     TenantOrderStatus target, {
     String? reason,
   }) async {
+    // Both guards below used to `return` silently. That turned every
+    // mis-targeted mutation into a fake success: the caller saw no
+    // exception, showed its success feedback, and the backend was never
+    // told — the order sat there unchanged. Neither case is a state a
+    // correct caller can reach (screens only offer actions for orders they
+    // are currently rendering off this board), so both are bugs that must
+    // surface. Throwing routes them into the screens' existing
+    // catch-and-SnackBar handling instead of silently lying to the tenant.
     final current = state.value;
-    if (current == null) return;
+    if (current == null) {
+      throw StateError(
+        'TenantOrderBoard: cannot move order $orderId to $target — the board '
+        'has not finished loading',
+      );
+    }
     final index = current.indexWhere((o) => o.id == orderId);
-    if (index == -1) return;
+    if (index == -1) {
+      throw StateError(
+        'TenantOrderBoard: cannot move order $orderId to $target — it is not '
+        'on the board',
+      );
+    }
     final previous = current[index];
 
     // A cancelled order is excluded from the board entirely (see
@@ -156,7 +211,7 @@ class TenantOrderBoard extends _$TenantOrderBoard {
             status: target,
             reason: reason,
           );
-    } catch (error) {
+    } on Object catch (_) {
       state = AsyncData(current);
       rethrow;
     }
