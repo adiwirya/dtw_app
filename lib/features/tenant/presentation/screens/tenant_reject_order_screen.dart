@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
@@ -9,16 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Formats an integer rupiah amount as `Rp35.000` (thousands separated by `.`).
-String formatRupiah(int value) {
-  final digits = value.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
-    buffer.write(digits[i]);
-  }
-  return 'Rp$buffer';
-}
+export 'package:dtw_app/core/utils/currency.dart' show formatRupiah;
 
 /// A per-item line on the reject screen: the display item plus its numeric
 /// price (so accepted totals can be recomputed) and, when rejected, the reason.
