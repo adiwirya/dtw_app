@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
@@ -37,11 +38,7 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final menus = ref.watch(menuListProvider);
-    final rows = [
-      ...menus,
-      if (widget.recentlyAdded) recentlyAddedMenu,
-    ];
+    final menusAsync = ref.watch(menuListProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -79,23 +76,35 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                itemCount: rows.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 16),
-                itemBuilder: (context, i) => MenuItemCard(
-                  data: rows[i],
-                  onActiveChanged: i < menus.length
-                      ? (active) => ref
-                          .read(menuListProvider.notifier)
-                          .setActive(i, active: active)
-                      : null,
-                  onTap: () => context.goNamed(TenantRoutes.menuDiisi),
-                ),
+              child: menusAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(errorMessage(error))),
+                data: _buildList,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildList(List<MenuItemData> menus) {
+    final rows = [
+      ...menus,
+      if (widget.recentlyAdded) recentlyAddedMenu,
+    ];
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      itemCount: rows.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      itemBuilder: (context, i) => MenuItemCard(
+        data: rows[i],
+        onActiveChanged: i < menus.length
+            ? (active) => ref
+                .read(menuListProvider.notifier)
+                .setActive(i, active: active)
+            : null,
+        onTap: () => context.goNamed(TenantRoutes.menuDiisi),
       ),
     );
   }

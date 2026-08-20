@@ -241,9 +241,20 @@ class IncomingOrderCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('#${data.orderId}', style: _idStyle),
+            // `orderId` is the backend's full UUID (no short order number
+            // exists yet) — it can easily outrun the card's width, so it
+            // needs to yield space to and truncate before the fixed-width
+            // status label rather than overflow past the card edge.
+            Expanded(
+              child: Text(
+                '#${data.orderId}',
+                style: _idStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: _gap),
             Text(
               _statusLabel,
               style: TextStyle(

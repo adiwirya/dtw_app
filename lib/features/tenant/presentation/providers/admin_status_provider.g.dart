@@ -6,25 +6,28 @@ part of 'admin_status_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantAdminInfoHash() => r'facd63716c3d57970998f07c32ad027fa3fb395e';
+String _$tenantAdminInfoHash() => r'47bd5e33a83ffbc155d4c0d5abda88c4d38c6ed0';
 
-/// Mock tenant identity + operational data for the Admin status screen.
+/// Real tenant identity for the Admin status screen, fetched from
+/// `GET /v1/tenant-branches/{id}`. See [TenantAdminInfo] for which fields the
+/// endpoint doesn't cover yet.
 ///
 /// Copied from [tenantAdminInfo].
 @ProviderFor(tenantAdminInfo)
-final tenantAdminInfoProvider = AutoDisposeProvider<TenantAdminInfo>.internal(
-  tenantAdminInfo,
-  name: r'tenantAdminInfoProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$tenantAdminInfoHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final tenantAdminInfoProvider =
+    AutoDisposeFutureProvider<TenantAdminInfo>.internal(
+      tenantAdminInfo,
+      name: r'tenantAdminInfoProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$tenantAdminInfoHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef TenantAdminInfoRef = AutoDisposeProviderRef<TenantAdminInfo>;
+typedef TenantAdminInfoRef = AutoDisposeFutureProviderRef<TenantAdminInfo>;
 String _$adminOnlineStatusHash() => r'12740c6c196b42bacb25176844e50fc7fa8e4e67';
 
 /// Copied from Dart SDK

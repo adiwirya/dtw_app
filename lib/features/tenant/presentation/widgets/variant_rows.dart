@@ -240,7 +240,17 @@ class VariantOptionData {
   const VariantOptionData({
     required this.name,
     this.addonPrice,
+    this.id,
   });
+
+  /// The backing modifier-option id (`GET/PUT /v1/modifier-groups/{id}` —
+  /// only known for options already saved to the API). Null for an option
+  /// the user just added in the current editing session and hasn't saved
+  /// yet — that distinction is what tells `VariantList.updateVariant`
+  /// whether to `POST` (create) or `PUT` (update) each option, and what lets
+  /// the "Tambah Varian" form only offer to remove not-yet-saved options
+  /// (there is no delete endpoint for an already-saved one).
+  final String? id;
 
   /// Option name, e.g. `Small` / `Medium`.
   final String name;

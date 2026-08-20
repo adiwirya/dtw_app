@@ -1,31 +1,29 @@
+import 'package:dtw_app/core/utils/currency.dart';
+import 'package:dtw_app/features/tenant/data/repositories/modifier_group_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/variant_rows.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'variant_provider.g.dart';
 
-// TODO(open-question): the Variant data source and the variant-form validation
-// rules (required / multi-select semantics, option add-on pricing) are
-// unresolved Open Questions on this work item. Everything below is hard-coded,
-// in-memory mock data harvested from the tenant `kelola-varian` /
-// `tambah-varian` / `varian-disimpan` Figma references, and every [VariantList]
-// mutation is a UI-only mock (no persistence). When the real source lands,
-// replace this synchronous class-notifier with an async repository fetch
-// (`Future<List<VariantData>>` backed by dio, per
-// knowledge/riverpod-patterns.md) and have the screens consume the AsyncValue.
-
 /// A tenant menu variant (e.g. `Tingkat Pedas`) with its options and the two
 /// L6 selection rules.
 @immutable
 class VariantData {
   const VariantData({
+    required this.id,
     required this.name,
     required this.type,
-    required this.options,
+    required this.optionCount,
+    this.options,
     this.isRequired = false,
     this.multiSelect = false,
-    this.usedInMenuCount = 0,
+    this.usedInMenuCount,
   });
+
+  /// The backing modifier group id (`ModifierGroup.id`).
+  final String id;
 
   /// Variant name, e.g. `Tingkat Pedas`.
   final String name;
@@ -33,9 +31,17 @@ class VariantData {
   /// Single-choice (`Tunggal`) vs. multi-choice (`Ganda`) — the type chip.
   final VariantType type;
 
-  /// The selectable options. L6: each [VariantOptionData] carries a "+price"
-  /// add-on (`addonPrice`, null => Gratis).
-  final List<VariantOptionData> options;
+  /// How many options this variant has. Always known (even when [options]
+  /// itself isn't — see below), since `GET /v1/modifier-groups` returns an
+  /// `option_count` without the options themselves.
+  final int optionCount;
+
+  /// The selectable options with names/add-on prices — only known once
+  /// fetched in detail (`GET /v1/modifier-groups/{id}`, or from the
+  /// in-progress `tambah-varian` form). Null means "count known, names
+  /// not fetched"; renderers show [optionCount] regardless and skip the
+  /// name preview when this is null.
+  final List<VariantOptionData>? options;
 
   /// L6 rule "Wajib Dipilih" — the customer must pick an option.
   final bool isRequired;
@@ -43,11 +49,16 @@ class VariantData {
   /// L6 rule "Pilih Lebih dari Satu" — the customer may pick several options.
   final bool multiSelect;
 
-  /// How many menus reference this variant ("Digunakan di N menu"). Mock count.
-  final int usedInMenuCount;
+  /// How many menus reference this variant ("Digunakan di N menu"). No API
+  /// source exists for this yet — null hides the footer that shows it.
+  final int? usedInMenuCount;
 
-  /// Option labels for the comma-joined preview / `N Opsi` count.
-  List<String> get optionNames => [for (final o in options) o.name];
+  /// Option labels for the comma-joined preview. Empty when [options] is
+  /// unknown (see above) — callers gate the preview line on `options != null`
+  /// rather than on this being non-empty.
+  List<String> get optionNames => [
+        for (final o in options ?? const <VariantOptionData>[]) o.name,
+      ];
 
   /// Projection onto the reused [VariantSelectRow] value object.
   VariantSelectData get asSelectData => VariantSelectData(
@@ -55,25 +66,19 @@ class VariantData {
         type: type,
         optionNames: optionNames,
       );
-
-  /// Returns a copy with [options] replaced (used by the mock `addOption`).
-  VariantData copyWith({List<VariantOptionData>? options}) => VariantData(
-        name: name,
-        type: type,
-        options: options ?? this.options,
-        isRequired: isRequired,
-        multiSelect: multiSelect,
-        usedInMenuCount: usedInMenuCount,
-      );
 }
 
-/// Seed variants shown on `varian-disimpan` (the saved list) and offered on the
-/// `tambah-varian` ("Pilih Varian") picker. Mock data mirroring the references.
+/// Seed variants offered on the `tambah-varian` ("Pilih Varian") picker,
+/// which isn't wired to the real modifier-group list yet (see the TODO in
+/// `PilihVarianScreen`) — kept as mock data with full `options` known, unlike
+/// the real [VariantList] below.
 const List<VariantData> savedVariants = [
   VariantData(
+    id: 'mock-1',
     name: 'Tingkat Pedas',
     type: VariantType.tunggal,
     isRequired: true,
+    optionCount: 2,
     options: [
       VariantOptionData(name: 'Original'),
       VariantOptionData(name: 'Spicy'),
@@ -81,9 +86,11 @@ const List<VariantData> savedVariants = [
     usedInMenuCount: 12,
   ),
   VariantData(
+    id: 'mock-2',
     name: 'Ukuran Minuman',
     type: VariantType.tunggal,
     isRequired: true,
+    optionCount: 3,
     options: [
       VariantOptionData(name: 'Small'),
       VariantOptionData(name: 'Medium', addonPrice: 'Rp3.000'),
@@ -92,9 +99,11 @@ const List<VariantData> savedVariants = [
     usedInMenuCount: 8,
   ),
   VariantData(
+    id: 'mock-3',
     name: 'Extra Topping',
     type: VariantType.ganda,
     multiSelect: true,
+    optionCount: 5,
     options: [
       VariantOptionData(name: 'Keju', addonPrice: 'Rp3.000'),
       VariantOptionData(name: 'Telur', addonPrice: 'Rp3.000'),
@@ -106,34 +115,104 @@ const List<VariantData> savedVariants = [
   ),
 ];
 
-/// Mutable in-memory variant list backing `kelola-varian` (the manage screen).
-///
-/// Starts EMPTY to match the empty `kelola-varian` frame. UI-only: [add]
-/// appends a newly-created variant (the Tambah Varian flow) and [loadSaved]
-/// seeds the `savedVariants` mock. No persistence.
+/// The tenant's variant list (`kelola-varian` / `varian-disimpan`), fetched
+/// from `GET /v1/modifier-groups`.
 @riverpod
 class VariantList extends _$VariantList {
   @override
-  List<VariantData> build() => const [];
+  Future<List<VariantData>> build() async {
+    final branch = await ref.watch(currentTenantBranchProvider.future);
+    final groups = await ref
+        .watch(modifierGroupRepositoryProvider)
+        .fetchModifierGroups(brandId: branch.brandId);
+    return [for (final group in groups) group.toVariantData()];
+  }
 
-  /// Appends [variant] to the list (mock save from the variant form).
-  void add(VariantData variant) => state = [...state, variant];
+  /// Creates a new variant ("Simpan Varian" on `tambah-varian-2`): creates
+  /// the modifier group, then adds each of [options] to it in sequence —
+  /// only possible once the group exists, so there is no batch-create
+  /// endpoint to use instead. [isRequired] maps to `min_selections` (1 or 0)
+  /// and [multiSelect] to `max_selections` (the option count, so the
+  /// customer may pick up to all of them — the API has no explicit cap
+  /// field for this). Appends the new variant to the list on success rather
+  /// than refetching, since every field is already known from the responses.
+  Future<void> create({
+    required String name,
+    required bool isRequired,
+    required bool multiSelect,
+    required List<VariantOptionData> options,
+  }) async {
+    final branch = await ref.read(currentTenantBranchProvider.future);
+    final repository = ref.read(modifierGroupRepositoryProvider);
+    final group = await repository.createModifierGroup(
+      brandId: branch.brandId,
+      name: name,
+      minSelections: isRequired ? 1 : 0,
+      maxSelections: multiSelect ? options.length : 1,
+    );
+    for (final option in options) {
+      await repository.addOption(
+        group.id,
+        name: option.name,
+        price: parseRupiah(option.addonPrice),
+      );
+    }
+    final current = state.value ?? const [];
+    state = AsyncData([
+      ...current,
+      group.toVariantData(overrideOptions: options),
+    ]);
+  }
 
-  /// Loads the seeded [savedVariants] (mock "already saved" state).
-  void loadSaved() => state = savedVariants;
-
-  /// Attaches [option] to the variant at [index] (UI-only mock of the
-  /// "+ Tambah Opsi" → option modal (`opsi-varian-1`) → variant flow).
+  /// Updates an existing variant ("Simpan Varian" on `varian-diisi`).
   ///
-  // TODO(open-question): with no persisted draft-variant model yet, this
-  // appends to an already-added [VariantData]; the real flow will attach the
-  // option to the in-progress variant before it is saved.
-  void addOption(int index, VariantOptionData option) {
-    if (index < 0 || index >= state.length) return;
-    final updated = [...state];
-    final target = updated[index];
-    updated[index] = target.copyWith(options: [...target.options, option]);
-    state = updated;
+  /// Named `updateVariant`, not `update`, to avoid colliding with
+  /// [AsyncNotifier]'s own inherited `update(fn)` method (a different
+  /// operation: it re-derives state from the current value).
+  ///
+  /// Each option in [options] is either updated in place (`PUT`, when it has
+  /// an [VariantOptionData.id] — it was already saved) or created (`POST`,
+  /// when it doesn't — the user added it in this editing session). There is
+  /// no delete endpoint, so an option removed from [options] that was
+  /// already saved is NOT reflected on the server — `TambahVarianScreen`
+  /// only offers removal for not-yet-saved options for exactly this reason.
+  /// Refetches the group afterwards (rather than assembling the result
+  /// locally like [create] does) so newly-added options end up with their
+  /// real ids.
+  Future<void> updateVariant({
+    required String groupId,
+    required String name,
+    required bool isRequired,
+    required bool multiSelect,
+    required List<VariantOptionData> options,
+  }) async {
+    final repository = ref.read(modifierGroupRepositoryProvider);
+    await repository.updateModifierGroup(
+      groupId,
+      name: name,
+      minSelections: isRequired ? 1 : 0,
+      maxSelections: multiSelect ? options.length : 1,
+      isActive: true,
+    );
+    for (final option in options) {
+      final price = parseRupiah(option.addonPrice);
+      if (option.id case final optionId?) {
+        await repository.updateOption(
+          groupId,
+          optionId,
+          name: option.name,
+          price: price,
+        );
+      } else {
+        await repository.addOption(groupId, name: option.name, price: price);
+      }
+    }
+    final refreshed = await repository.fetchModifierGroup(groupId);
+    final current = state.value ?? const [];
+    state = AsyncData([
+      for (final variant in current)
+        if (variant.id == groupId) refreshed.toVariantData() else variant,
+    ]);
   }
 }
 

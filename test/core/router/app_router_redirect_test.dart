@@ -28,6 +28,6 @@ void main() {
     container.read(isLoggedInProvider.notifier).state = false;
     await tester.pumpAndSettle();
 
-    expect(find.text('Masuk Sebagai'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
   });
 }

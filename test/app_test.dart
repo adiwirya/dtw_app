@@ -10,8 +10,8 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: App()));
     await tester.pumpAndSettle();
 
-    // The real login-default screen renders the "Masuk Sebagai" role picker.
-    expect(find.text('Masuk Sebagai'), findsOneWidget);
+    // The real login-default screen renders the shared login form.
+    expect(find.text('Username'), findsOneWidget);
     // No bottom nav while outside the shell.
     expect(find.text('Performa'), findsNothing);
     expect(find.text('Riwayat'), findsNothing);

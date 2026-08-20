@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
@@ -34,24 +36,25 @@ class AuthController extends _$AuthController {
             username: username,
             password: password,
           );
-      // For a branch-scoped (tenant) login, `connect()` must succeed before
-      // `isLoggedInProvider` flips — the router navigates away from the
-      // login screen the instant that flag is true, so a connect failure
-      // surfaced afterwards would render on a screen the user can no longer
-      // see. Flipping the flags only once the socket is up keeps a failed
-      // connect indistinguishable from a failed login: the user stays on
-      // the login screen and sees the error.
+      ref.read(isLoggedInProvider.notifier).state = true;
+      ref.read(sessionBranchIdProvider.notifier).state = response.branchId;
+      state = const AuthState();
+
+      // Reverb only drives live order-status updates on the tenant order
+      // board — it is not part of the login contract, so a broken/slow
+      // realtime endpoint must never gate or delay login success.
+      // Fire-and-forget, errors swallowed: `TenantOrderBoard` tolerates
+      // starting without a live socket (it still fetches its initial list
+      // over the normal API) and picks up events once/if the socket comes up.
       final branchId = response.branchId;
       if (branchId != null) {
-        await ref.read(tenantRealtimeServiceProvider).connect(
-              token: response.accessToken,
-              branchId: branchId,
-            );
+        unawaited(
+          ref
+              .read(tenantRealtimeServiceProvider)
+              .connect(token: response.accessToken, branchId: branchId)
+              .catchError((_) {}),
+        );
       }
-      ref.read(isLoggedInProvider.notifier).state = true;
-      ref.read(appFlavorProvider.notifier).state =
-          branchId != null ? AppFlavor.tenant : AppFlavor.busboy;
-      state = const AuthState();
     } catch (error) {
       state = AuthState(error: error);
     }
@@ -68,11 +71,6 @@ class AuthController extends _$AuthController {
     }
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
-    // Logout must clear the flavor as well, mirroring the 401 interceptor in
-    // `dioProvider`: `App` renders whichever router [appFlavorProvider]
-    // names, so a tenant logout that left the flavor on tenant would land
-    // back on `tenantRouter`'s `/login` rather than the real shared
-    // `LoginScreen`.
-    ref.read(appFlavorProvider.notifier).state = AppFlavor.busboy;
+    ref.read(sessionBranchIdProvider.notifier).state = null;
   }
 }

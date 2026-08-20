@@ -1,8 +1,11 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/features/akun/data/models/akun_account.dart';
+import 'package:dtw_app/features/akun/presentation/widgets/account_menu_tile.dart';
+import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_admin_info.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/admin_status_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/admin_hero_header.dart';
-import 'package:dtw_app/features/tenant/presentation/widgets/online_status_toggle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:obra_icons/obra_icons.dart';
@@ -28,43 +31,62 @@ class AdminStatusScreen extends ConsumerWidget {
     final statusProvider =
         adminOnlineStatusProvider(initialOnline: initialOnline);
     final online = ref.watch(statusProvider);
-    final info = ref.watch(tenantAdminInfoProvider);
+    final infoAsync = ref.watch(tenantAdminInfoProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AdminHeroHeader(info: info, online: online),
-          Expanded(
-            child: Container(
-              // Pull the white body up so its rounded top overlaps the green
-              // hero band (Rectangle 363 in the reference).
-              transform: Matrix4.translationValues(0, -24, 0),
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-                children: [
-                  // OnlineStatusToggle(
-                  //   online: online,
-                  //   onToggle: (next) =>
-                  //       ref.read(statusProvider.notifier).set(value: next),
-                  // ),
-                  // const SizedBox(height: 16),
-                  _JamOperasionalCard(info: info),
+      body: infoAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text(errorMessage(error))),
+        data: (info) => _buildBody(context, ref, info, online),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    TenantAdminInfo info,
+    bool online,
+  ) {
+    final hasOperationalHours =
+        info.operationalHours != null && info.operationalDays != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AdminHeroHeader(info: info, online: online),
+        Expanded(
+          child: Container(
+            // Pull the white body up so its rounded top overlaps the green
+            // hero band (Rectangle 363 in the reference).
+            transform: Matrix4.translationValues(0, -24, 0),
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              children: [
+                if (hasOperationalHours) ...[
+                  _JamOperasionalCard(
+                    hours: info.operationalHours!,
+                    days: info.operationalDays!,
+                  ),
                   const SizedBox(height: 16),
-                  _InformasiTenantCard(info: info),
                 ],
-              ),
+                _InformasiTenantCard(info: info),
+                const SizedBox(height: 16),
+                _AkunCard(
+                  onLogout: () =>
+                      ref.read(authControllerProvider.notifier).logout(),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -132,11 +154,13 @@ class _IconTile extends StatelessWidget {
   }
 }
 
-/// `Jam Operasional` card — clock tile + hours span + day cadence.
+/// `Jam Operasional` card — clock tile + hours span + day cadence. Only ever
+/// built once both [hours] and [days] are known (see `AdminStatusScreen`).
 class _JamOperasionalCard extends StatelessWidget {
-  const _JamOperasionalCard({required this.info});
+  const _JamOperasionalCard({required this.hours, required this.days});
 
-  final TenantAdminInfo info;
+  final String hours;
+  final String days;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +174,7 @@ class _JamOperasionalCard extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  info.operationalHours,
+                  hours,
                   style: const TextStyle(
                     color: AppColors.neutral900,
                     fontSize: 14,
@@ -170,7 +194,7 @@ class _JamOperasionalCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    info.operationalDays,
+                    days,
                     style: const TextStyle(
                       color: AppColors.neutral500,
                       fontSize: 14,
@@ -187,7 +211,9 @@ class _JamOperasionalCard extends StatelessWidget {
   }
 }
 
-/// `Informasi Tenant` card — Bergabung Sejak / Rating / Contact Tenant rows.
+/// `Informasi Tenant` card — Bergabung Sejak always renders (real API data);
+/// Rating / Contact Tenant only render when the API actually has a value for
+/// them, with a hairline only between rows that are both visible.
 class _InformasiTenantCard extends StatelessWidget {
   const _InformasiTenantCard({required this.info});
 
@@ -195,31 +221,59 @@ class _InformasiTenantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rows = [
+      _InfoRow(
+        // TODO(open-question): obra_icons has no plain star glyph; the
+        // Material star stands in until an SVG is exported.
+        icon: ObraIcons.calendar_dates,
+        label: 'Bergabung Sejak',
+        value: info.joinedLabel,
+      ),
+      if (info.rating case final rating?)
+        _InfoRow(icon: Icons.star, label: 'Rating', value: rating),
+      if (info.contact case final contact?)
+        _InfoRow(
+          icon: ObraIcons.headphones,
+          label: 'Contact Tenant',
+          value: contact,
+        ),
+    ];
+
     return _SectionCard(
       title: 'Informasi Tenant',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(
-            // TODO(open-question): obra_icons has no plain star glyph; the
-            // Material star stands in until an SVG is exported.
-            icon: ObraIcons.calendar_dates,
-            label: 'Bergabung Sejak',
-            value: info.joinedLabel,
-          ),
-          const _RowDivider(),
-          _InfoRow(
-            icon: Icons.star,
-            label: 'Rating',
-            value: info.rating,
-          ),
-          const _RowDivider(),
-          _InfoRow(
-            icon: ObraIcons.headphones,
-            label: 'Contact Tenant',
-            value: info.contact,
-          ),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const _RowDivider(),
+            rows[i],
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// `Akun` card — the destructive `Keluar` (logout) row, styled the same as
+/// the busboy Akun tab's logout row since the tenant flavor has no dedicated
+/// Akun tab of its own.
+class _AkunCard extends StatelessWidget {
+  const _AkunCard({required this.onLogout});
+
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Akun',
+      child: AccountMenuTile(
+        item: const AccountMenuItem(
+          icon: ObraIcons.log_out,
+          title: 'Keluar',
+          subtitle: 'Keluar dari akun',
+          destructive: true,
+        ),
+        onTap: onLogout,
       ),
     );
   }

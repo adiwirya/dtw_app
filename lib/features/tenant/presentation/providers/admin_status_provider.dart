@@ -1,16 +1,16 @@
 import 'package:dtw_app/features/tenant/data/models/tenant_admin_info.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'admin_status_provider.g.dart';
 
-// TODO(open-question): the store-status data source is unresolved (Open
-// Questions 5/6 — what online/offline actually gates and where the flag lives).
-// Until then this is a UI-only, in-memory toggle: [AdminOnlineStatus] holds the
-// online flag and [tenantAdminInfo] returns hard-coded mock data harvested from
-// the `admin-offline` / `admin-online` Figma references. When the real source
-// lands, replace [AdminOnlineStatus] with an AsyncNotifier backed by a
-// repository (persist the flag) and swap [tenantAdminInfo] for an async fetch.
+// TODO(open-question): the online/offline flag itself is still unresolved
+// (Open Questions 5/6 — what it actually gates and where it's persisted), so
+// [AdminOnlineStatus] stays a UI-only, in-memory toggle for now.
+// [tenantAdminInfo] below is no longer mocked — it fetches the real tenant
+// branch identity.
 
 /// Mutable online/offline flag for the Admin status screen.
 ///
@@ -28,18 +28,23 @@ class AdminOnlineStatus extends _$AdminOnlineStatus {
   void set({required bool value}) => state = value;
 }
 
-/// Mock tenant identity + operational data for the Admin status screen.
+/// Real tenant identity for the Admin status screen, fetched from
+/// `GET /v1/tenant-branches/{id}`. See [TenantAdminInfo] for which fields the
+/// endpoint doesn't cover yet.
 @riverpod
-TenantAdminInfo tenantAdminInfo(Ref ref) {
-  return const TenantAdminInfo(
-    name: 'KFC Fried Chicken',
-    booth: 'Booth B1',
-    brandLogoAsset: 'assets/images/brand-kfc.png',
-    heroRating: '4.8',
-    joinedLabel: '24 April 2024',
-    rating: '4.3',
-    contact: '+6282394627322',
-    operationalHours: '10:00 - 22:00 WIB',
-    operationalDays: 'Setiap Hari',
-  );
+Future<TenantAdminInfo> tenantAdminInfo(Ref ref) async {
+  final branch = await ref.watch(currentTenantBranchProvider.future);
+  final repository = ref.watch(tenantBranchRepositoryProvider);
+
+  // Best-effort: the round brand logo is a display nicety, not core profile
+  // data, so a failed fetch degrades to no logo rather than failing the
+  // whole screen.
+  String? logoUrl;
+  try {
+    logoUrl = await repository.fetchBrandLogoUrl(brandId: branch.brandId);
+  } on Object {
+    logoUrl = null;
+  }
+
+  return branch.toTenantAdminInfo(brandLogoUrl: logoUrl);
 }

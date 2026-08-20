@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/tenant/data/repositories/modifier_group_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/variant_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/opsi_varian_modal.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/variant_rows.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:obra_icons/obra_icons.dart';
 
 /// The add-variant / fill-variant form (`tambah-varian-2` empty, `varian-diisi`
@@ -17,22 +21,36 @@ import 'package:obra_icons/obra_icons.dart';
 /// either shows the "Belum ada opsi" empty state or the added [options] as
 /// [VariantOptionRow]s (each with its `Gratis` / `+price` add-on, L6). The
 /// "+ Tambah Opsi" action opens the option modal ([showOpsiVarianModal] /
-/// `opsi-varian-1`); when [onSave] is provided a bottom "Simpan Varian" button
-/// is shown (the `tambah-opsi-2` / `opsi-2-ditambahkan` frames).
+/// `opsi-varian-1`).
 ///
-// TODO(open-question): the variant data source + validation rules are
-// unresolved Open Questions; save / option attachment are UI-only mocks.
-class TambahVarianScreen extends StatefulWidget {
+/// "Simpan Varian" always shows: when [onSave] is provided (the prototype
+/// frame routes) it defers to that callback as before; otherwise it does the
+/// real save — `VariantList.create` for a new variant, or `VariantList.update`
+/// when [editingVariantId] is set (`varian-diisi`, reached by tapping an
+/// existing variant on `kelola-varian`) — and pops back on success.
+///
+/// Editing loads the real variant (`GET /v1/modifier-groups/{id}`) before
+/// showing the form. There is no delete endpoint for an option once saved
+/// (confirmed live — see `ModifierGroupRepository.updateOption`), so the
+/// remove button on an option row only shows for options added in the
+/// current session ([VariantOptionData.id] still null) — an already-saved
+/// option can be renamed/repriced but not removed.
+///
+// TODO(open-question): server-side name/option validation rules (beyond
+// "non-empty") are still an unresolved Open Question.
+class TambahVarianScreen extends ConsumerStatefulWidget {
   const TambahVarianScreen({
     this.prefilled = false,
     this.options = const [],
     this.onSave,
     this.onTambahOpsi,
+    this.editingVariantId,
     super.key,
   });
 
   /// Seeds the `varian-diisi` filled state (name populated with "Ukuran
-  /// Minuman").
+  /// Minuman") for the prototype frame route. Ignored when
+  /// [editingVariantId] is set, since that loads the real name instead.
   final bool prefilled;
 
   /// Options already attached to the variant, rendered as [VariantOptionRow]s
@@ -40,23 +58,33 @@ class TambahVarianScreen extends StatefulWidget {
   /// `opsi-2-ditambahkan`). Empty => the "Belum ada opsi" placeholder.
   final List<VariantOptionData> options;
 
-  /// Bottom "Simpan Varian" handler. Null hides the button (the plain
-  /// `tambah-varian-2` / `varian-diisi` frames have no bottom button here).
+  /// Overrides "Simpan Varian" for the prototype frame routes, which advance
+  /// to the next hardcoded frame instead of saving for real. Null (the real
+  /// `tambah-varian-2` / `varian-diisi` entry points) does the real save.
   final VoidCallback? onSave;
 
   /// "+ Tambah Opsi" handler. Null falls back to opening [showOpsiVarianModal]
-  /// (a self-contained mock that just closes on Simpan).
+  /// and appending the entered option to this form's local list.
   final void Function(BuildContext context)? onTambahOpsi;
 
+  /// When set, this is the real "edit an existing variant" entry point: the
+  /// form loads `GET /v1/modifier-groups/{editingVariantId}` on open and
+  /// "Simpan Varian" calls `VariantList.update` instead of `.create`.
+  final String? editingVariantId;
+
   @override
-  State<TambahVarianScreen> createState() => _TambahVarianScreenState();
+  ConsumerState<TambahVarianScreen> createState() =>
+      _TambahVarianScreenState();
 }
 
-class _TambahVarianScreenState extends State<TambahVarianScreen> {
+class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
   late final TextEditingController _name;
   late List<VariantOptionData> _options;
   bool _required = false;
   bool _multiSelect = false;
+  bool _saving = false;
+  late bool _loading = widget.editingVariantId != null;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -65,12 +93,37 @@ class _TambahVarianScreenState extends State<TambahVarianScreen> {
       text: widget.prefilled ? 'Ukuran Minuman' : '',
     );
     _options = List.of(widget.options);
+    if (widget.editingVariantId case final groupId?) {
+      unawaited(_loadForEditing(groupId));
+    }
   }
 
   @override
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadForEditing(String groupId) async {
+    try {
+      final group = await ref
+          .read(modifierGroupRepositoryProvider)
+          .fetchModifierGroup(groupId);
+      if (!mounted) return;
+      setState(() {
+        _name.text = group.name;
+        _required = group.isRequired;
+        _multiSelect = group.type == VariantType.ganda;
+        _options = group.options ?? [];
+        _loading = false;
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMessage = errorMessage(error);
+      });
+    }
   }
 
   void _handleTambahOpsi() {
@@ -80,7 +133,7 @@ class _TambahVarianScreenState extends State<TambahVarianScreen> {
       return;
     }
     // Default (standalone) behaviour: open the option modal; on Simpan just
-    // append the entered option to the local list (UI-only mock).
+    // append the entered option to the local list.
     unawaited(
       showOpsiVarianModal(context).then((option) {
         if (option != null && option.name.isNotEmpty && mounted) {
@@ -88,6 +141,53 @@ class _TambahVarianScreenState extends State<TambahVarianScreen> {
         }
       }),
     );
+  }
+
+  Future<void> _handleSimpanVarian() async {
+    if (widget.onSave case final onSave?) {
+      onSave();
+      return;
+    }
+
+    final name = _name.text.trim();
+    if (name.isEmpty || _options.isEmpty) {
+      setState(
+        () => _errorMessage = name.isEmpty
+            ? 'Nama varian wajib diisi.'
+            : 'Tambahkan minimal satu opsi.',
+      );
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+    try {
+      if (widget.editingVariantId case final groupId?) {
+        await ref.read(variantListProvider.notifier).updateVariant(
+              groupId: groupId,
+              name: name,
+              isRequired: _required,
+              multiSelect: _multiSelect,
+              options: _options,
+            );
+      } else {
+        await ref.read(variantListProvider.notifier).create(
+              name: name,
+              isRequired: _required,
+              multiSelect: _multiSelect,
+              options: _options,
+            );
+      }
+      if (mounted) Navigator.of(context).pop();
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _errorMessage = errorMessage(error);
+      });
+    }
   }
 
   @override
@@ -99,28 +199,39 @@ class _TambahVarianScreenState extends State<TambahVarianScreen> {
           children: [
             _TopBar(onBack: () => Navigator.of(context).maybePop()),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _namaField(),
-                    const SizedBox(height: 16),
-                    _aturanCard(),
-                    const SizedBox(height: 16),
-                    _opsiCard(),
-                  ],
-                ),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _namaField(),
+                          const SizedBox(height: 16),
+                          _aturanCard(),
+                          const SizedBox(height: 16),
+                          _opsiCard(),
+                          if (_errorMessage case final message?) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              message,
+                              style: const TextStyle(
+                                color: AppColors.dangerRed,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: PrimaryButton(
+                label: 'Simpan Varian',
+                onPressed: _saving ? null : _handleSimpanVarian,
               ),
             ),
-            if (widget.onSave != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: PrimaryButton(
-                  label: 'Simpan Varian',
-                  onPressed: widget.onSave,
-                ),
-              ),
           ],
         ),
       ),
@@ -233,7 +344,9 @@ class _TambahVarianScreenState extends State<TambahVarianScreen> {
             for (var i = 0; i < _options.length; i++) ...[
               VariantOptionRow(
                 data: _options[i],
-                onRemove: () => setState(() => _options.removeAt(i)),
+                onRemove: _options[i].id == null
+                    ? () => setState(() => _options.removeAt(i))
+                    : null,
               ),
               const SizedBox(height: 8),
             ],

@@ -1,3 +1,6 @@
+import 'package:dtw_app/features/tenant/data/models/tenant_branch.dart';
+import 'package:dtw_app/features/tenant/data/repositories/product_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/menu_saya_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tambah_menu_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/kelola_menu_sheet.dart';
@@ -5,6 +8,8 @@ import 'package:dtw_app/features/tenant/presentation/widgets/menu_success_modal.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/routed_dio.dart';
 
 /// Self-goldens for item 06 (tenant Menu management).
 ///
@@ -19,6 +24,7 @@ Future<void> _pump(
   WidgetTester tester,
   Widget child, {
   required Size size,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -26,6 +32,7 @@ Future<void> _pump(
 
   await tester.pumpWidget(
     ProviderScope(
+      overrides: overrides,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         home: child,
@@ -35,10 +42,50 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+/// `MenuSayaScreen` fetches the real menu list — seed a branch + a canned
+/// product/availability response so it resolves instead of hanging on the
+/// real (unmocked) session-storage read.
+List<Override> _menuSayaOverrides() {
+  final branch = TenantBranch(
+    id: 'branch-1',
+    brandId: 'brand-1',
+    brandName: 'Janji Jiwa',
+    branchName: 'Janji Jiwa',
+    areaName: 'Downtown',
+    isActive: true,
+    createdAt: DateTime(2026, 8, 7),
+  );
+  final envelope = {
+    'meta': {
+      'success': true,
+      'message': 'Success',
+      'code': 200,
+      'trace_id': 'abc',
+    },
+    'data': <dynamic>[],
+  };
+  return [
+    currentTenantBranchProvider.overrideWith((ref) async => branch),
+    productRepositoryProvider.overrideWithValue(
+      ProductRepository(
+        dio: routedDio({
+          '/v1/tenant-branches/branch-1/product-availability': (200, envelope),
+          '/v1/products': (200, envelope),
+        }),
+      ),
+    ),
+  ];
+}
+
 void main() {
   group('menu management goldens', () {
     testWidgets('menu-saya', (tester) async {
-      await _pump(tester, const MenuSayaScreen(), size: const Size(390, 844));
+      await _pump(
+        tester,
+        const MenuSayaScreen(),
+        size: const Size(390, 844),
+        overrides: _menuSayaOverrides(),
+      );
       await expectLater(
         find.byType(MenuSayaScreen),
         matchesGoldenFile('goldens/menu_saya.png'),
@@ -46,7 +93,12 @@ void main() {
     }, tags: 'golden');
 
     testWidgets('menu-saya-2', (tester) async {
-      await _pump(tester, const MenuSayaScreen(), size: const Size(390, 844));
+      await _pump(
+        tester,
+        const MenuSayaScreen(),
+        size: const Size(390, 844),
+        overrides: _menuSayaOverrides(),
+      );
       await expectLater(
         find.byType(MenuSayaScreen),
         matchesGoldenFile('goldens/menu_saya_2.png'),
@@ -58,6 +110,7 @@ void main() {
         tester,
         const MenuSayaScreen(recentlyAdded: true),
         size: const Size(390, 844),
+        overrides: _menuSayaOverrides(),
       );
       await expectLater(
         find.byType(MenuSayaScreen),

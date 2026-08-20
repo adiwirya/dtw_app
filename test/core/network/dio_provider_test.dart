@@ -52,11 +52,7 @@ void main() {
     expect(container.read(isLoggedInProvider), isFalse);
   });
 
-  // Session expiry must clear the FLAVOR as well. `App` renders whichever
-  // router `appFlavorProvider` names, so a 401 that only cleared the login
-  // flag left an expired tenant session on `tenantRouter`, redirecting to
-  // that router's own `/login` rather than the real shared `LoginScreen`.
-  test('401 also resets appFlavorProvider to busboy', () async {
+  test('401 also disconnects the realtime socket', () async {
     final storage = FakeLocalStorage();
     await storage.write(authTokenStorageKey, 'tok_abc');
     final realtime = FakeTenantRealtimeService();
@@ -69,7 +65,6 @@ void main() {
     );
     addTearDown(container.dispose);
     container.read(isLoggedInProvider.notifier).state = true;
-    container.read(appFlavorProvider.notifier).state = AppFlavor.tenant;
 
     final dio = container.read(dioProvider)
       ..httpClientAdapter = CannedAdapter(401, {'errors': null});
@@ -80,9 +75,7 @@ void main() {
       // Expected: the canned adapter returns 401.
     }
 
-    expect(container.read(appFlavorProvider), AppFlavor.busboy);
     expect(container.read(isLoggedInProvider), isFalse);
-    // The realtime socket is torn down on expiry too.
     expect(realtime.disconnectCallCount, 1);
   });
 }

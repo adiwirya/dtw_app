@@ -1,10 +1,9 @@
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Self-goldens for the two login steps.
+/// Self-golden for the login screen.
 ///
 /// NOTE: the headless test harness renders text as Ahem boxes and does not load
 /// Open Sans / Pacifico, so these goldens intentionally show placeholder glyphs
@@ -33,21 +32,6 @@ void main() {
       await expectLater(
         find.byType(LoginScreen),
         matchesGoldenFile('goldens/login_default.png'),
-      );
-    },
-    tags: 'golden',
-  );
-
-  testWidgets(
-    'login-tenant self-golden',
-    (tester) async {
-      await pumpAt390x844(
-        tester,
-        const LoginScreen(initialRole: LoginRole.busboy),
-      );
-      await expectLater(
-        find.byType(LoginScreen),
-        matchesGoldenFile('goldens/login_tenant.png'),
       );
     },
     tags: 'golden',

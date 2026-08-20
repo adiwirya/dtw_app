@@ -16,6 +16,7 @@ void main() {
         _host(
           const MenuItemCard(
             data: MenuItemData(
+              id: '1',
               name: 'Paket Super Besar',
               price: 'Rp35.000',
             ),
@@ -36,6 +37,7 @@ void main() {
         _host(
           const MenuItemCard(
             data: MenuItemData(
+              id: '1',
               name: 'Paket Super Besar',
               price: 'Rp35.000',
               popular: true,
@@ -51,6 +53,7 @@ void main() {
         _host(
           const MenuItemCard(
             data: MenuItemData(
+              id: '1',
               name: 'Paket Super Besar',
               price: 'Rp35.000',
               originalPrice: 'Rp45.000',
@@ -69,6 +72,7 @@ void main() {
         _host(
           const MenuItemCard(
             data: MenuItemData(
+              id: '1',
               name: 'Paket Super Besar',
               price: 'Rp35.000',
               active: false,
@@ -86,7 +90,11 @@ void main() {
       await tester.pumpWidget(
         _host(
           MenuItemCard(
-            data: const MenuItemData(name: 'Paket Hemat', price: 'Rp29.000'),
+            data: const MenuItemData(
+              id: '2',
+              name: 'Paket Hemat',
+              price: 'Rp29.000',
+            ),
             onActiveChanged: (v) => changed = v,
           ),
         ),
@@ -102,7 +110,11 @@ void main() {
       await tester.pumpWidget(
         _host(
           MenuItemCard(
-            data: const MenuItemData(name: 'Paket Hemat', price: 'Rp29.000'),
+            data: const MenuItemData(
+              id: '2',
+              name: 'Paket Hemat',
+              price: 'Rp29.000',
+            ),
             onTap: () => taps++,
           ),
         ),

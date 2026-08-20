@@ -1,11 +1,11 @@
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/widgets/app_shell.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/placeholder_screen.dart';
 import 'package:dtw_app/features/akun/presentation/screens/akun_screen.dart';
 import 'package:dtw_app/features/akun/presentation/screens/profile_saya_screen.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_detail_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_screen.dart';
@@ -23,15 +23,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
-/// Named routes for the busboy app.
+/// Named routes for the busboy shell.
 ///
 /// Later work items (02–12) replace the placeholder `builder:` for each route
 /// with the real screen — keep these names/paths stable so callers
 /// (`context.goNamed(...)`) don't need to change.
 abstract class AppRoutes {
-  // --- Auth (outside the bottom-nav shell) ---
+  // --- Auth (outside the bottom-nav shell; shared with the tenant shell — see
+  // `appRouter` below) ---
   static const login = 'login'; // login-default
-  static const loginTenant = 'loginTenant'; // login-tenantt
 
   // --- Tab 0: Order (home = menu-order-baru) ---
   static const order = 'order'; // menu-order-baru
@@ -114,15 +114,23 @@ class _RiwayatTabDeepLinkState extends ConsumerState<_RiwayatTabDeepLink> {
   Widget build(BuildContext context) => const RiwayatScreen();
 }
 
+/// The single `GoRouter` for the whole app — one login route, and the
+/// busboy and tenant bottom-nav shells mounted side by side (busboy at
+/// `/order` etc., tenant under `/tenant/...` — see `TenantRoutes`). There is
+/// no "app flavor" concept: which shell a login lands on is decided purely
+/// by [sessionBranchIdProvider] (set from the real login response), not by
+/// a separate router per flavor.
 @riverpod
 GoRouter appRouter(Ref ref) {
   final loggedIn = ref.watch(isLoggedInProvider);
+  final branchId = ref.watch(sessionBranchIdProvider);
+  final homePath =
+      branchId != null ? TenantRoutes.orderPath : AppRoutes.orderPath;
   return GoRouter(
-    // Post-login lands on the Order tab (see login-tenantt →
-    // menu-order-baru in the prototype flow). [isLoggedInProvider] is what
-    // lets the shared login screen switch flavor and land straight on this
-    // router's Order tab instead of its own login screen.
-    initialLocation: loggedIn ? AppRoutes.orderPath : AppRoutes.loginPath,
+    // [isLoggedInProvider] and [sessionBranchIdProvider] are what let a
+    // successful login land straight on the right shell's Order tab instead
+    // of the login screen — see [homePath] above.
+    initialLocation: loggedIn ? homePath : AppRoutes.loginPath,
     // Session expiry (401, via dioProvider's interceptor) clears
     // isLoggedInProvider mid-use; this guard makes that redirect to /login
     // on the next navigation, not only at the router's initial construction.
@@ -131,26 +139,18 @@ GoRouter appRouter(Ref ref) {
           state.matchedLocation == AppRoutes.loginPath ||
           state.matchedLocation.startsWith('${AppRoutes.loginPath}/');
       if (!loggedIn && !onLogin) return AppRoutes.loginPath;
-      if (loggedIn && onLogin) return AppRoutes.orderPath;
+      if (loggedIn && onLogin) return homePath;
       return null;
     },
     routes: [
-      // Login sits OUTSIDE the shell (root navigator, no bottom nav).
+      // Login sits OUTSIDE both shells (root navigator, no bottom nav).
       GoRoute(
         path: AppRoutes.loginPath,
         name: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
-        routes: [
-          GoRoute(
-            path: 'tenant',
-            name: AppRoutes.loginTenant,
-            builder: (context, state) =>
-                const LoginScreen(initialRole: LoginRole.busboy),
-          ),
-        ],
       ),
 
-      // Persistent 4-tab bottom-nav shell.
+      // Persistent 4-tab busboy bottom-nav shell.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
@@ -282,6 +282,10 @@ GoRouter appRouter(Ref ref) {
           ),
         ],
       ),
+
+      // Persistent 4-tab tenant bottom-nav shell — mounted under
+      // `/tenant/...` (see `TenantRoutes`) alongside the busboy shell above.
+      tenantShellRoute(),
     ],
   );
 }

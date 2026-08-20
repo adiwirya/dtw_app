@@ -50,3 +50,4 @@ app.*.map.json
 
 # Local git worktrees used for isolated subagent-driven implementation work.
 .worktrees/
+sentry.properties

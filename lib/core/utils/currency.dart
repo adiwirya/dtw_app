@@ -10,3 +10,12 @@ String formatRupiah(int value) {
   }
   return 'Rp$buffer';
 }
+
+/// Inverse of [formatRupiah]: `'Rp3.000'` -> `3000`. `null` (no add-on price,
+/// i.e. `Gratis`) -> `0`. Strips everything but digits, so it tolerates the
+/// `Rp`/`.` formatting either way.
+int parseRupiah(String? formatted) {
+  if (formatted == null) return 0;
+  final digits = formatted.replaceAll(RegExp('[^0-9]'), '');
+  return digits.isEmpty ? 0 : int.parse(digits);
+}

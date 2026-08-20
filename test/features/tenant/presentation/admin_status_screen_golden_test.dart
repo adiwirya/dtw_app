@@ -1,7 +1,12 @@
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/admin_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/canned_dio.dart';
+import '../../../support/tenant_board.dart';
 
 /// Self-goldens for the Admin status screen (`admin-offline` / `admin-online`).
 ///
@@ -17,8 +22,26 @@ void main() {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    final dio = cannedDio(
+      200,
+      tenantEnvelope({
+        'id': testBranchId,
+        'brand_id': 'brand-1',
+        'brand_name': 'Janji Jiwa',
+        'branch_name': 'KFC Fried Chicken',
+        'area_name': 'Downtown',
+        'is_active': online,
+        'created_at': '2024-04-24 10:00:00',
+      }),
+    );
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          localStorageProvider.overrideWithValue(branchScopedStorage()),
+          tenantBranchRepositoryProvider.overrideWithValue(
+            TenantBranchRepository(dio: dio),
+          ),
+        ],
         child: MaterialApp(home: AdminStatusScreen(initialOnline: online)),
       ),
     );

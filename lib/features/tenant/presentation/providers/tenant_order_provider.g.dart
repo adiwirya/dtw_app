@@ -6,7 +6,7 @@ part of 'tenant_order_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantOrderBoardHash() => r'48f23e31961097d8dcea0abab08d590d9528b72d';
+String _$tenantOrderBoardHash() => r'60ebf8073b112a16b7dc4d8249e3a85857aced63';
 
 /// The tenant "Order" board: fetches once from the real API, then stays
 /// live via `TenantRealtimeService.orderCreated` — no polling. [accept],

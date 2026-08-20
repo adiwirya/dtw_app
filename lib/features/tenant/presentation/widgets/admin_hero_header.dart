@@ -55,14 +55,7 @@ class AdminHeroHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipOval(
-          child: Image.asset(
-            info.brandLogoAsset,
-            width: 80,
-            height: 80,
-            fit: BoxFit.cover,
-          ),
-        ),
+        _brandLogo(),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -78,28 +71,35 @@ class AdminHeroHeader extends StatelessWidget {
                   height: 1.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(ObraIcons.location, size: 16,
-                      color: AppColors.white),
-                  const SizedBox(width: 4),
-                  Text(
-                    info.booth,
-                    style: const TextStyle(
+              if (info.booth case final booth?) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      ObraIcons.location,
+                      size: 16,
                       color: AppColors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      height: 1.35,
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 4),
+                    Text(
+                      booth,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _ratingChip(),
-                  const SizedBox(width: 8),
+                  if (info.heroRating case final rating?) ...[
+                    _ratingChip(rating),
+                    const SizedBox(width: 8),
+                  ],
                   _statusPill(),
                 ],
               ),
@@ -110,7 +110,25 @@ class AdminHeroHeader extends StatelessWidget {
     );
   }
 
-  Widget _ratingChip() {
+  /// The round brand logo chip (`GET /v1/brands/{brandId}`'s `logo_url`), or
+  /// a plain storefront icon placeholder when the brand has no logo uploaded
+  /// yet, or the image fails to load.
+  Widget _brandLogo() {
+    final url = info.logoUrl;
+    if (url == null) return const _BrandLogoPlaceholder();
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const _BrandLogoPlaceholder(),
+      ),
+    );
+  }
+
+  Widget _ratingChip(String rating) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -125,7 +143,7 @@ class AdminHeroHeader extends StatelessWidget {
           const Icon(Icons.star, size: 16, color: AppColors.starAmber),
           const SizedBox(width: 4),
           Text(
-            info.heroRating,
+            rating,
             style: const TextStyle(
               color: AppColors.neutral900,
               fontSize: 14,
@@ -206,6 +224,29 @@ class _WhiteStatusBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Round storefront-icon fallback for [AdminHeroHeader]'s brand logo chip —
+/// shown when the brand has no `logo_url` yet, or the image fails to load.
+class _BrandLogoPlaceholder extends StatelessWidget {
+  const _BrandLogoPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.storefront,
+        size: 36,
+        color: AppColors.neutral500,
       ),
     );
   }

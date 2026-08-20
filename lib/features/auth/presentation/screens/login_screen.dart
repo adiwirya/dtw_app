@@ -1,36 +1,21 @@
 import 'package:dtw_app/core/exceptions.dart';
-import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/login_status_bar.dart';
-import 'package:dtw_app/features/auth/presentation/widgets/role_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-/// The login screen, modelled as a two-step flow over the existing `/login`
-/// and `/login/tenant` routes:
+/// The login screen — the app's single shared entry point, hosted on `/login`.
 ///
-/// * `/login` (`login-default`) builds `LoginScreen()` with no role selected.
-///   Tapping a role card navigates to `/login/tenant`.
-/// * `/login/tenant` (`login-tenantt`) builds `LoginScreen(initialRole: ...)`
-///   with a role pre-selected; tapping cards re-selects locally.
-///
-/// This is the busboy flavor's entrypoint, so the Busboy card is the primary
-/// CTA and is the role `/login/tenant` pre-selects. It also doubles as the
-/// app's single shared entry: tapping "Masuk" always calls the real login
-/// API via `AuthController`, which derives the app flavor from the login
-/// response (a branch-scoped response switches the whole app to the tenant
-/// router, landing on its Order tab) rather than from which role card was
-/// tapped.
+/// Tapping "Masuk" always calls the real login API via `AuthController`,
+/// which records the response's `branch_id` (`sessionBranchIdProvider`, see
+/// `core/flavor.dart`) rather than any role picked up front — a
+/// branch-scoped response is what lands the single merged router on the
+/// tenant shell's Order tab instead of the busboy one.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({this.initialRole, super.key});
-
-  /// When non-null the screen renders the `login-tenantt` step with this role
-  /// pre-selected. When null it renders the `login-default` step.
-  final LoginRole? initialRole;
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -39,31 +24,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  LoginRole? _selectedRole;
   bool _rememberMe = false;
   String? _validationMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedRole = widget.initialRole;
-  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _onRoleTap(LoginRole role) {
-    if (widget.initialRole == null) {
-      // Default step: tapping any role reveals the login-tenant step.
-      context.goNamed(AppRoutes.loginTenant);
-    } else {
-      // Tenant step: re-select the highlighted role.
-      setState(() => _selectedRole = role);
-    }
   }
 
   Future<void> _onMasuk() async {
@@ -112,24 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   const LoginStatusBar(),
                   _buildHeaderBand(),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Masuk Sebagai',
-                      // TODO(open-question): Open Sans Bold in the cache.
-                      style: TextStyle(
-                        color: AppColors.neutral900,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 13),
-                  _buildRoleCards(),
-                  // 24px design gap + 3px to offset the shared AppInput label
-                  // rendering ~2px shorter per field than the cached Input.
-                  const SizedBox(height: 27),
+                  const SizedBox(height: 24),
                   _buildForm(authState),
                   const SizedBox(height: 40),
                 ],
@@ -203,35 +154,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoleCards() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: RoleCard(
-              title: 'Tenan',
-              description: 'Kelola Pesanan & Menu',
-              assetPath: 'assets/images/role-tenan.png',
-              selected: _selectedRole == LoginRole.tenan,
-              onTap: () => _onRoleTap(LoginRole.tenan),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: RoleCard(
-              title: 'Busboy',
-              description: 'Antar pesanan ke pelanggan',
-              assetPath: 'assets/images/role-busboy.png',
-              selected: _selectedRole == LoginRole.busboy,
-              onTap: () => _onRoleTap(LoginRole.busboy),
             ),
           ),
         ],

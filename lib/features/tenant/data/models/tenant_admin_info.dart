@@ -1,49 +1,63 @@
 import 'package:flutter/foundation.dart';
 
-/// Static, mock tenant identity + operational data shown on the Admin status
-/// screen (`admin-offline` / `admin-online`).
+/// Tenant identity + operational data shown on the Admin status screen
+/// (`admin-offline` / `admin-online`).
+///
+/// [name] and [joinedLabel] come from the real `GET /v1/tenant-branches/{id}`
+/// response (see `TenantBranch.toTenantAdminInfo`). The rest of the design's
+/// fields (booth/location, brand logo, rating, contact, operating hours) have
+/// no backing API field yet — they stay null, and the Admin screen hides
+/// those rows/chips rather than show fabricated data.
 ///
 /// The online/offline flag is NOT part of this model — it is mutable screen
 /// state owned by `AdminOnlineStatus` — so this holds only the fields that are
-/// constant across both states (brand, hours, `Informasi Tenant` rows).
+/// constant across both states.
 @immutable
 class TenantAdminInfo {
   const TenantAdminInfo({
     required this.name,
-    required this.booth,
-    required this.brandLogoAsset,
-    required this.heroRating,
     required this.joinedLabel,
-    required this.rating,
-    required this.contact,
-    required this.operationalHours,
-    required this.operationalDays,
+    this.booth,
+    this.logoUrl,
+    this.heroRating,
+    this.rating,
+    this.contact,
+    this.operationalHours,
+    this.operationalDays,
   });
 
-  /// Tenant display name (hero title) — e.g. `KFC Fried Chicken`.
+  /// Tenant display name (hero title) — e.g. `Janji Jiwa`.
   final String name;
 
-  /// Booth / location label under the name — e.g. `Booth B1`.
-  final String booth;
-
-  /// Asset key for the round brand logo chip.
-  final String brandLogoAsset;
-
-  /// Rating shown in the hero chip next to the star — e.g. `4.8`.
-  final String heroRating;
-
-  /// `Bergabung Sejak` value — e.g. `24 April 2024`.
+  /// `Bergabung Sejak` value — e.g. `7 Agustus 2026`.
   final String joinedLabel;
 
-  /// `Rating` value in the Informasi Tenant card — e.g. `4.3`.
-  final String rating;
+  /// Booth / location label under the name — e.g. `Booth B1`. No API source
+  /// yet; the hero hides this row when null.
+  final String? booth;
 
-  /// `Contact Tenant` value — e.g. `+6282394627322`.
-  final String contact;
+  /// The tenant's photo URL for the round brand logo chip — from the branch's
+  /// `banner_url`, when the backend has one uploaded. The hero falls back to
+  /// a placeholder icon when null.
+  final String? logoUrl;
 
-  /// `Jam Operasional` hours span — e.g. `10:00 - 22:00 WIB`.
-  final String operationalHours;
+  /// Rating shown in the hero chip next to the star — e.g. `4.8`. No API
+  /// source yet; the hero hides the chip when null.
+  final String? heroRating;
+
+  /// `Rating` value in the Informasi Tenant card — e.g. `4.3`. No API source
+  /// yet; the card hides this row when null.
+  final String? rating;
+
+  /// `Contact Tenant` value — e.g. `+6282394627322`. No API source yet; the
+  /// card hides this row when null.
+  final String? contact;
+
+  /// `Jam Operasional` hours span — e.g. `10:00 - 22:00 WIB`. No API source
+  /// yet; the screen hides the whole card when this (or [operationalDays])
+  /// is null.
+  final String? operationalHours;
 
   /// `Jam Operasional` day cadence — e.g. `Setiap Hari`.
-  final String operationalDays;
+  final String? operationalDays;
 }

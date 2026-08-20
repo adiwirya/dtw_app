@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 @immutable
 class MenuItemData {
   const MenuItemData({
+    required this.id,
     required this.name,
     required this.price,
     this.originalPrice,
@@ -17,6 +18,10 @@ class MenuItemData {
     this.active = true,
     this.imageUrl,
   });
+
+  /// The backing product id (`Product.id`) — needed to target the
+  /// per-branch availability toggle at the right product.
+  final String id;
 
   /// Menu name, e.g. `Paket Super Besar`.
   final String name;
@@ -41,6 +46,17 @@ class MenuItemData {
 
   /// Optional thumbnail URL. Placeholder tile shown when null.
   final String? imageUrl;
+
+  MenuItemData copyWith({bool? active}) => MenuItemData(
+        id: id,
+        name: name,
+        price: price,
+        originalPrice: originalPrice,
+        popular: popular,
+        stockLabel: stockLabel,
+        active: active ?? this.active,
+        imageUrl: imageUrl,
+      );
 }
 
 /// Reusable menu list-item card (`menu-saya` / management list).

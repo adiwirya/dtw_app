@@ -22,7 +22,7 @@ AuthRepository _repositoryReturning(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('login sets isLoggedInProvider and appFlavorProvider on success', () async {
+  test('login sets isLoggedInProvider on success', () async {
     final storage = FakeLocalStorage();
     final container = ProviderContainer(
       overrides: [
@@ -49,45 +49,7 @@ void main() {
         .login(username: 'budi', password: 'secret');
 
     expect(container.read(isLoggedInProvider), isTrue);
-    expect(container.read(appFlavorProvider), AppFlavor.busboy);
     expect(container.read(authControllerProvider).error, isNull);
-  });
-
-  test('login sets appFlavorProvider to tenant for a branch-scoped response',
-      () async {
-    final storage = FakeLocalStorage();
-    final realtime = FakeTenantRealtimeService();
-    addTearDown(realtime.close);
-    final container = ProviderContainer(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(
-          _repositoryReturning(200, {
-            'meta': {
-              'success': true,
-              'message': 'Success',
-              'code': 200,
-              'trace_id': 'abc',
-            },
-            'data': {
-              'access_token': 'tok_123',
-              'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
-              'abilities': <dynamic>[],
-              'scopes': [
-                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
-              ],
-            },
-          }, storage),
-        ),
-        tenantRealtimeServiceProvider.overrideWithValue(realtime),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    await container
-        .read(authControllerProvider.notifier)
-        .login(username: 'janji_jiwa_smlb', password: 'secret');
-
-    expect(container.read(appFlavorProvider), AppFlavor.tenant);
   });
 
   test('login sets an error with the mapped AuthException on 401', () async {
@@ -118,40 +80,6 @@ void main() {
     expect((state.error! as AuthException).message, 'Username atau password salah.');
     expect(state.isLoading, isFalse);
     expect(container.read(isLoggedInProvider), isFalse);
-  });
-
-  // Logout has to clear the FLAVOR too, not just the login flag: `App` picks
-  // its router off `appFlavorProvider`, so a tenant logout that left the
-  // flavor on tenant landed back on `tenantRouter`'s own `/login` rather than
-  // the real shared `LoginScreen`.
-  test('logout resets appFlavorProvider to busboy, not just the login flag',
-      () async {
-    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
-    final realtime = FakeTenantRealtimeService();
-    addTearDown(realtime.close);
-    final container = ProviderContainer(
-      overrides: [
-        authRepositoryProvider.overrideWithValue(
-          _repositoryReturning(200, {
-            'meta': {
-              'success': true,
-              'message': 'Success',
-              'code': 200,
-              'trace_id': 'abc',
-            },
-          }, storage),
-        ),
-        tenantRealtimeServiceProvider.overrideWithValue(realtime),
-      ],
-    );
-    addTearDown(container.dispose);
-    container.read(isLoggedInProvider.notifier).state = true;
-    container.read(appFlavorProvider.notifier).state = AppFlavor.tenant;
-
-    await container.read(authControllerProvider.notifier).logout();
-
-    expect(container.read(isLoggedInProvider), isFalse);
-    expect(container.read(appFlavorProvider), AppFlavor.busboy);
   });
 
   test('logout clears isLoggedInProvider', () async {
@@ -248,9 +176,14 @@ void main() {
     expect(realtime.connectCalls, isEmpty);
   });
 
+  // Reverb only drives live order-status updates on the tenant order board —
+  // it is not part of the login contract. A broken/unreachable realtime
+  // endpoint (confirmed against the real Downtown CMS server: neither the
+  // assumed port 443 nor 8080 completes a WebSocket handshake from outside)
+  // must never block or fail login; `connect()` is fire-and-forget.
   test(
-      'login does not log the user in when the realtime connect fails for a '
-      'branch-scoped response', () async {
+      'login logs the user in even when the realtime connect fails for a '
+      'branch-scoped response (best-effort, non-blocking)', () async {
     final storage = FakeLocalStorage();
     final realtime = FakeTenantRealtimeService()
       ..connectError = Exception('socket unreachable');
@@ -284,8 +217,9 @@ void main() {
         .read(authControllerProvider.notifier)
         .login(username: 'janji_jiwa_smlb', password: 'secret');
 
-    expect(container.read(isLoggedInProvider), isFalse);
-    expect(container.read(authControllerProvider).error, isNotNull);
+    expect(container.read(isLoggedInProvider), isTrue);
+    expect(container.read(authControllerProvider).error, isNull);
+    expect(realtime.connectCalls, [(token: 'tok_123', branchId: 'branch-1')]);
   });
 
   test('logout disconnects the realtime service', () async {

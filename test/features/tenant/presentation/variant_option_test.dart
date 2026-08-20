@@ -1,4 +1,3 @@
-import 'package:dtw_app/features/tenant/presentation/providers/variant_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tambah_varian_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/opsi_varian_modal.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/variant_rows.dart';
@@ -105,40 +104,13 @@ void main() {
       expect(find.byType(VariantOptionRow), findsNothing);
     });
 
-    testWidgets('empty form keeps the "Belum ada opsi" placeholder',
-        (tester) async {
+    testWidgets(
+        'empty form keeps the "Belum ada opsi" placeholder; Simpan Varian '
+        'always shows (it is the real save action now)', (tester) async {
       await _pump(tester, const TambahVarianScreen());
       expect(find.text('Belum ada opsi'), findsOneWidget);
       expect(find.byType(VariantOptionRow), findsNothing);
-      expect(find.text('Simpan Varian'), findsNothing);
-    });
-  });
-
-  group('VariantList.addOption (mock attach)', () {
-    test('attaches an option to the variant at the given index', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final notifier = container.read(variantListProvider.notifier)
-        ..add(
-          const VariantData(
-            name: 'Ukuran Minuman',
-            type: VariantType.tunggal,
-            options: [VariantOptionData(name: 'Small')],
-          ),
-        )
-        ..addOption(
-          0,
-          const VariantOptionData(name: 'Medium', addonPrice: 'Rp3.000'),
-        );
-
-      final variant = container.read(variantListProvider).single;
-      expect(variant.options, hasLength(2));
-      expect(variant.options.last.name, 'Medium');
-      expect(variant.options.last.addonPrice, 'Rp3.000');
-      // Out-of-range index is a no-op.
-      notifier.addOption(5, const VariantOptionData(name: 'Large'));
-      expect(container.read(variantListProvider).single.options, hasLength(2));
+      expect(find.text('Simpan Varian'), findsOneWidget);
     });
   });
 }

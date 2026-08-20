@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
@@ -13,25 +14,22 @@ import 'package:obra_icons/obra_icons.dart';
 /// saved).
 ///
 /// Hosted inside the tenant shell (Menu Saya tab). Reached from the menu form's
-/// "Tambah Varian" action (`tambah-menu` → `kelola-varian`). The empty frame
-/// shows a "Belum ada Varian Menu" placeholder and a bottom "Buat Varian"
-/// button; the [saved] entry (`varian-disimpan`) lists the tenant's saved
-/// variants with a "Digunakan di N menu" footer.
+/// "Tambah Varian" action (`tambah-menu` → `kelola-varian`). Shows a "Belum
+/// ada Varian Menu" placeholder when the tenant has no saved variants, or the
+/// list with a "Digunakan di N menu" footer once it does — driven by the real
+/// `GET /v1/modifier-groups` list rather than a route-selected mock state.
 ///
-// TODO(open-question): variant data + validation are unresolved Open Questions;
-// the list is mock data from [VariantList] / [savedVariants] and search is a
-// display-only field (no filtering yet).
+// TODO(open-question): the variant-form validation rules are unresolved Open
+// Questions; search is a display-only field (no filtering yet).
 class KelolaVarianScreen extends ConsumerWidget {
-  const KelolaVarianScreen({this.saved = false, super.key});
-
-  /// Renders the `varian-disimpan` filled list ([savedVariants]) instead of the
-  /// empty `kelola-varian` placeholder.
-  final bool saved;
+  const KelolaVarianScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final variants = saved ? savedVariants : ref.watch(variantListProvider);
-    final isEmpty = variants.isEmpty;
+    final variantsAsync = ref.watch(variantListProvider);
+    // Only known once the fetch resolves — the bottom "Buat Varian" button is
+    // the empty state's action, so it stays hidden while loading/erroring.
+    final isEmpty = variantsAsync.valueOrNull?.isEmpty ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -60,20 +58,26 @@ class KelolaVarianScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            if (isEmpty)
-              const Expanded(child: _EmptyState())
-            else
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  itemCount: variants.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
-                  itemBuilder: (context, i) => _VariantManageCard(
-                    data: variants[i],
-                    onTap: () => context.goNamed(TenantRoutes.varianDiisi),
-                  ),
-                ),
+            Expanded(
+              child: variantsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text(errorMessage(error))),
+                data: (variants) => variants.isEmpty
+                    ? const _EmptyState()
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        itemCount: variants.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
+                        itemBuilder: (context, i) => _VariantManageCard(
+                          data: variants[i],
+                          onTap: () => context.goNamed(
+                            TenantRoutes.varianDiisi,
+                            pathParameters: {'variantId': variants[i].id},
+                          ),
+                        ),
+                      ),
               ),
+            ),
             if (isEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -289,54 +293,68 @@ class _VariantManageCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${data.optionNames.length} Opsi',
+                      '${data.optionCount} Opsi',
                       style: const TextStyle(
                         color: AppColors.neutral500,
                         fontSize: 14,
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      data.optionNames.join(', '),
-                      style: const TextStyle(
-                        color: AppColors.neutral500,
-                        fontSize: 14,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.description_outlined,
-                      size: 18,
-                      color: AppColors.successGreen,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Digunakan di ${data.usedInMenuCount} menu',
+                    // The option-name preview needs the full option list,
+                    // which the modifier-groups list endpoint doesn't return
+                    // (only the count) — shown only once actually known.
+                    if (data.options != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        data.optionNames.join(', '),
                         style: const TextStyle(
                           color: AppColors.neutral500,
                           fontSize: 14,
                           height: 1.2,
                         ),
                       ),
-                    ),
-                    const Icon(
-                      ObraIcons.chevron_right,
-                      size: 20,
-                      color: AppColors.neutral300,
-                    ),
+                    ],
                   ],
                 ),
               ),
+              // "Digunakan di N menu" has no API source at all yet — the
+              // whole footer (divider included) is hidden rather than shown
+              // with a fabricated count.
+              if (data.usedInMenuCount case final usedInMenuCount?) ...[
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.hairline,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.description_outlined,
+                        size: 18,
+                        color: AppColors.successGreen,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Digunakan di $usedInMenuCount menu',
+                          style: const TextStyle(
+                            color: AppColors.neutral500,
+                            fontSize: 14,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        ObraIcons.chevron_right,
+                        size: 20,
+                        color: AppColors.neutral300,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

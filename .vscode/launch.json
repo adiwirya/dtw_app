@@ -2,31 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Busboy (Dev)",
+      "name": "App (Dev)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main_dev.dart",
       "flutterMode": "debug"
     },
     {
-      "name": "Busboy (Release)",
+      "name": "App (Release)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main_prod.dart",
-      "flutterMode": "release"
-    },
-    {
-      "name": "Tenant (Dev)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main_tenant.dart",
-      "flutterMode": "debug"
-    },
-    {
-      "name": "Tenant (Release)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main_tenant.dart",
       "flutterMode": "release"
     }
   ]

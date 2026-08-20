@@ -6,9 +6,16 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appRouterHash() => r'848bdd1741278153aa3bcc0a8721067c80226021';
+String _$appRouterHash() => r'e913155dd6a2e8c3c4c246786be9e4493b6b24de';
 
-/// See also [appRouter].
+/// The single `GoRouter` for the whole app — one login route, and the
+/// busboy and tenant bottom-nav shells mounted side by side (busboy at
+/// `/order` etc., tenant under `/tenant/...` — see `TenantRoutes`). There is
+/// no "app flavor" concept: which shell a login lands on is decided purely
+/// by [sessionBranchIdProvider] (set from the real login response), not by
+/// a separate router per flavor.
+///
+/// Copied from [appRouter].
 @ProviderFor(appRouter)
 final appRouterProvider = AutoDisposeProvider<GoRouter>.internal(
   appRouter,

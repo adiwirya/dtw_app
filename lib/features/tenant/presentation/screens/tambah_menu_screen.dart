@@ -89,6 +89,9 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
   void _save() {
     ref.read(menuListProvider.notifier).add(
           MenuItemData(
+            // Mock save only (see the TODO in menu_provider.dart) — this id
+            // never reaches the API, just needs to be unique in the local list.
+            id: 'mock-${DateTime.now().microsecondsSinceEpoch}',
             name: _name.text.isEmpty ? 'Menu Baru' : _name.text,
             price: _price.isEmpty ? 'Rp0' : 'Rp$_price',
             popular: _populer,
