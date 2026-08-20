@@ -9,10 +9,6 @@ class ReverbConfig {
   static const appKey = 'qvata3lm1xtqpocb9g2i';
   static const useTls = true;
 
-  /// Assumed to be reverse-proxied on the same port as the REST API (443)
-  /// since Reverb runs on "the same domain" per the backend team — verify on
-  /// the first real connection attempt; if it fails to connect, the actual
-  /// Reverb port needs to be obtained separately.
   static const port = 443;
 
   static String get authEndpoint => 'https://$host/broadcasting/auth';
