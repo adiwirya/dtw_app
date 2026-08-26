@@ -46,12 +46,12 @@ class OrderLineItem {
   final String? imageUrl;
 
   OrderLineItem copyWith({bool? available}) => OrderLineItem(
-        name: name,
-        price: price,
-        qty: qty,
-        available: available ?? this.available,
-        imageUrl: imageUrl,
-      );
+    name: name,
+    price: price,
+    qty: qty,
+    available: available ?? this.available,
+    imageUrl: imageUrl,
+  );
 }
 
 /// Plain value object backing an [IncomingOrderCard].
@@ -62,6 +62,7 @@ class OrderLineItem {
 class IncomingOrderData {
   const IncomingOrderData({
     required this.orderId,
+    required this.displayNumber,
     required this.tableName,
     required this.time,
     required this.status,
@@ -70,8 +71,15 @@ class IncomingOrderData {
     this.note,
   });
 
-  /// Order number without the leading '#'. Rendered as `#<orderId>`.
+  /// The real order id — what every mutation (`accept`/`reject`/`markReady`,
+  /// the reject-screen route) targets. Never shown to the tenant directly;
+  /// it is a raw UUID, not a human-friendly reference.
   final String orderId;
+
+  /// Human-friendly order reference shown as `#<displayNumber>` (the
+  /// receipt number, e.g. `RCP-20260826-JGP9ZT` — not [orderId], which is an
+  /// unreadable UUID).
+  final String displayNumber;
 
   /// Destination table label, e.g. `Meja A-12`.
   final String tableName;
@@ -242,13 +250,12 @@ class IncomingOrderCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            // `orderId` is the backend's full UUID (no short order number
-            // exists yet) — it can easily outrun the card's width, so it
+            // A long receipt number can still outrun the card's width, so it
             // needs to yield space to and truncate before the fixed-width
             // status label rather than overflow past the card edge.
             Expanded(
               child: Text(
-                '#${data.orderId}',
+                '#${data.displayNumber}',
                 style: _idStyle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

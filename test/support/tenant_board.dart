@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -60,14 +61,34 @@ Dio cannedOrderListDio(List<Map<String, dynamic>> orders) =>
 FakeLocalStorage branchScopedStorage() =>
     FakeLocalStorage()..values[tenantBranchIdStorageKey] = testBranchId;
 
+/// Canned `GET /v1/tenant-branches/{id}` response for [testBranchId] —
+/// screens that resolve a real tenant name via `currentTenantBranchProvider`
+/// (e.g. `TenantOrderHeader`) need this mocked too, or they'd fall through to
+/// a real, unmocked network call. Matches the recurring `KFC Fried Chicken`
+/// test tenant name used across the suite.
+Dio tenantBranchDio({String branchName = 'KFC Fried Chicken'}) => cannedDio(
+  200,
+  tenantEnvelope({
+    'id': testBranchId,
+    'brand_id': 'brand-1',
+    'brand_name': 'Janji Jiwa',
+    'branch_name': branchName,
+    'area_name': 'Downtown',
+    'is_active': true,
+    'created_at': '2026-08-07 09:16:37',
+  }),
+);
+
 /// Provider overrides standing up a real `TenantOrderBoard` over [dio]: a
-/// branch-scoped local storage, a real repository, and a fake realtime
-/// service (a widget test has no socket, and an un-faked one hangs the
-/// board's initial fetch on an unmocked platform channel).
+/// branch-scoped local storage, a real repository, a fake realtime service (a
+/// widget test has no socket, and an un-faked one hangs the board's initial
+/// fetch on an unmocked platform channel), and a canned branch fetch (so the
+/// header's real tenant name resolves without hitting the network).
 List<Override> tenantBoardOverrides({
   required Dio dio,
   TenantRealtimeService? realtime,
   FakeLocalStorage? storage,
+  Dio? branchDio,
 }) => [
   localStorageProvider.overrideWithValue(storage ?? branchScopedStorage()),
   tenantOrderRepositoryProvider.overrideWithValue(
@@ -75,5 +96,8 @@ List<Override> tenantBoardOverrides({
   ),
   tenantRealtimeServiceProvider.overrideWithValue(
     realtime ?? FakeTenantRealtimeService(),
+  ),
+  tenantBranchRepositoryProvider.overrideWithValue(
+    TenantBranchRepository(dio: branchDio ?? tenantBranchDio()),
   ),
 ];

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/tenant_order_header.dart';
@@ -44,21 +48,47 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
   ];
 
   late int _selected = _statuses.indexOf(widget.initialStatus);
+  StreamSubscription<String>? _statusSubscription;
 
   int _countFor(List<IncomingOrderData> board, IncomingOrderStatus status) =>
       board.where((order) => order.status == status).length;
 
   @override
+  void initState() {
+    super.initState();
+    // Debug visibility: surfaces the realtime socket's connect/error/
+    // reconnect status as a SnackBar so this is testable without tailing
+    // device logs. Temporary — remove once realtime delivery is confirmed
+    // stable in production.
+    _statusSubscription =
+        ref.read(tenantRealtimeServiceProvider).statusMessages.listen((
+      message,
+    ) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_statusSubscription?.cancel());
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final boardAsync = ref.watch(tenantOrderBoardProvider);
     final status = _statuses[_selected];
+    final tenantName =
+        ref.watch(currentTenantBranchProvider).valueOrNull?.branchName ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TenantOrderHeader(tenantName: 'KFC\nFried Chicken'),
+          TenantOrderHeader(tenantName: tenantName),
           Expanded(
             child: Container(
               transform: Matrix4.translationValues(0, -12, 0),
@@ -123,32 +153,39 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
           ),
         ),
         Expanded(
-          child: orders.isEmpty
-              ? const _EmptyOrders()
-              : _OrderList(
-                  orders: orders,
-                  onAccept: (order) => _runAction(
-                    context,
-                    () => ref
-                        .read(tenantOrderBoardProvider.notifier)
-                        .accept(order.orderId),
+          child: RefreshIndicator(
+            onRefresh: () => ref.refresh(tenantOrderBoardProvider.future),
+            child: orders.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [_EmptyOrders()],
+                  )
+                : _OrderList(
+                    orders: orders,
+                    onAccept: (order) => _runAction(
+                      context,
+                      () => ref
+                          .read(tenantOrderBoardProvider.notifier)
+                          .accept(order.orderId),
+                    ),
+                    onPickupReady: (order) => _runAction(
+                      context,
+                      () => ref
+                          .read(tenantOrderBoardProvider.notifier)
+                          .markReady(order.orderId),
+                    ),
+                    // The order id MUST reach the reject screen: it is what
+                    // scopes the screen's data and its `reject` call.
+                    // Dropping it here was what let the rejection silently
+                    // no-op.
+                    onReject: (order) => context.goNamed(
+                      TenantRoutes.pesananDitolak,
+                      pathParameters: {'orderId': order.orderId},
+                    ),
+                    onOpenDetail: (order) =>
+                        context.goNamed(TenantRoutes.orderDetail),
                   ),
-                  onPickupReady: (order) => _runAction(
-                    context,
-                    () => ref
-                        .read(tenantOrderBoardProvider.notifier)
-                        .markReady(order.orderId),
-                  ),
-                  // The order id MUST reach the reject screen: it is what
-                  // scopes the screen's data and its `reject` call. Dropping
-                  // it here was what let the rejection silently no-op.
-                  onReject: (order) => context.goNamed(
-                    TenantRoutes.pesananDitolak,
-                    pathParameters: {'orderId': order.orderId},
-                  ),
-                  onOpenDetail: (order) =>
-                      context.goNamed(TenantRoutes.orderDetail),
-                ),
+          ),
         ),
       ],
     );
@@ -190,6 +227,7 @@ class _OrderList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: orders.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),

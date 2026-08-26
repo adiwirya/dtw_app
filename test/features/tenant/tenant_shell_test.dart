@@ -45,7 +45,7 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.path,
       '/tenant/order',
     );
-    expect(find.text('KFC\nFried Chicken'), findsOneWidget); // hosted screen
+    expect(find.text('KFC Fried Chicken'), findsOneWidget); // hosted screen
     expect(find.text('Order'), findsOneWidget); // nav label (FAB)
     expect(find.text('Menu'), findsOneWidget); // nav label
     expect(find.text('Laporan'), findsOneWidget); // nav label

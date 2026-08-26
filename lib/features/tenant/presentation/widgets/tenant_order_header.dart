@@ -4,12 +4,11 @@ import 'package:obra_icons/obra_icons.dart';
 
 /// The green header band at the top of the tenant Order home
 /// (`menu-order-baru`): a white iOS status bar, the tenant name (`KFC Fried
-/// Chicken`) with a notification bell, and an "Online" status pill. The white
-/// tab/list panel drawn by the screen sits directly below this band.
+/// Chicken`) with a notification bell. The white tab/list panel drawn by the
+/// screen sits directly below this band.
 class TenantOrderHeader extends StatelessWidget {
   const TenantOrderHeader({
     required this.tenantName,
-    this.isOnline = true,
     this.onBellTap,
     super.key,
   });
@@ -17,9 +16,6 @@ class TenantOrderHeader extends StatelessWidget {
   /// Tenant display name, rendered bold-white (wraps to two lines in the
   /// reference, e.g. `KFC\nFried Chicken`).
   final String tenantName;
-
-  /// Drives the "Online" pill dot/label.
-  final bool isOnline;
 
   /// Notification bell handler. Optional.
   final VoidCallback? onBellTap;
@@ -49,72 +45,21 @@ class TenantOrderHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        tenantName,
-                        // TODO(open-question): Open Sans Bold in the cache; not
-                        // bundled yet (mirrors the other tenant headers).
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          height: 1.25,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _OnlinePill(online: isOnline),
-                    ],
+                  child: Text(
+                    tenantName,
+                    // TODO(open-question): Open Sans Bold in the cache; not
+                    // bundled yet (mirrors the other tenant headers).
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 _BellButton(onTap: onBellTap),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The "Online" status pill (`Frame 2011`): a dot + label on a translucent
-/// rounded chip.
-class _OnlinePill extends StatelessWidget {
-  const _OnlinePill({required this.online});
-
-  final bool online;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        // White @ ~18% — translucent chip over the green header.
-        color: const Color(0x2EFFFFFF),
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: online ? AppColors.white : AppColors.neutral300,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            online ? 'Online' : 'Offline',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 1,
             ),
           ),
         ],

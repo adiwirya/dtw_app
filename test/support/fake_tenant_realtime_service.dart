@@ -15,6 +15,7 @@ class FakeTenantRealtimeService implements TenantRealtimeService {
   final _orderCreatedController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectedController = StreamController<void>.broadcast();
+  final _statusController = StreamController<String>.broadcast();
 
   @override
   Stream<Map<String, dynamic>> get orderCreated =>
@@ -22,6 +23,9 @@ class FakeTenantRealtimeService implements TenantRealtimeService {
 
   @override
   Stream<void> get reconnected => _reconnectedController.stream;
+
+  @override
+  Stream<String> get statusMessages => _statusController.stream;
 
   @override
   Future<void> connect({
@@ -51,5 +55,6 @@ class FakeTenantRealtimeService implements TenantRealtimeService {
   Future<void> close() async {
     await _orderCreatedController.close();
     await _reconnectedController.close();
+    await _statusController.close();
   }
 }

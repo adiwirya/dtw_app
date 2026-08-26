@@ -6,6 +6,7 @@ import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,10 +79,14 @@ void main() {
           ),
           localStorageProvider.overrideWithValue(resolvedStorage),
           tenantRealtimeServiceProvider.overrideWithValue(realtime),
-          if (orderDio != null)
+          if (orderDio != null) ...[
             tenantOrderRepositoryProvider.overrideWithValue(
               TenantOrderRepository(dio: orderDio),
             ),
+            tenantBranchRepositoryProvider.overrideWithValue(
+              TenantBranchRepository(dio: tenantBranchDio()),
+            ),
+          ],
         ],
       );
       addTearDown(container.dispose);
@@ -164,7 +169,7 @@ void main() {
 
       // The tenant Order home renders — no second login screen.
       expect(find.byType(LoginScreen), findsNothing);
-      expect(find.text('KFC\nFried Chicken'), findsOneWidget);
+      expect(find.text('KFC Fried Chicken'), findsOneWidget);
       // Tenant bottom nav labels confirm we landed on the tenant shell.
       expect(find.text('Menu'), findsOneWidget);
       expect(find.text('Laporan'), findsOneWidget);

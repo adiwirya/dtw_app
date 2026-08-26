@@ -57,11 +57,10 @@ IncomingOrderStatus incomingOrderStatusFromBackend(TenantOrderStatus status) {
 /// A tenant-branch order, as returned by `GET /v1/orders` or delivered live
 /// via the `order.created` Reverb event.
 ///
-/// **Known gap (see the 2026-08-11 design doc):** the live API's order
-/// shape has no table name and an always-empty `items` array — there is no
-/// confirmed source for either yet. [toIncomingOrderData] fills the UI's
-/// `tableName` slot with [receiptNumber] (real data, repurposed) and always
-/// renders an empty item list until the real shape is found.
+/// [tableNumber] and real [items] were added to the live API after the
+/// 2026-08-11 design doc's "known gap" (that shape had neither) — confirmed
+/// live on 2026-08-26. [toIncomingOrderData] prefers [tableNumber], falling
+/// back to [receiptNumber] only for orders from before that field existed.
 @immutable
 class TenantOrder {
   const TenantOrder({
@@ -72,30 +71,71 @@ class TenantOrder {
     required this.grandTotal,
     required this.status,
     required this.createdAt,
+    required this.items,
+    this.tableNumber,
     this.broadcastEventId,
   });
 
   factory TenantOrder.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List? ?? const [];
     return TenantOrder(
       id: json['id'] as String,
       orderGroupId: json['order_group_id'] as String,
       branchId: json['branch_id'] as String,
-      receiptNumber: json['receipt_number'] as String,
+      // Confirmed live: despite the documented shape, the API can send a
+      // null receipt_number (e.g. not yet generated) — one bad record must
+      // not take down the whole board's fetch.
+      receiptNumber: json['receipt_number'] as String? ?? '-',
+      tableNumber: json['table_number'] as String?,
       grandTotal: (json['grand_total'] as num).toInt(),
       status: tenantOrderStatusFromWire(json['order_status'] as String),
       createdAt:
           DateTime.parse((json['created_at'] as String).replaceFirst(' ', 'T')),
+      items: [
+        for (final item in rawItems.cast<Map<String, dynamic>>())
+          OrderLineItem(
+            name: item['product_name'] as String,
+            price: formatRupiah((item['subtotal'] as num).round()),
+            qty: (item['quantity'] as num).toInt(),
+          ),
+      ],
       broadcastEventId: json['broadcast_event_id'] as int?,
     );
+  }
+
+  /// Parses a live `order.created` socket event or a
+  /// `GET /v1/broadcast/replay` item's `payload` — both wrap the order
+  /// under an `order` key, sibling to `order_group` (which carries
+  /// `table_number` when the order's own copy is null) and the top-level
+  /// `broadcast_event_id`, unlike `GET /v1/orders`'s flat item shape.
+  /// Falls back to [TenantOrder.fromJson] when the payload is already flat,
+  /// so a caller that isn't sure which shape it has can always use this.
+  factory TenantOrder.fromBroadcastPayload(Map<String, dynamic> payload) {
+    final rawOrder = payload['order'];
+    if (rawOrder is! Map) return TenantOrder.fromJson(payload);
+
+    final order = Map<String, dynamic>.of(rawOrder.cast<String, dynamic>());
+    final orderGroup = payload['order_group'];
+    if (order['table_number'] == null && orderGroup is Map) {
+      order['table_number'] = orderGroup['table_number'];
+    }
+    order['broadcast_event_id'] ??= payload['broadcast_event_id'];
+    return TenantOrder.fromJson(order);
   }
 
   final String id;
   final String orderGroupId;
   final String branchId;
   final String receiptNumber;
+
+  /// Real table/order number, e.g. `A-01` — added to the live API after the
+  /// original "no table name" gap. Null for orders fetched before this field
+  /// existed.
+  final String? tableNumber;
   final int grandTotal;
   final TenantOrderStatus status;
   final DateTime createdAt;
+  final List<OrderLineItem> items;
   final int? broadcastEventId;
 
   TenantOrder copyWith({TenantOrderStatus? status}) => TenantOrder(
@@ -103,9 +143,11 @@ class TenantOrder {
         orderGroupId: orderGroupId,
         branchId: branchId,
         receiptNumber: receiptNumber,
+        tableNumber: tableNumber,
         grandTotal: grandTotal,
         status: status ?? this.status,
         createdAt: createdAt,
+        items: items,
         broadcastEventId: broadcastEventId,
       );
 
@@ -114,10 +156,11 @@ class TenantOrder {
     final mm = createdAt.minute.toString().padLeft(2, '0');
     return IncomingOrderData(
       orderId: id,
-      tableName: receiptNumber,
+      displayNumber: receiptNumber,
+      tableName: tableNumber ?? receiptNumber,
       time: '$hh:$mm',
       status: incomingOrderStatusFromBackend(status),
-      items: const [],
+      items: items,
       total: formatRupiah(grandTotal),
     );
   }

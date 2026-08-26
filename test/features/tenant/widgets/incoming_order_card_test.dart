@@ -9,6 +9,7 @@ const _items = [
 
 const _baru = IncomingOrderData(
   orderId: '92842',
+  displayNumber: 'RCP-92842',
   tableName: 'Meja A-12',
   time: '10:36 WIB',
   status: IncomingOrderStatus.baru,
@@ -18,6 +19,7 @@ const _baru = IncomingOrderData(
 
 const _diproses = IncomingOrderData(
   orderId: '92842',
+  displayNumber: 'RCP-92842',
   tableName: 'Meja A-12',
   time: '10:36 WIB',
   status: IncomingOrderStatus.diproses,
@@ -37,7 +39,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_host(const IncomingOrderCard(data: _baru)));
 
-      expect(find.text('#92842'), findsOneWidget);
+      expect(find.text('#RCP-92842'), findsOneWidget);
       expect(find.text('Meja A-12'), findsOneWidget);
       expect(find.text('10:36 WIB'), findsOneWidget);
       expect(find.text('Baru'), findsOneWidget);
@@ -85,6 +87,7 @@ void main() {
     testWidgets('renders note verbatim when present', (tester) async {
       const withNote = IncomingOrderData(
         orderId: '92842',
+        displayNumber: 'RCP-92842',
         tableName: 'Meja A-14',
         time: '10:36 WIB',
         status: IncomingOrderStatus.baru,

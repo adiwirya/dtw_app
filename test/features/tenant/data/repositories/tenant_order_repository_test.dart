@@ -190,5 +190,54 @@ void main() {
         );
       },
     );
+
+    test(
+      'unwraps each item\'s order/order_group-nested payload '
+      '(confirmed live shape: {id, event, payload, created_at})',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': [
+            {
+              'id': 'event-1',
+              'event': 'order.created',
+              'created_at': '2026-08-26 08:54:20',
+              'payload': {
+                'broadcast_event_id': 42,
+                'order_group': {'table_number': 'A-01'},
+                'order': {
+                  'id': 'order-1',
+                  'order_group_id': 'group-1',
+                  'branch_id': 'branch-1',
+                  'receipt_number': 'RCP-1',
+                  'grand_total': 10000,
+                  'order_status': 'PENDING',
+                  'table_number': null,
+                  'created_at': '2026-08-26 08:54:20',
+                  'updated_at': '2026-08-26 08:54:21',
+                  'items': <dynamic>[],
+                },
+              },
+            },
+          ],
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        final orders = await repository.fetchMissedEvents(
+          branchId: 'branch-1',
+          afterId: 41,
+        );
+
+        expect(orders, hasLength(1));
+        expect(orders.single.id, 'order-1');
+        expect(orders.single.tableNumber, 'A-01');
+        expect(orders.single.broadcastEventId, 42);
+      },
+    );
   });
 }

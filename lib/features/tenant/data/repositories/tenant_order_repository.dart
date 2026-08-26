@@ -56,7 +56,15 @@ class TenantOrderRepository {
       );
       final data = response.data!['data'] as List;
       return data
-          .map((json) => TenantOrder.fromJson(json as Map<String, dynamic>))
+          // Each replay item is `{id, event, payload, created_at}` — the
+          // order lives under `payload`, in the same order/order_group-
+          // wrapped shape as a live `order.created` event, not flat like
+          // `GET /v1/orders`.
+          .map(
+            (json) => TenantOrder.fromBroadcastPayload(
+              (json as Map<String, dynamic>)['payload'] as Map<String, dynamic>,
+            ),
+          )
           .toList();
     } on DioException catch (error) {
       throw mapDioError(error);
