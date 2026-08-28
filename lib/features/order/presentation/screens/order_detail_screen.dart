@@ -27,7 +27,11 @@ class OrderDetailScreen extends ConsumerWidget {
   /// Delivery id to load (a path parameter — see `app_router.dart`).
   final String orderId;
 
-  Future<void> _take(BuildContext context, WidgetRef ref) async {
+  Future<void> _take(
+    BuildContext context,
+    WidgetRef ref,
+    OrderDetail detail,
+  ) async {
     try {
       await ref.read(orderBoardNotifierProvider.notifier).claim(orderId);
     } on Object catch (error) {
@@ -41,12 +45,51 @@ class OrderDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
     await showSuccessModal(
       context,
-      // Uses the SuccessModal frame defaults (Tugas Berhasil Diambil! …).
+      // Keeps the `berhasil-ditambahkan` frame's title/message/CTA defaults,
+      // but the detail rows MUST come from the claimed delivery. Omitting
+      // `details` falls back to `SuccessModal`'s hardcoded frame sample
+      // (KFC Fried Chicken / Meja A-12 / Budi Santoso), which showed the
+      // tenant a confirmation for an order that wasn't the one just taken.
+      details: _successDetails(detail),
       onConfirm: () {
         ref.read(orderTabProvider.notifier).selectStatus(OrderStatus.antar);
         context.goNamed(AppRoutes.order);
       },
     );
+  }
+
+  /// The claimed delivery's identity, as the three `berhasil-ditambahkan`
+  /// detail rows. Icons/tints mirror [OrderDetailCard]'s rows so the modal
+  /// reads as the same order the screen behind it is showing.
+  List<SuccessModalDetail> _successDetails(OrderDetail detail) {
+    return [
+      SuccessModalDetail(
+        icon: Icons.storefront_outlined,
+        label: 'Dari Tenant',
+        value: detail.tenantName,
+        tileColor: AppColors.orderTileTenantBg,
+        iconColor: AppColors.orderTileTenantIcon,
+      ),
+      SuccessModalDetail(
+        icon: Icons.chair_outlined,
+        label: 'Ke Meja',
+        // A busboy delivery carries no zone/area name (see
+        // `Delivery.toOrderCardData`), so the dot separator is only added
+        // when there is actually a second value to separate.
+        value: detail.location.isEmpty
+            ? detail.tableName
+            : '${detail.tableName}  •  ${detail.location}',
+        tileColor: AppColors.successTint,
+        iconColor: AppColors.successGreen,
+      ),
+      SuccessModalDetail(
+        icon: Icons.person_outline,
+        label: 'Pelanggan',
+        value: detail.customerName,
+        tileColor: AppColors.orderTileCustomerBg,
+        iconColor: AppColors.orderTileCustomerIcon,
+      ),
+    ];
   }
 
   @override
@@ -72,7 +115,7 @@ class OrderDetailScreen extends ConsumerWidget {
             ),
           ),
           if (detail != null)
-            _BottomAction(onPressed: () => _take(context, ref)),
+            _BottomAction(onPressed: () => _take(context, ref, detail)),
         ],
       ),
     );
