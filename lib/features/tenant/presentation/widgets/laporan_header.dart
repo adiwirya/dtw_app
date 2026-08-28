@@ -24,7 +24,10 @@ class LaporanHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _DarkStatusBar(),
+        // The OS draws the real status bar here; the header runs behind
+        // it. A fake `9:41` bar used to sit in this slot, doubling up with
+        // the real one on device.
+        SizedBox(height: MediaQuery.paddingOf(context).top),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Column(
@@ -144,50 +147,6 @@ class _FilterChip extends StatelessWidget {
           fontSize: 14,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-/// Dark-on-white iOS status bar (`9:41` + signal / wifi / battery). Mirrors the
-/// project convention of drawing the status bar in-screen (see `LoginStatusBar`
-/// / the busboy Performa header) but tinted for a light background.
-// TODO(open-question): pixel-exact SVG glyphs are approximated with Material
-// icons until flutter_svg is available.
-class _DarkStatusBar extends StatelessWidget {
-  const _DarkStatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 44,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 20, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '9:41',
-              style: TextStyle(
-                color: AppColors.neutral900,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1,
-              ),
-            ),
-            Row(
-              children: [
-                Icon(Icons.signal_cellular_alt,
-                    size: 17, color: AppColors.neutral900),
-                SizedBox(width: 6),
-                Icon(Icons.wifi, size: 17, color: AppColors.neutral900),
-                SizedBox(width: 6),
-                Icon(Icons.battery_full,
-                    size: 22, color: AppColors.neutral900),
-              ],
-            ),
-          ],
         ),
       ),
     );

@@ -109,7 +109,10 @@ class _DetailNavBar extends StatelessWidget {
       color: AppColors.white,
       child: Column(
         children: [
-          const _StatusBar(),
+          // The OS draws the real status bar here; the header runs behind
+          // it. A fake `9:41` bar used to sit in this slot, doubling up with
+          // the real one on device.
+          SizedBox(height: MediaQuery.paddingOf(context).top),
           SizedBox(
             height: 48,
             child: Stack(
@@ -146,46 +149,6 @@ class _DetailNavBar extends StatelessWidget {
   }
 }
 
-/// Dark-on-white status bar (`9:41`). Mirrors the app's other status bars but
-/// with dark glyphs to sit on the white detail header.
-// TODO(open-question): pixel-exact SVG status glyphs are approximated with
-// Material icons until flutter_svg is available.
-class _StatusBar extends StatelessWidget {
-  const _StatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 44,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 20, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '9:41',
-              style: TextStyle(
-                color: AppColors.neutral900,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1,
-              ),
-            ),
-            Row(
-              children: [
-                Icon(Icons.signal_cellular_alt, size: 17),
-                SizedBox(width: 6),
-                Icon(Icons.wifi, size: 17),
-                SizedBox(width: 6),
-                Icon(Icons.battery_full, size: 22),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// White rounded card shell shared by every detail section.
 class _Card extends StatelessWidget {

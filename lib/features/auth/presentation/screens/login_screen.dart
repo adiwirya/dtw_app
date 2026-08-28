@@ -3,7 +3,6 @@ import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
-import 'package:dtw_app/features/auth/presentation/widgets/login_status_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -79,7 +78,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const LoginStatusBar(),
+                  // Real OS status-bar inset. A fake `9:41` bar used to
+                  // sit here, doubling up with the real one on device.
+                  SizedBox(height: MediaQuery.paddingOf(context).top),
                   _buildHeaderBand(),
                   const SizedBox(height: 24),
                   _buildForm(authState),

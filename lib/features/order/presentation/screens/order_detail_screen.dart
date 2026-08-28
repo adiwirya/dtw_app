@@ -156,7 +156,10 @@ class _DetailNavBar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const _WhiteStatusBar(),
+          // The OS draws the real status bar here; the header runs behind
+          // it. A fake `9:41` bar used to sit in this slot, doubling up with
+          // the real one on device.
+          SizedBox(height: MediaQuery.paddingOf(context).top),
           SizedBox(
             height: 48,
             child: Stack(
@@ -380,46 +383,6 @@ class _BottomAction extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: PrimaryButton(label: 'Ambil Pesanan', onPressed: onPressed),
-        ),
-      ),
-    );
-  }
-}
-
-/// White-on-green status bar (`9:41`). Mirrors the other headers.
-// TODO(open-question): pixel-exact SVG glyphs are approximated with Material
-// icons until flutter_svg is available.
-class _WhiteStatusBar extends StatelessWidget {
-  const _WhiteStatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 44,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 20, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '9:41',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1,
-              ),
-            ),
-            Row(
-              children: [
-                Icon(Icons.signal_cellular_alt, size: 17, color: Colors.white),
-                SizedBox(width: 6),
-                Icon(Icons.wifi, size: 17, color: Colors.white),
-                SizedBox(width: 6),
-                Icon(Icons.battery_full, size: 22, color: Colors.white),
-              ],
-            ),
-          ],
         ),
       ),
     );
