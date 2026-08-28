@@ -70,9 +70,6 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     // successful build refetches from scratch.
     var initialFetchSettled = false;
     _orderCreatedSubscription = realtime.orderCreated.listen((payload) {
-      // ignore: avoid_print
-      print('DEBUG order.created receipt_number: '
-          '${(payload['order'] as Map?)?['receipt_number']}');
       if (state.value == null && !initialFetchSettled) {
         final order = TenantOrder.fromBroadcastPayload(payload);
         pendingDuringFetch[order.id] = order;

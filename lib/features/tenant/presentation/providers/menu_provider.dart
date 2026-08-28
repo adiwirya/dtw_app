@@ -114,21 +114,3 @@ const List<MenuFilter> menuFilters = [
   MenuFilter(label: 'Promo', count: 12),
   MenuFilter(label: 'Best Seller', count: 10),
 ];
-
-/// Category options for the menu-form `Kategori` dropdown (`menu-diisi`).
-const List<String> menuCategories = [
-  'Nasi',
-  'Ayam',
-  'Minuman',
-  'Snack',
-  'Paket',
-];
-
-/// Tag options for the menu-form `Tag` field (`menu-diisi` → Chicken, Combo
-/// Meal).
-const List<String> menuTags = [
-  'Chicken',
-  'Combo Meal',
-  'Spicy',
-  'Best Seller',
-];

@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:dtw_app/core/exceptions.dart';
-import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
@@ -48,33 +45,9 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
   ];
 
   late int _selected = _statuses.indexOf(widget.initialStatus);
-  StreamSubscription<String>? _statusSubscription;
 
   int _countFor(List<IncomingOrderData> board, IncomingOrderStatus status) =>
       board.where((order) => order.status == status).length;
-
-  @override
-  void initState() {
-    super.initState();
-    // Debug visibility: surfaces the realtime socket's connect/error/
-    // reconnect status as a SnackBar so this is testable without tailing
-    // device logs. Temporary — remove once realtime delivery is confirmed
-    // stable in production.
-    _statusSubscription =
-        ref.read(tenantRealtimeServiceProvider).statusMessages.listen((
-      message,
-    ) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
-    });
-  }
-
-  @override
-  void dispose() {
-    unawaited(_statusSubscription?.cancel());
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
