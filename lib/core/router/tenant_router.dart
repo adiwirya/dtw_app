@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/tenant_shell.dart';
-import 'package:dtw_app/features/tenant/presentation/providers/variant_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/admin_status_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/kelola_varian_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/laporan_screen.dart';
@@ -452,9 +451,10 @@ StatefulShellRoute tenantShellRoute() {
               GoRoute(
                 path: 'varian-ditambahkan',
                 name: TenantRoutes.varianDitambahkan,
+                // The variants picked on `PilihVarianScreen` reach the form
+                // through `menuVariantSelectionProvider`, not this route.
                 builder: (context, state) => TambahMenuScreen(
                   prefilled: true,
-                  variants: attachedMenuVariants,
                   onBack: () => context.goNamed(TenantRoutes.menuBerhasil),
                 ),
               ),

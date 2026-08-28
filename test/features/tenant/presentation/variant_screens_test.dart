@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/canned_dio.dart';
+import '../../../support/tenant_board.dart';
 
 Future<void> _pump(
   WidgetTester tester,
@@ -322,17 +323,58 @@ void main() {
   });
 
   group('TambahMenuScreen with attached variants (varian-ditambahkan)', () {
-    testWidgets('shows the variant count and attached rows', (tester) async {
+    // The attached variants used to be a hardcoded `attachedMenuVariants`
+    // const passed in as a widget param. They now come from the real
+    // selection the picker writes to `menuVariantSelectionProvider`.
+    testWidgets('shows the picked variants from the selection provider',
+        (tester) async {
       await _pump(
         tester,
-        const TambahMenuScreen(
-          prefilled: true,
-          variants: attachedMenuVariants,
-        ),
+        const TambahMenuScreen(prefilled: true),
+        overrides: [
+          ...tenantMenuOverrides(
+            categories: [productCategoryJson(id: 'cat-1', name: 'Nasi')],
+          ),
+          menuVariantSelectionProvider.overrideWith(
+            () => _SeededSelection(const [
+              VariantData(
+                id: 'group-1',
+                name: 'Level Kepedasan',
+                type: VariantType.tunggal,
+                optionCount: 2,
+                options: [
+                  VariantOptionData(name: 'Original'),
+                  VariantOptionData(name: 'Spicy'),
+                ],
+              ),
+              VariantData(
+                id: 'group-2',
+                name: 'Ukuran Size',
+                type: VariantType.tunggal,
+                optionCount: 2,
+              ),
+            ]),
+          ),
+        ],
       );
+
       expect(find.text('(2)'), findsOneWidget);
       expect(find.text('Level Kepedasan'), findsOneWidget);
+      // Names known -> previewed; names unknown -> falls back to the count.
+      expect(find.text('Original, Spicy'), findsOneWidget);
       expect(find.text('Ukuran Size'), findsOneWidget);
+      expect(find.text('2 Opsi'), findsOneWidget);
     });
   });
+}
+
+/// Seeds [MenuVariantSelection] for a test — the generated notifier provider
+/// is overridden with a subclass rather than poked through `.state`.
+class _SeededSelection extends MenuVariantSelection {
+  _SeededSelection(this.seed);
+
+  final List<VariantData> seed;
+
+  @override
+  List<VariantData> build() => seed;
 }

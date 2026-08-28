@@ -1,13 +1,16 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/app_toggle.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/tenant/data/models/product_category.dart';
+import 'package:dtw_app/features/tenant/data/repositories/product_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/menu_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/variant_provider.dart';
-import 'package:dtw_app/features/tenant/presentation/widgets/menu_item_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_success_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,34 +26,38 @@ import 'package:obra_icons/obra_icons.dart';
 ///   * a **Diskon** card adds the two discount inputs (percentage + price) plus
 ///     a "Berlaku Sampai" valid-date field.
 ///
-/// `Tambah Varian` and the `Kelola Varian` entry both route to
-/// [TenantRoutes.kelolaVarian] (item 07's sub-flow). `Simpan Menu` performs a
-/// mock save (appends to [MenuList]) then raises the `berhasil-ditambahkan`
-/// success modal before advancing to `menu-berhasil-ditambahkan`.
+/// `Tambah Varian` routes to [TenantRoutes.kelolaVarian]; variants picked
+/// there land in [menuVariantSelectionProvider] and are attached to the new
+/// product after it is created.
 ///
-// TODO(open-question): the menu data source and per-field validation rules are
-// unresolved (Open Questions 3/5/6). Dropdown/price/date fields are display-only
-// mocks and no validation runs — wire real editing + validation once the source
-// and rules land.
+/// `Simpan Menu` really saves: `POST /v1/products` via [MenuList.create],
+/// then `POST /v1/products/{id}/modifier-groups/sync` for any picked
+/// variants, then the `berhasil-ditambahkan` success modal.
+///
+// TODO(open-question): the photo, Tag and Diskon fields have NO backing API
+// (`POST /v1/products` accepts brand_id/category_id/sku/name/description/
+// tags/price only, and nothing for discounts) so they stay display-only. The
+// Populer (PIN) toggle likewise has no field to persist to. Validation here is
+// only "required and non-zero" — the real per-field rules are unresolved.
 class TambahMenuScreen extends ConsumerStatefulWidget {
   const TambahMenuScreen({
     this.prefilled = false,
-    this.variants = const [],
     this.onBack,
+    this.onSave,
     super.key,
   });
 
-  /// Seeds the `menu-diisi` filled state (name/category/price/tags populated).
+  /// Seeds the `menu-diisi` prototype frame (name/price/tags). Category is
+  /// never seeded — real categories come from the API.
   final bool prefilled;
-
-  /// Variants attached to the menu, shown in the "Varian Menu" card on the
-  /// `varian-ditambahkan` frame. Empty on the plain `tambah-menu` / `menu-diisi`
-  /// frames.
-  final List<MenuVariantEntry> variants;
 
   /// Overrides the top-bar back action (used by the `varian-ditambahkan` route
   /// to return to `menu-berhasil-ditambahkan`). Falls back to `context.pop()`.
   final VoidCallback? onBack;
+
+  /// Overrides "Simpan Menu" for prototype frame routes that only advance the
+  /// flow. Null (the real entry points) does the real create.
+  final VoidCallback? onSave;
 
   @override
   ConsumerState<TambahMenuScreen> createState() => _TambahMenuScreenState();
@@ -59,23 +66,31 @@ class TambahMenuScreen extends ConsumerStatefulWidget {
 class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
   late final TextEditingController _name;
   late final TextEditingController _note;
-  late bool _populer;
+  late final TextEditingController _price;
 
-  // Display-only mock selections (dropdowns/price/date are not yet editable).
-  late final String? _category;
-  late final String _price;
+  /// The picked `category_id`. Required by `POST /v1/products`, so "Simpan
+  /// Menu" stays blocked until one is chosen.
+  String? _categoryId;
+
+  bool _populer = false;
+  bool _saving = false;
+  String? _errorMessage;
+
+  // Display-only: the `tambah-menu` tags and discount fields have no API
+  // support at all (see the TODO above the class).
   late final List<String> _tags;
 
   @override
   void initState() {
     super.initState();
+    // `prefilled` seeds the `menu-diisi` prototype frame. Category is NOT
+    // seeded: the real categories come from the API and a hardcoded 'Nasi'
+    // is not guaranteed to exist for this brand.
     _name = TextEditingController(
       text: widget.prefilled ? 'Paket Komplit' : '',
     );
+    _price = TextEditingController(text: widget.prefilled ? '32.000' : '');
     _note = TextEditingController();
-    _populer = false;
-    _category = widget.prefilled ? 'Nasi' : null;
-    _price = widget.prefilled ? '32.000' : '';
     _tags = widget.prefilled ? const ['Chicken', 'Combo Meal'] : const [];
   }
 
@@ -83,20 +98,79 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
   void dispose() {
     _name.dispose();
     _note.dispose();
+    _price.dispose();
     super.dispose();
   }
 
-  void _save() {
-    ref.read(menuListProvider.notifier).add(
-          MenuItemData(
-            // Mock save only (see the TODO in menu_provider.dart) — this id
-            // never reaches the API, just needs to be unique in the local list.
-            id: 'mock-${DateTime.now().microsecondsSinceEpoch}',
-            name: _name.text.isEmpty ? 'Menu Baru' : _name.text,
-            price: _price.isEmpty ? 'Rp0' : 'Rp$_price',
-            popular: _populer,
+  Future<void> _save() async {
+    if (widget.onSave case final onSave?) {
+      onSave();
+      return;
+    }
+
+    final name = _name.text.trim();
+    final categoryId = _categoryId;
+    final price = parseRupiah(_price.text);
+
+    final validationError = switch (null) {
+      _ when name.isEmpty => 'Nama menu wajib diisi.',
+      _ when categoryId == null => 'Kategori wajib dipilih.',
+      _ when price <= 0 => 'Harga wajib diisi.',
+      _ => null,
+    };
+    if (validationError != null) {
+      setState(() => _errorMessage = validationError);
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+
+    final String productId;
+    try {
+      productId = await ref.read(menuListProvider.notifier).create(
+            name: name,
+            categoryId: categoryId!,
+            price: price,
+            description: _note.text.trim(),
+          );
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _errorMessage = errorMessage(error);
+      });
+      return;
+    }
+
+    // Attaching the picked variants is a second call and deliberately
+    // best-effort: the menu itself is already saved, so a failure here must
+    // not read as "the menu wasn't created". It surfaces as a SnackBar and
+    // leaves the menu in place with no variants attached.
+    final variantIds = ref.read(menuVariantSelectionProvider)
+        .map((v) => v.id)
+        .toList();
+    if (variantIds.isNotEmpty) {
+      try {
+        await ref.read(productRepositoryProvider).syncModifierGroups(
+              productId,
+              modifierGroupIds: variantIds,
+            );
+      } on Object catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Menu tersimpan, varian gagal: '
+                '${errorMessage(error)}'),
           ),
         );
+      }
+    }
+
+    if (!mounted) return;
+    ref.read(menuVariantSelectionProvider.notifier).clear();
     unawaited(
       showMenuSuccessModal(
         context,
@@ -131,13 +205,26 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
                     _populerCard(),
                     const SizedBox(height: 16),
                     _varianCard(),
+                    if (_errorMessage case final message?) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        message,
+                        style: const TextStyle(
+                          color: AppColors.dangerRed,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: PrimaryButton(label: 'Simpan Menu', onPressed: _save),
+              child: PrimaryButton(
+                label: 'Simpan Menu',
+                onPressed: _saving ? null : _save,
+              ),
             ),
           ],
         ),
@@ -163,13 +250,19 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
           _LabeledField(
             label: 'Kategori',
             required: true,
-            child: _DropdownBox(value: _category, hint: 'Pilih Kategori'),
+            child: _CategoryDropdown(
+              value: _categoryId,
+              onChanged: (id) => setState(() => _categoryId = id),
+            ),
           ),
           const SizedBox(height: 16),
           _LabeledField(
             label: 'Harga',
             required: true,
-            child: _PriceBox(value: _price, hint: 'Contoh : 25.000'),
+            child: _PriceInput(
+              controller: _price,
+              hint: 'Contoh : 25.000',
+            ),
           ),
           const SizedBox(height: 16),
           _LabeledField(
@@ -290,6 +383,7 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
   }
 
   Widget _varianCard() {
+    final variants = ref.watch(menuVariantSelectionProvider);
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -307,7 +401,7 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
               ),
               const SizedBox(width: 4),
               Text(
-                '(${widget.variants.length})',
+                '(${variants.length})',
                 style: const TextStyle(
                   color: AppColors.successGreen,
                   fontSize: 16,
@@ -328,8 +422,8 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          for (final v in widget.variants) ...[
-            _AttachedVariantRow(entry: v),
+          for (final variant in variants) ...[
+            _AttachedVariantRow(variant: variant),
             const SizedBox(height: 12),
           ],
           _OutlinedGreenButton(
@@ -826,11 +920,17 @@ class _TagChip extends StatelessWidget {
 }
 
 /// An attached-variant row in the "Varian Menu" card (`varian-ditambahkan`): a
-/// tinted list-icon tile, the variant name + option preview, and a chevron.
+/// tinted list-icon tile, the variant name + option summary, and a chevron.
 class _AttachedVariantRow extends StatelessWidget {
-  const _AttachedVariantRow({required this.entry});
+  const _AttachedVariantRow({required this.variant});
 
-  final MenuVariantEntry entry;
+  final VariantData variant;
+
+  /// The option names when known, otherwise the count. A variant picked from
+  /// `GET /v1/modifier-groups` knows `option_count` but not the names.
+  String get _summary => variant.optionNames.isEmpty
+      ? '${variant.optionCount} Opsi'
+      : variant.optionNames.join(', ');
 
   @override
   Widget build(BuildContext context) {
@@ -856,7 +956,7 @@ class _AttachedVariantRow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                entry.name,
+                variant.name,
                 style: const TextStyle(
                   color: AppColors.neutral900,
                   fontSize: 15,
@@ -866,7 +966,7 @@ class _AttachedVariantRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                entry.optionsPreview,
+                _summary,
                 style: const TextStyle(
                   color: AppColors.neutral500,
                   fontSize: 13,
@@ -929,6 +1029,118 @@ class _OutlinedGreenButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The real `Kategori` dropdown, backed by [productCategoriesProvider]
+/// (`GET /v1/product-categories`). `POST /v1/products` requires a
+/// `category_id`, so this is the one dropdown on this form that had to become
+/// interactive.
+///
+/// Renders inside the same [_Box] as the display-only fields so the form stays
+/// visually uniform, and degrades to an inline message while loading or when
+/// the fetch fails — the form is unusable without a category either way.
+class _CategoryDropdown extends ConsumerWidget {
+  const _CategoryDropdown({required this.value, required this.onChanged});
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(productCategoriesProvider);
+
+    return categoriesAsync.when(
+      loading: () => const _Box(
+        child: Text('Memuat kategori...', style: _hintStyle),
+      ),
+      error: (error, _) => _Box(
+        child: Text(errorMessage(error), style: _hintStyle),
+      ),
+      data: (categories) {
+        if (categories.isEmpty) {
+          return const _Box(
+            child: Text('Belum ada kategori.', style: _hintStyle),
+          );
+        }
+        return _Box(
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              isDense: true,
+              hint: const Text('Pilih Kategori', style: _hintStyle),
+              icon: const Icon(
+                ObraIcons.chevron_down,
+                size: 20,
+                color: AppColors.neutral500,
+              ),
+              style: _valueStyle,
+              onChanged: onChanged,
+              items: [
+                for (final ProductCategory category in categories)
+                  DropdownMenuItem(
+                    value: category.id,
+                    child: Text(category.name, style: _valueStyle),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The editable `Harga` field: a grey `Rp` addon then a numeric entry.
+///
+/// Digits only — the value is parsed with `parseRupiah`, so the tenant may
+/// type `25.000` or `25000` and both mean 25000.
+class _PriceInput extends StatelessWidget {
+  const _PriceInput({required this.controller, required this.hint});
+
+  final TextEditingController controller;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Box(
+      padded: false,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.neutralTint,
+              borderRadius: BorderRadius.horizontal(left: Radius.circular(11)),
+              border: Border(right: BorderSide(color: AppColors.neutral100)),
+            ),
+            alignment: Alignment.center,
+            child: const Text('Rp', style: _valueStyle),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                style: _valueStyle,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: hint,
+                  hintStyle: _hintStyle,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

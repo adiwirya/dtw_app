@@ -27,10 +27,8 @@ enum _VarianFilter { semua, tunggal, ganda }
 /// bottom bar shows the running selection count and "Tambah" advances to
 /// `varian-ditambahkan`.
 ///
-// TODO(open-question): the picked variants are not yet attached to a menu —
-// `POST /v1/products/{id}/modifier-groups/sync` exists but the menu form it
-// would attach to is still a mock save (see `menu_provider.dart`). "Tambah"
-// therefore only advances the prototype flow.
+/// "Tambah" writes the picked variants to [menuVariantSelectionProvider] and
+/// returns to the menu form, which attaches them to the product it creates.
 class PilihVarianScreen extends ConsumerStatefulWidget {
   const PilihVarianScreen({super.key});
 
@@ -41,11 +39,14 @@ class PilihVarianScreen extends ConsumerStatefulWidget {
 class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
   _VarianFilter _filter = _VarianFilter.semua;
 
-  /// Selected variants, by [VariantData.id].
+  /// Selected variants, keyed by [VariantData.id].
   ///
   /// Keyed by id rather than list index: the list is fetched and then
   /// filtered/searched, so an index no longer identifies a stable variant.
-  final Set<String> _selectedIds = {};
+  /// Holds the whole [VariantData] (not just the id) because "Tambah" hands
+  /// the picked variants to the menu form for preview, and it needs their
+  /// names and option counts too.
+  final Map<String, VariantData> _selected = {};
 
   final TextEditingController _search = TextEditingController();
 
@@ -53,6 +54,16 @@ class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  /// Hands the picked variants to the menu form and returns to it. The form
+  /// attaches them to the product it creates
+  /// (`POST /v1/products/{id}/modifier-groups/sync`).
+  void _onTambah() {
+    ref
+        .read(menuVariantSelectionProvider.notifier)
+        .select(_selected.values.toList());
+    context.goNamed(TenantRoutes.varianDitambahkan);
   }
 
   bool _matchesType(VariantData variant) => switch (_filter) {
@@ -113,8 +124,8 @@ class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
               ),
             ),
             _BottomBar(
-              count: _selectedIds.length,
-              onTambah: () => context.goNamed(TenantRoutes.varianDitambahkan),
+              count: _selected.length,
+              onTambah: _onTambah,
             ),
           ],
         ),
@@ -151,12 +162,12 @@ class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
                     final variant = visible[i];
                     return VariantSelectRow(
                       data: variant.asSelectData,
-                      selected: _selectedIds.contains(variant.id),
+                      selected: _selected.containsKey(variant.id),
                       onSelectedChanged: (selected) => setState(() {
                         if (selected) {
-                          _selectedIds.add(variant.id);
+                          _selected[variant.id] = variant;
                         } else {
-                          _selectedIds.remove(variant.id);
+                          _selected.remove(variant.id);
                         }
                       }),
                     );

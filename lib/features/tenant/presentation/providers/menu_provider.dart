@@ -1,26 +1,26 @@
+import 'package:dtw_app/features/tenant/data/models/product_category.dart';
 import 'package:dtw_app/features/tenant/data/repositories/product_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_item_card.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'menu_provider.g.dart';
 
-// TODO(open-question): the menu-form field validation rules and several
-// `tambah-menu` fields (category, tags, discount, photo) are still
-// unresolved/non-functional (Open Questions 3/5/6) — [MenuList.add] stays a
-// UI-only mock append until that form is wired to `POST /v1/products`. The
-// list itself and the active/inactive toggle are real, backed by
-// `ProductRepository`.
+// TODO(open-question): the `tambah-menu` form's photo, tag and discount fields
+// have no API support (Open Questions 3/5/6) and stay display-only. Name,
+// category, price, description and the save itself are real.
 
-/// The "Paket Komplit" row shown on `menu-berhasil-ditambahkan` (the list
-/// after a successful add). Exposed so the screen can preview the just-added
-/// item on that frame without a persisted backend.
-const MenuItemData recentlyAddedMenu = MenuItemData(
-  id: 'preview',
-  name: 'Paket Komplit',
-  price: 'Rp32.000',
-);
+/// The brand's product categories, for the add-menu form's `Kategori`
+/// dropdown. Fetched once per session alongside the branch.
+@riverpod
+Future<List<ProductCategory>> productCategories(Ref ref) async {
+  final branch = await ref.watch(currentTenantBranchProvider.future);
+  return ref
+      .watch(productRepositoryProvider)
+      .fetchCategories(brandId: branch.brandId);
+}
 
 /// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products` with
 /// per-branch availability (`GET /v1/tenant-branches/{id}/product-availability`)
@@ -48,12 +48,34 @@ class MenuList extends _$MenuList {
     ];
   }
 
-  /// Appends [item] to the list (mock save — `tambah-menu` doesn't POST to
-  /// the API yet, see the TODO above). Real save posts to the repository.
-  void add(MenuItemData item) {
-    final current = state.value;
-    if (current == null) return;
-    state = AsyncData([...current, item]);
+  /// Creates a product (`POST /v1/products`) and appends it to the list.
+  ///
+  /// Appends the created product rather than refetching: the response already
+  /// carries every field the row renders, including the server-computed
+  /// `total_price`. A brand-new product has no per-branch availability
+  /// override yet, so it starts active.
+  ///
+  /// Returns the created product's id so the caller can attach variants to it
+  /// (`ProductRepository.syncModifierGroups`).
+  Future<String> create({
+    required String name,
+    required String categoryId,
+    required int price,
+    String? description,
+  }) async {
+    final branch = await ref.read(currentTenantBranchProvider.future);
+    final product = await ref.read(productRepositoryProvider).createProduct(
+          brandId: branch.brandId,
+          categoryId: categoryId,
+          name: name,
+          price: price,
+          description: description,
+        );
+    state = AsyncData([
+      ...state.value ?? const <MenuItemData>[],
+      product.toMenuItemData(),
+    ]);
+    return product.id;
   }
 
   /// Flips the branch-scoped availability of the menu at [index] (the row

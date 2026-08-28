@@ -173,21 +173,26 @@ class VariantList extends _$VariantList {
   }
 }
 
-/// A variant attached to a menu, previewed in the menu form's "Varian Menu"
-/// card on the `varian-ditambahkan` frame.
-@immutable
-class MenuVariantEntry {
-  const MenuVariantEntry({required this.name, required this.optionsPreview});
+/// The variants picked on `PilihVarianScreen`, waiting to be attached to the
+/// menu being created on `TambahMenuScreen`.
+///
+/// Cross-screen state, so it lives in a provider rather than travelling as
+/// route `extra`: the picker is reached from the menu form through two
+/// intermediate routes (`kelola-varian` → `tambah-varian`) and the selection
+/// has to survive that round trip. `keepAlive` for the same reason — an
+/// autoDisposing notifier would drop the selection the moment no screen is
+/// watching it mid-navigation.
+///
+/// Cleared by `TambahMenuScreen` once the menu is saved, so the next
+/// add-menu flow starts empty.
+@Riverpod(keepAlive: true)
+class MenuVariantSelection extends _$MenuVariantSelection {
+  @override
+  List<VariantData> build() => const [];
 
-  /// Variant name, e.g. `Level Kepedasan`.
-  final String name;
+  /// Replaces the selection with [variants]. Copied so a later mutation of
+  /// the caller's list can't reach into provider state.
+  void select(List<VariantData> variants) => state = List.of(variants);
 
-  /// Comma-joined option preview shown under the name, e.g. `Original, Spicy`.
-  final String optionsPreview;
+  void clear() => state = const [];
 }
-
-/// The two variants shown attached to the menu on `varian-ditambahkan`. Mock.
-const List<MenuVariantEntry> attachedMenuVariants = [
-  MenuVariantEntry(name: 'Level Kepedasan', optionsPreview: 'Original, Spicy'),
-  MenuVariantEntry(name: 'Ukuran Size', optionsPreview: 'Regular, Large'),
-];

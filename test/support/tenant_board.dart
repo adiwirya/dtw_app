@@ -1,13 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/tenant/data/models/tenant_branch.dart';
+import 'package:dtw_app/features/tenant/data/repositories/product_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'canned_dio.dart';
 import 'fake_local_storage.dart';
 import 'fake_tenant_realtime_service.dart';
+import 'routed_dio.dart';
 
 /// The branch id every tenant-board test is scoped to.
 ///
@@ -117,3 +121,99 @@ List<Override> tenantBoardOverrides({
     TenantBranchRepository(dio: branchDio ?? tenantBranchDio()),
   ),
 ];
+
+/// One `GET /v1/product-categories` list item.
+Map<String, dynamic> productCategoryJson({
+  required String id,
+  required String name,
+}) => {
+  'id': id,
+  'brand_id': 'brand-1',
+  'brand_name': 'Janji Jiwa',
+  'parent_category_id': null,
+  'parent_category_name': null,
+  'name': name,
+  'sequence_order': 1,
+  'is_active': true,
+  'created_at': '2026-08-07 09:16:59',
+  'updated_at': '2026-08-07 09:16:59',
+};
+
+/// One `GET /v1/products` list item (and the `POST /v1/products` response).
+Map<String, dynamic> productJson({
+  required String id,
+  required String name,
+  int totalPrice = 19900,
+}) => {
+  'id': id,
+  'brand_id': 'brand-1',
+  'brand_name': 'Janji Jiwa',
+  'category_id': 'cat-1',
+  'category_name': 'Nasi',
+  'sku': null,
+  'name': name,
+  'description': null,
+  'tags': null,
+  'dpp_price': totalPrice * 0.9,
+  'pb1_percentage': 11,
+  'pb1_price': totalPrice * 0.1,
+  'total_price': totalPrice,
+  'image_url': null,
+  'is_active': true,
+  'created_at': '2026-08-07 09:16:59',
+  'updated_at': '2026-08-07 09:16:59',
+};
+
+/// The branch every tenant menu/variant test is scoped to.
+TenantBranch tenantBranchFixture() => TenantBranch(
+  id: testBranchId,
+  brandId: 'brand-1',
+  brandName: 'Janji Jiwa',
+  branchName: 'Janji Jiwa',
+  areaName: 'Downtown',
+  isActive: true,
+  createdAt: DateTime(2026, 8, 7),
+);
+
+/// Overrides for the tenant menu screens and the add-menu form: a seeded
+/// branch plus a routed `ProductRepository` covering the product list,
+/// per-branch availability, the category list and the create POST.
+///
+/// The add-menu form watches `productCategoriesProvider`, so any test that
+/// pumps `TambahMenuScreen` needs this — otherwise the category fetch hangs on
+/// the unmocked `flutter_secure_storage` channel and the dropdown is stuck on
+/// its "Memuat kategori..." state.
+///
+/// [created] is the `POST /v1/products` response; [syncStatus] the status for
+/// the modifier-group sync.
+List<Override> tenantMenuOverrides({
+  List<Map<String, dynamic>> products = const [],
+  List<Map<String, dynamic>> categories = const [],
+  Map<String, bool> availability = const {},
+  Map<String, dynamic>? created,
+  int syncStatus = 200,
+}) {
+  final branch = tenantBranchFixture();
+  final dio = routedDio({
+    // More specific keys first — RoutedAdapter matches the first key that is
+    // a prefix of "METHOD path".
+    'POST /v1/products/': (syncStatus, tenantEnvelope(null)),
+    'POST /v1/products': (
+      201,
+      tenantEnvelope(created ?? productJson(id: 'new-1', name: 'Menu Baru')),
+    ),
+    '/v1/tenant-branches/$testBranchId/product-availability': (
+      200,
+      tenantEnvelope([
+        for (final entry in availability.entries)
+          {'id': entry.key, 'is_available': entry.value},
+      ]),
+    ),
+    '/v1/product-categories': (200, tenantEnvelope(categories)),
+    '/v1/products': (200, tenantEnvelope(products)),
+  });
+  return [
+    currentTenantBranchProvider.overrideWith((ref) async => branch),
+    productRepositoryProvider.overrideWithValue(ProductRepository(dio: dio)),
+  ];
+}

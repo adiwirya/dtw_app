@@ -21,13 +21,12 @@ import 'package:obra_icons/obra_icons.dart';
 /// Hosted inside the tenant shell (bottom nav supplied by `TenantShell`). The
 /// header's right action opens the `kelola-menu` modal by default; on the
 /// `menu-berhasil-ditambahkan` entry ([recentlyAdded] true) it becomes
-/// "+ Tambah Menu" and the just-saved "Paket Komplit" row is previewed at the
-/// bottom of the list (there is no persisted backend yet — Open Questions 3/5/6).
+/// "+ Tambah Menu"; the just-saved menu is a real fetched row, not a preview.
 class MenuSayaScreen extends ConsumerStatefulWidget {
   const MenuSayaScreen({this.recentlyAdded = false, super.key});
 
   /// Renders the `menu-berhasil-ditambahkan` variant: swaps the header action
-  /// to "+ Tambah Menu" and appends the recently-added preview row.
+  /// to "+ Tambah Menu".
   final bool recentlyAdded;
 
   @override
@@ -113,14 +112,11 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
   }
 
   Widget _buildList(List<MenuItemData> all) {
-    // The `menu-berhasil-ditambahkan` frame previews the just-saved row. It is
-    // frame state rather than fetched data, so it is searchable but never
-    // toggleable (see the provider-index lookup below).
-    final candidates = [
-      ...all,
-      if (widget.recentlyAdded) recentlyAddedMenu,
-    ];
-    final rows = _visible(candidates);
+    // `menu-berhasil-ditambahkan` used to append a fake "Paket Komplit"
+    // preview row because the form's save was a mock. The save is real now,
+    // so the just-created product is genuinely in this list and the preview
+    // is gone — `recentlyAdded` only swaps the header action.
+    final rows = _visible(all);
 
     // Only reachable via the search field, so this screen owns the state. An
     // empty *fetched* list keeps its previous blank-list rendering.

@@ -6,7 +6,29 @@ part of 'menu_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$menuListHash() => r'40f7d006dcdb7b7d17ee6a52b374a5ad2360ac7f';
+String _$productCategoriesHash() => r'c2e7d41dec525600d359bd91127125dbc621c8be';
+
+/// The brand's product categories, for the add-menu form's `Kategori`
+/// dropdown. Fetched once per session alongside the branch.
+///
+/// Copied from [productCategories].
+@ProviderFor(productCategories)
+final productCategoriesProvider =
+    AutoDisposeFutureProvider<List<ProductCategory>>.internal(
+      productCategories,
+      name: r'productCategoriesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$productCategoriesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ProductCategoriesRef =
+    AutoDisposeFutureProviderRef<List<ProductCategory>>;
+String _$menuListHash() => r'ed59cd02c8fb0dd618a83c627e2f7df40fe80810';
 
 /// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products` with
 /// per-branch availability (`GET /v1/tenant-branches/{id}/product-availability`)

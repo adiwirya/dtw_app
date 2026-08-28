@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/network/dio_provider.dart';
 import 'package:dtw_app/features/tenant/data/models/product.dart';
+import 'package:dtw_app/features/tenant/data/models/product_category.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -22,6 +23,88 @@ class ProductRepository {
       return data
           .map((json) => Product.fromJson(json as Map<String, dynamic>))
           .toList();
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// The brand's product categories (`GET /v1/product-categories`), for the
+  /// add-menu form's required `category_id`.
+  ///
+  // TODO(open-question): the spec documents no query params for this list.
+  // `brand_id` is passed by analogy with `/v1/products` and
+  // `/v1/modifier-groups`, which both filter that way — confirm live that it
+  // is honored rather than ignored (an ignored filter would offer another
+  // brand's categories).
+  Future<List<ProductCategory>> fetchCategories({
+    required String brandId,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/product-categories',
+        queryParameters: {'brand_id': brandId},
+      );
+      final data = response.data!['data'] as List;
+      return data
+          .map((json) => ProductCategory.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// Creates a product (`POST /v1/products`) and returns it as the API echoes
+  /// it back — the response carries the server-computed `total_price`, which
+  /// is what the Menu Saya list renders.
+  ///
+  /// [price] is sent verbatim as the endpoint's `price` field.
+  ///
+  // TODO(open-question): whether `price` is the pre-tax base (`dpp_price`) or
+  // the tax-inclusive amount the customer pays (`total_price`) is NOT
+  // documented and NOT confirmed live. The live sample has
+  // dpp 17927.93 + 11% pb1 = total 19900, so the two differ by ~11%: if the
+  // backend treats this as `dpp_price`, a tenant who types 19900 meaning
+  // "customer pays 19900" would actually price the item at 22089. Confirm
+  // with the backend team before this form is put in front of tenants.
+  Future<Product> createProduct({
+    required String brandId,
+    required String categoryId,
+    required String name,
+    required int price,
+    String? description,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/products',
+        data: {
+          'brand_id': brandId,
+          'category_id': categoryId,
+          'name': name,
+          'price': price,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+        },
+      );
+      return Product.fromJson(response.data!['data'] as Map<String, dynamic>);
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// Replaces the set of modifier groups (variants) attached to [productId]
+  /// (`POST /v1/products/{productId}/modifier-groups/sync`).
+  ///
+  /// A full replace, not an append: passing an empty list detaches every
+  /// variant from the product.
+  Future<void> syncModifierGroups(
+    String productId, {
+    required List<String> modifierGroupIds,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/v1/products/$productId/modifier-groups/sync',
+        data: {'modifier_group_ids': modifierGroupIds},
+      );
     } on DioException catch (error) {
       throw mapDioError(error);
     }

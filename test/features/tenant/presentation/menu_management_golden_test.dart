@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/routed_dio.dart';
+import '../../../support/tenant_board.dart';
 
 /// Self-goldens for item 06 (tenant Menu management).
 ///
@@ -118,11 +119,17 @@ void main() {
       );
     }, tags: 'golden');
 
+    // The form's Kategori dropdown fetches `GET /v1/product-categories`, so
+    // without overrides these goldens would freeze on its "Memuat
+    // kategori..." state instead of showing the real dropdown.
     testWidgets('tambah-menu', (tester) async {
       await _pump(
         tester,
         const TambahMenuScreen(),
         size: const Size(390, 1382),
+        overrides: tenantMenuOverrides(
+          categories: [productCategoryJson(id: 'cat-1', name: 'Nasi')],
+        ),
       );
       await expectLater(
         find.byType(TambahMenuScreen),
@@ -135,6 +142,9 @@ void main() {
         tester,
         const TambahMenuScreen(prefilled: true),
         size: const Size(390, 1382),
+        overrides: tenantMenuOverrides(
+          categories: [productCategoryJson(id: 'cat-1', name: 'Nasi')],
+        ),
       );
       await expectLater(
         find.byType(TambahMenuScreen),

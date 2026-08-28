@@ -6,11 +6,13 @@ import 'package:dtw_app/features/tenant/presentation/screens/kelola_varian_scree
 import 'package:dtw_app/features/tenant/presentation/screens/pilih_varian_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tambah_menu_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tambah_varian_screen.dart';
+import 'package:dtw_app/features/tenant/presentation/widgets/variant_rows.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/canned_dio.dart';
+import '../../../support/tenant_board.dart';
 
 /// Self-goldens for the tenant variant-management screens (Part A).
 ///
@@ -160,11 +162,37 @@ void main() {
     testWidgets('varian-ditambahkan (menu form w/ variants)', (tester) async {
       await _pump(
         tester,
-        const TambahMenuScreen(
-          prefilled: true,
-          variants: attachedMenuVariants,
-        ),
+        const TambahMenuScreen(prefilled: true),
         size: const Size(390, 1480),
+        overrides: [
+          ...tenantMenuOverrides(
+            categories: [productCategoryJson(id: 'cat-1', name: 'Nasi')],
+          ),
+          menuVariantSelectionProvider.overrideWith(
+            () => _SeededSelection(const [
+              VariantData(
+                id: 'group-1',
+                name: 'Level Kepedasan',
+                type: VariantType.tunggal,
+                optionCount: 2,
+                options: [
+                  VariantOptionData(name: 'Original'),
+                  VariantOptionData(name: 'Spicy'),
+                ],
+              ),
+              VariantData(
+                id: 'group-2',
+                name: 'Ukuran Size',
+                type: VariantType.tunggal,
+                optionCount: 2,
+                options: [
+                  VariantOptionData(name: 'Regular'),
+                  VariantOptionData(name: 'Large'),
+                ],
+              ),
+            ]),
+          ),
+        ],
       );
       await expectLater(
         find.byType(TambahMenuScreen),
@@ -172,4 +200,15 @@ void main() {
       );
     }, tags: 'golden');
   });
+}
+
+/// Seeds [MenuVariantSelection] for a golden — see the same helper in
+/// `variant_screens_test.dart`.
+class _SeededSelection extends MenuVariantSelection {
+  _SeededSelection(this.seed);
+
+  final List<VariantData> seed;
+
+  @override
+  List<VariantData> build() => seed;
 }
