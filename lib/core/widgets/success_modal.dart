@@ -47,10 +47,10 @@ class SuccessModalDetail {
 Future<void> showSuccessModal(
   BuildContext context, {
   required VoidCallback onConfirm,
+  required List<SuccessModalDetail> details,
   String title = SuccessModal.defaultTitle,
   String message = SuccessModal.defaultMessage,
   String confirmLabel = SuccessModal.defaultConfirmLabel,
-  List<SuccessModalDetail>? details,
   bool barrierDismissible = true,
 }) {
   return showDialog<void>(
@@ -81,10 +81,10 @@ Future<void> showSuccessModal(
 class SuccessModal extends StatelessWidget {
   const SuccessModal({
     required this.onConfirm,
+    required this.details,
     this.title = defaultTitle,
     this.message = defaultMessage,
     this.confirmLabel = defaultConfirmLabel,
-    this.details,
     super.key,
   });
 
@@ -110,13 +110,15 @@ class SuccessModal extends StatelessWidget {
   /// — the caller owns navigation. The modal never routes on its own.
   final VoidCallback onConfirm;
 
-  /// Detail rows. When null, the `berhasil-ditambahkan` frame defaults are used
-  /// (see [resolvedDetails]).
-  final List<SuccessModalDetail>? details;
-
-  /// Detail rows to render; falls back to the frame defaults when [details] is
-  /// null.
-  List<SuccessModalDetail> get resolvedDetails => details ?? _defaultDetails;
+  /// The rows describing the order this modal is confirming.
+  ///
+  /// Required, deliberately. These used to be optional with a fallback to a
+  /// hardcoded sample of the Figma frame's own copy (KFC Fried Chicken / Meja
+  /// A-12 / Budi Santoso). A caller that forgot to pass `details` then showed
+  /// the user a confirmation for an order that did not exist — which is
+  /// exactly what happened on the busboy "Ambil Pesanan" flow. There is no
+  /// safe default for "which order was this", so there is no default.
+  final List<SuccessModalDetail> details;
 
   // --- Cached design tokens ------------------------------------------------
 
@@ -131,13 +133,6 @@ class SuccessModal extends StatelessWidget {
   static const double _tile = 30;
   static const double _tileRadius = 8;
   static const double _icon = 16;
-
-  // TODO(open-question): tenant (blue) / customer (purple) tile colors are not
-  // in tokens.json; matched to [OrderCard]'s eyeballed values for consistency.
-  static const Color _tenantTileBg = Color(0xFFEAF1FB);
-  static const Color _tenantTileIcon = Color(0xFF3B7DD8);
-  static const Color _customerTileBg = Color(0xFFF4ECFB);
-  static const Color _customerTileIcon = Color(0xFF9B51E0);
 
   // TODO(open-question): family is Open Sans in the cache; the app doesn't
   // bundle it yet, so these use the default family (see [PrimaryButton]).
@@ -163,30 +158,6 @@ class SuccessModal extends StatelessWidget {
     fontWeight: FontWeight.w700,
     height: 1.2,
   );
-
-  static const List<SuccessModalDetail> _defaultDetails = [
-    SuccessModalDetail(
-      icon: Icons.storefront_outlined,
-      label: 'Dari Tenant',
-      value: 'KFC Fried Chicken',
-      tileColor: _tenantTileBg,
-      iconColor: _tenantTileIcon,
-    ),
-    SuccessModalDetail(
-      icon: Icons.chair_outlined,
-      label: 'Ke Meja',
-      value: 'Meja A-12  •  Downtown',
-      tileColor: AppColors.successTint,
-      iconColor: AppColors.successGreen,
-    ),
-    SuccessModalDetail(
-      icon: Icons.person_outline,
-      label: 'Pelanggan',
-      value: 'Budi Santoso',
-      tileColor: _customerTileBg,
-      iconColor: _customerTileIcon,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +229,7 @@ class SuccessModal extends StatelessWidget {
 
   Widget _detailCard() {
     final rows = <Widget>[];
-    final items = resolvedDetails;
+    final items = details;
     for (var i = 0; i < items.length; i++) {
       if (i > 0) rows.add(const SizedBox(height: _rowGap));
       rows.add(_detailRow(items[i]));
