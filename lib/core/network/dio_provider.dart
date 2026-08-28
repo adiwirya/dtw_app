@@ -46,6 +46,7 @@ Dio dio(Ref ref) {
             // Swallowed intentionally — see comment above.
           }
           ref.read(isLoggedInProvider.notifier).state = false;
+          ref.read(sessionUsernameProvider.notifier).state = null;
           ref.read(sessionBranchIdProvider.notifier).state = null;
           ref.read(sessionZoneIdProvider.notifier).state = null;
         }

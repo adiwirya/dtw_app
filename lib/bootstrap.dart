@@ -17,6 +17,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   final token = await storage.read(authTokenStorageKey);
   final branchId = await storage.read(tenantBranchIdStorageKey);
   final zoneId = await storage.read(busboyZoneIdStorageKey);
+  final username = await storage.read(sessionUsernameStorageKey);
 
   final container = ProviderContainer(
     overrides: [
@@ -27,6 +28,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       // Restores which shell a persisted session resumes into — mirrors
       // what `AuthController.login` sets at login time, from the same
       // storage key `AuthRepository` writes it to.
+      sessionUsernameProvider.overrideWith((ref) => username),
       sessionBranchIdProvider.overrideWith((ref) => branchId),
       sessionZoneIdProvider.overrideWith((ref) => zoneId),
       ...overrides,

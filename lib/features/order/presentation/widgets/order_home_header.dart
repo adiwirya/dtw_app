@@ -7,10 +7,16 @@ import 'package:flutter/material.dart';
 /// summary-stats card. The white tab/list panel drawn by the screen sits
 /// directly below this band.
 class OrderHomeHeader extends StatelessWidget {
-  const OrderHomeHeader({required this.stats, super.key});
+  const OrderHomeHeader({required this.stats, this.username, super.key});
 
   /// The three summary stats rendered in the floating card.
   final List<OrderHeaderStat> stats;
+
+  /// The logged-in user's username (`sessionUsernameProvider`). A login handle
+  /// rather than a display name — the API has no display-name field — so it is
+  /// shown as-is. Null (unknown) drops the name from the greeting instead of
+  /// substituting a placeholder one.
+  final String? username;
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +36,9 @@ class OrderHomeHeader extends StatelessWidget {
         children: [
           const _WhiteStatusBar(),
           const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _GreetingRow(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _GreetingRow(username: username),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -47,7 +53,9 @@ class OrderHomeHeader extends StatelessWidget {
 }
 
 class _GreetingRow extends StatelessWidget {
-  const _GreetingRow();
+  const _GreetingRow({this.username});
+
+  final String? username;
 
   @override
   Widget build(BuildContext context) {
@@ -69,23 +77,23 @@ class _GreetingRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Hi, Adi Wiryadi 👋',
+                username == null ? 'Hi 👋' : 'Hi, $username 👋',
                 // TODO(open-question): Open Sans Bold in cache; not bundled.
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   height: 1.35,
                 ),
               ),
-              SizedBox(height: 2),
-              Text(
+              const SizedBox(height: 2),
+              const Text(
                 'Siap melayani pesanan hari ini',
                 style: TextStyle(
                   color: Colors.white,

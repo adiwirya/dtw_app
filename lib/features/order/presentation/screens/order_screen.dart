@@ -1,4 +1,5 @@
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
@@ -100,7 +101,10 @@ class OrderScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OrderHomeHeader(stats: stats),
+          OrderHomeHeader(
+            stats: stats,
+            username: ref.watch(sessionUsernameProvider),
+          ),
           Expanded(
             child: Container(
               transform: Matrix4.translationValues(0, -8, 0),

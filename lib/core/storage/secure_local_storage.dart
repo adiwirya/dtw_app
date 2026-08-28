@@ -15,6 +15,11 @@ const authTokenStorageKey = 'auth_token';
 /// `branch_id` to fetch/subscribe with.
 const tenantBranchIdStorageKey = 'tenant_branch_id';
 
+/// Key the logged-in user's username is stored under — the only
+/// human-readable identity the login response carries (`data.user.username`).
+/// Restored on relaunch so a resumed session can still greet the user.
+const sessionUsernameStorageKey = 'session_username';
+
 /// Key the busboy zone id is stored under (only present for a
 /// zone-scoped/busboy session) — read by `BusboyOrderBoard` to know which
 /// `zone_id` to fetch/subscribe with.

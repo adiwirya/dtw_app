@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
@@ -41,11 +42,14 @@ List<Map<String, dynamic>> _seedDeliveries() => [
   ),
 ];
 
-Widget _wrap({List<Map<String, dynamic>>? deliveries}) {
+Widget _wrap({List<Map<String, dynamic>>? deliveries, String? username}) {
   return ProviderScope(
-    overrides: busboyBoardOverrides(
-      dio: cannedDeliveryListDio(deliveries ?? _seedDeliveries()),
-    ),
+    overrides: [
+      ...busboyBoardOverrides(
+        dio: cannedDeliveryListDio(deliveries ?? _seedDeliveries()),
+      ),
+      sessionUsernameProvider.overrideWith((ref) => username),
+    ],
     child: const MaterialApp(home: OrderScreen()),
   );
 }
@@ -127,5 +131,26 @@ void main() {
     // Selesai now has the original delivered order + the just-delivered one.
     expect(find.byType(OrderCard), findsNWidgets(2));
     expect(find.text('Diantar pada'), findsNWidgets(2));
+  });
+
+  group('header greeting', () {
+    // The greeting used to hardcode 'Hi, Adi Wiryadi 👋'. It now shows the
+    // session's real username — a login handle, since the API has no
+    // display-name field.
+    testWidgets('greets the logged-in user by username', (tester) async {
+      await tester.pumpWidget(_wrap(username: 'busboy1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hi, busboy1 👋'), findsOneWidget);
+      expect(find.text('Hi, Adi Wiryadi 👋'), findsNothing);
+    });
+
+    testWidgets('drops the name when the username is unknown', (tester) async {
+      await tester.pumpWidget(_wrap());
+      await tester.pumpAndSettle();
+
+      // No fabricated placeholder name.
+      expect(find.text('Hi 👋'), findsOneWidget);
+    });
   });
 }

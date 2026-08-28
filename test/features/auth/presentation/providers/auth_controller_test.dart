@@ -300,6 +300,65 @@ void main() {
     expect(container.read(sessionBranchIdProvider), isNull);
   });
 
+  test('login sets sessionUsernameProvider from data.user.username',
+      () async {
+    final storage = FakeLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'busboy1'},
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'busboy1', password: 'secret');
+
+    expect(container.read(sessionUsernameProvider), 'busboy1');
+    // Persisted so a relaunched session can still greet the user.
+    expect(storage.values[sessionUsernameStorageKey], 'busboy1');
+  });
+
+  test('logout clears sessionUsernameProvider and its stored value', () async {
+    final storage = FakeLocalStorage()
+      ..values[authTokenStorageKey] = 'tok_123'
+      ..values[sessionUsernameStorageKey] = 'busboy1';
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(sessionUsernameProvider.notifier).state = 'busboy1';
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(container.read(sessionUsernameProvider), isNull);
+    expect(storage.values.containsKey(sessionUsernameStorageKey), isFalse);
+  });
+
   test('logout clears sessionZoneIdProvider', () async {
     final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
     final container = ProviderContainer(

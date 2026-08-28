@@ -32,6 +32,16 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data!);
       await _localStorage.write(authTokenStorageKey, loginResponse.accessToken);
+      // Named to avoid shadowing this method's `username` parameter.
+      final sessionUsername = loginResponse.user.username;
+      if (sessionUsername != null) {
+        await _localStorage.write(
+          sessionUsernameStorageKey,
+          sessionUsername,
+        );
+      } else {
+        await _localStorage.delete(sessionUsernameStorageKey);
+      }
       if (loginResponse.branchId != null) {
         await _localStorage.write(
           tenantBranchIdStorageKey,
@@ -61,6 +71,7 @@ class AuthRepository {
       // Best-effort: still clear the local session even if the server call fails.
     } finally {
       await _localStorage.delete(authTokenStorageKey);
+      await _localStorage.delete(sessionUsernameStorageKey);
       await _localStorage.delete(tenantBranchIdStorageKey);
       await _localStorage.delete(busboyZoneIdStorageKey);
     }

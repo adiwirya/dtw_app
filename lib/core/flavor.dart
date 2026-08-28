@@ -13,6 +13,16 @@ final isLoggedInProvider = StateProvider<bool>((ref) => false);
 /// no separate "app flavor" concept, just this one piece of real login data.
 final sessionBranchIdProvider = StateProvider<String?>((ref) => null);
 
+/// The logged-in user's username, or null when unknown — set from
+/// `LoginResponse.user.username` by `AuthController.login`, cleared on
+/// logout/401.
+///
+/// This is a login handle (e.g. `busboy1`), not a display name: the API has no
+/// display-name field on `data.user`. Screens that greet the user show it
+/// as-is rather than a fabricated full name, and omit the name entirely when
+/// it is null.
+final sessionUsernameProvider = StateProvider<String?>((ref) => null);
+
 /// The logged-in session's busboy zone id, or null for a non-busboy
 /// (tenant/no-scope) session — set from `LoginResponse.zoneId` by
 /// `AuthController.login`, cleared on logout/401. Mirrors
