@@ -199,11 +199,6 @@ String _$riwayatBoardHash() => r'b7269350f8e7638dc583dc2785a5294900e235eb';
 /// buckets this same list by date for each [RiwayatRange] tab, and
 /// [riwayatDetailProvider] looks a single entry up out of it.
 ///
-/// TODO(open-question): the busboy API has no date-range query param, so
-/// this fetches every DELIVERED delivery (unbounded, no pagination) and
-/// buckets by date client-side — fine for now, but will need a real
-/// range/pagination param from backend once delivery history grows large.
-///
 /// Copied from [RiwayatBoard].
 @ProviderFor(RiwayatBoard)
 final riwayatBoardProvider =

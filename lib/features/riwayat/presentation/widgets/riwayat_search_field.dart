@@ -6,11 +6,21 @@ import 'package:obra_icons/obra_icons.dart';
 /// (`riwayat-*` `Input`, 358x44): a white 44px-tall rounded field with a
 /// neutral hairline border, a leading search glyph and placeholder text.
 ///
-/// UI-only for now — search filtering is out of scope for this work item
-/// (Open Question), so the field is a non-editable affordance.
-// TODO(open-question): wire real search once the history data source lands.
+/// Filters the history list by tenant name or table client-side — the busboy
+/// deliveries endpoint takes no search query param, and the list is already
+/// fetched in full.
 class RiwayatSearchField extends StatelessWidget {
-  const RiwayatSearchField({super.key});
+  const RiwayatSearchField({
+    required this.controller,
+    required this.onChanged,
+    super.key,
+  });
+
+  /// Controls the query text. Owned by the caller.
+  final TextEditingController controller;
+
+  /// Called on every edit so the caller can re-filter.
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -22,17 +32,33 @@ class RiwayatSearchField extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.neutral100),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(ObraIcons.search, size: 20, color: AppColors.neutral300),
-          SizedBox(width: 10),
-          Text(
-            'Cari riwayat...',
-            // TODO(open-question): Open Sans in the cache; not bundled yet.
-            style: TextStyle(
-              color: AppColors.neutral300,
-              fontSize: 14,
-              height: 1.2,
+          const Icon(ObraIcons.search, size: 20, color: AppColors.neutral300),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              // TODO(open-question): Open Sans in the cache; not bundled yet.
+              style: const TextStyle(
+                color: AppColors.neutral900,
+                fontSize: 14,
+                height: 1.2,
+              ),
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: 'Cari riwayat...',
+                hintStyle: TextStyle(
+                  color: AppColors.neutral300,
+                  fontSize: 14,
+                  height: 1.2,
+                ),
+              ),
             ),
           ),
         ],

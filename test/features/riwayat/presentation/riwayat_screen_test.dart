@@ -3,6 +3,7 @@ import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/riwayat/data/models/riwayat_models.dart';
 import 'package:dtw_app/features/riwayat/presentation/screens/riwayat_screen.dart';
 import 'package:dtw_app/features/riwayat/presentation/widgets/history_row.dart';
+import 'package:dtw_app/features/riwayat/presentation/widgets/riwayat_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -138,6 +139,44 @@ void main() {
     expect(find.text(yesterdayLabel), findsOneWidget);
     expect(find.byType(HistoryRow), findsNWidgets(5));
     expect(find.text('Excluded'), findsNothing);
+  });
+
+  testWidgets('search filters by tenant name', (tester) async {
+    await tester.pumpWidget(_wrap(seedDeliveries()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(RiwayatSearchField), 'j.co');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HistoryRow), findsOneWidget);
+    expect(find.text('J.CO Donuts'), findsOneWidget);
+    expect(find.text('Janji Jiwa'), findsNothing);
+    // The day header's task count reflects the filtered group.
+    expect(find.text('1 Tugas'), findsOneWidget);
+  });
+
+  testWidgets('search filters by table number', (tester) async {
+    await tester.pumpWidget(_wrap(seedDeliveries()));
+    await tester.pumpAndSettle();
+
+    // Every seeded delivery is on table A12, so this keeps all of today's.
+    await tester.enterText(find.byType(RiwayatSearchField), 'a12');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HistoryRow), findsNWidgets(3));
+  });
+
+  testWidgets('a search with no match is distinguished from no history',
+      (tester) async {
+    await tester.pumpWidget(_wrap(seedDeliveries()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(RiwayatSearchField), 'zzz');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Riwayat tidak ditemukan.'), findsOneWidget);
+    expect(find.text('Belum ada riwayat pesanan.'), findsNothing);
+    expect(find.byType(HistoryRow), findsNothing);
   });
 
   testWidgets('an empty range shows the empty state', (tester) async {

@@ -48,6 +48,25 @@ class RiwayatBoard extends _$RiwayatBoard {
   }
 }
 
+/// Filters [deliveries] to those whose tenant (brand) name or table number
+/// matches [query], case-insensitively. An empty/blank query matches
+/// everything.
+///
+/// Client-side because `GET /api/v1/busboy/deliveries` takes no search param
+/// and the list is already fetched in full. Applied BEFORE [riwayatDaysFrom]
+/// so a date group that ends up with no matches disappears entirely rather
+/// than rendering an empty header.
+List<Delivery> riwayatSearch(List<Delivery> deliveries, String query) {
+  final needle = query.trim().toLowerCase();
+  if (needle.isEmpty) return deliveries;
+  return [
+    for (final delivery in deliveries)
+      if (delivery.brandNames.toLowerCase().contains(needle) ||
+          delivery.tableNumber.toLowerCase().contains(needle))
+        delivery,
+  ];
+}
+
 /// Buckets [deliveries] into date-grouped, newest-first [RiwayatDayGroup]s for
 /// [range] — pure mapping, kept out of the notifier so it's trivially
 /// testable on its own.

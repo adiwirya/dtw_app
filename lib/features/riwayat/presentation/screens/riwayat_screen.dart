@@ -21,14 +21,27 @@ import 'package:go_router/go_router.dart';
 /// [riwayatBoardProvider] (`GET /api/v1/busboy/deliveries?status=DELIVERED`),
 /// bucketed client-side by [riwayatDaysFrom]. Rows open `detail-riwayat`.
 /// Hosted inside the app shell, so the bottom nav is provided by `AppShell`.
-class RiwayatScreen extends ConsumerWidget {
+class RiwayatScreen extends ConsumerStatefulWidget {
   const RiwayatScreen({super.key});
 
+  @override
+  ConsumerState<RiwayatScreen> createState() => _RiwayatScreenState();
+}
+
+class _RiwayatScreenState extends ConsumerState<RiwayatScreen> {
   static const List<RiwayatRange> _ranges = [
     RiwayatRange.hariIni,
     RiwayatRange.kemarin,
     RiwayatRange.tujuhHari,
   ];
+
+  final TextEditingController _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   void _openDetail(BuildContext context, String entryId) {
     context.goNamed(
@@ -38,7 +51,7 @@ class RiwayatScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final boardAsync = ref.watch(riwayatBoardProvider);
     final selected = ref.watch(riwayatTabProvider);
     final range = _ranges[selected];
@@ -59,9 +72,12 @@ class RiwayatScreen extends ConsumerWidget {
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: RiwayatSearchField(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: RiwayatSearchField(
+                      controller: _search,
+                      onChanged: (_) => setState(() {}),
+                    ),
                   ),
                   SegmentedTabBar(
                     selectedIndex: selected,
@@ -81,10 +97,11 @@ class RiwayatScreen extends ConsumerWidget {
                           Center(child: Text(errorMessage(error))),
                       data: (deliveries) => _HistoryList(
                         days: riwayatDaysFrom(
-                          deliveries,
+                          riwayatSearch(deliveries, _search.text),
                           range,
                           DateTime.now(),
                         ),
+                        searching: _search.text.trim().isNotEmpty,
                         onDetail: (entryId) => _openDetail(context, entryId),
                       ),
                     ),
@@ -103,9 +120,18 @@ class RiwayatScreen extends ConsumerWidget {
 /// (`<date>` / `<n> Tugas`) followed by its [HistoryRow]s. The `7 Hari
 /// Terakhir` tab stacks several groups.
 class _HistoryList extends StatelessWidget {
-  const _HistoryList({required this.days, required this.onDetail});
+  const _HistoryList({
+    required this.days,
+    required this.searching,
+    required this.onDetail,
+  });
 
   final List<RiwayatDayGroup> days;
+
+  /// Whether a search query is active — an empty result then means "no match"
+  /// rather than "no history in this range".
+  final bool searching;
+
   final ValueChanged<String> onDetail;
 
   static const TextStyle _dateStyle = TextStyle(
@@ -123,12 +149,18 @@ class _HistoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (days.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
-            'Belum ada riwayat pesanan.',
-            style: TextStyle(color: AppColors.neutral500, fontSize: 14),
+            searching
+                ? 'Riwayat tidak ditemukan.'
+                : 'Belum ada riwayat pesanan.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.neutral500,
+              fontSize: 14,
+            ),
           ),
         ),
       );
