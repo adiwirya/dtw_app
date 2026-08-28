@@ -112,7 +112,7 @@ class MenuList extends _$MenuList {
   }
 }
 
-/// A pill filter on the Menu Saya list (`menu-saya` Frame 2011). Mock counts.
+/// A pill filter on the Menu Saya list (`menu-saya` Frame 2011).
 @immutable
 class MenuFilter {
   const MenuFilter({required this.label, required this.count});
@@ -120,19 +120,38 @@ class MenuFilter {
   /// Filter caption, e.g. `Semua`.
   final String label;
 
-  /// Mock item count shown in parentheses, e.g. `120`.
+  /// How many rows this pill matches.
   final int count;
 
-  /// `Semua (120)` style rendering.
+  /// `Semua (12)` style rendering.
   String get display => '$label ($count)';
 }
 
-/// The Menu Saya filter tabs, in reference order (`menu-saya`). Mock data —
-/// no API source for "Habis"/"Promo" concepts yet (see `docs/api-reference.md`).
-const List<MenuFilter> menuFilters = [
-  MenuFilter(label: 'Semua', count: 120),
-  MenuFilter(label: 'Aktif', count: 100),
-  MenuFilter(label: 'Habis', count: 22),
-  MenuFilter(label: 'Promo', count: 12),
-  MenuFilter(label: 'Best Seller', count: 10),
-];
+/// What the Menu Saya pills filter on.
+///
+/// The design frame offered five pills — Semua / Aktif / Habis / Promo / Best
+/// Seller — with hardcoded counts and no filtering at all. Only the
+/// active/inactive split has any backing data (`is_available` per branch);
+/// "Habis", "Promo" and "Best Seller" are concepts the API does not have
+/// anywhere (see `docs/api-reference.md`). Rather than keep three pills that
+/// can only ever lie, the set is reduced to what the data actually supports —
+/// consistent with how the Admin screen hides rows it has no source for.
+enum MenuStatusFilter { semua, aktif, nonaktif }
+
+/// The pills for [menus], with real counts derived from the list.
+List<MenuFilter> menuFiltersFor(List<MenuItemData> menus) {
+  final active = menus.where((m) => m.active).length;
+  return [
+    MenuFilter(label: 'Semua', count: menus.length),
+    MenuFilter(label: 'Aktif', count: active),
+    MenuFilter(label: 'Nonaktif', count: menus.length - active),
+  ];
+}
+
+/// Whether [menu] belongs under [filter].
+bool menuMatchesFilter(MenuItemData menu, MenuStatusFilter filter) =>
+    switch (filter) {
+      MenuStatusFilter.semua => true,
+      MenuStatusFilter.aktif => menu.active,
+      MenuStatusFilter.nonaktif => !menu.active,
+    };

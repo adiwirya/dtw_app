@@ -34,7 +34,7 @@ class MenuSayaScreen extends ConsumerStatefulWidget {
 }
 
 class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
-  int _filter = 0;
+  MenuStatusFilter _filter = MenuStatusFilter.semua;
   final TextEditingController _search = TextEditingController();
 
   @override
@@ -43,14 +43,15 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
     super.dispose();
   }
 
-  /// Client-side name search over the fetched list — `GET /v1/products` takes
-  /// no search query param.
+  /// Client-side status filter + name search over the fetched list —
+  /// `GET /v1/products` takes neither as a query param.
   List<MenuItemData> _visible(List<MenuItemData> all) {
     final query = _search.text.trim().toLowerCase();
-    if (query.isEmpty) return all;
     return [
       for (final menu in all)
-        if (menu.name.toLowerCase().contains(query)) menu,
+        if (menuMatchesFilter(menu, _filter) &&
+            (query.isEmpty || menu.name.toLowerCase().contains(query)))
+          menu,
     ];
   }
 
@@ -92,10 +93,13 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
                 ],
               ),
             ),
+            // Counts come from the fetched list, so the pills can only be
+            // built once it has resolved.
             MenuFilterTabs(
-              filters: menuFilters,
-              selectedIndex: _filter,
-              onChanged: (i) => setState(() => _filter = i),
+              filters: menuFiltersFor(menusAsync.valueOrNull ?? const []),
+              selectedIndex: _filter.index,
+              onChanged: (i) =>
+                  setState(() => _filter = MenuStatusFilter.values[i]),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -118,9 +122,9 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
     // is gone — `recentlyAdded` only swaps the header action.
     final rows = _visible(all);
 
-    // Only reachable via the search field, so this screen owns the state. An
-    // empty *fetched* list keeps its previous blank-list rendering.
-    if (rows.isEmpty && _search.text.trim().isNotEmpty) {
+    // Only reachable through the search field or a status pill, so this screen
+    // owns the state. An unfiltered empty list keeps its blank rendering.
+    if (rows.isEmpty && all.isNotEmpty) {
       return const _NoSearchResult();
     }
 
