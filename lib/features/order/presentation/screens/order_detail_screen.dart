@@ -8,6 +8,7 @@ import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_detail_card.dart';
+import 'package:dtw_app/features/order/presentation/widgets/order_success_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,46 +51,17 @@ class OrderDetailScreen extends ConsumerWidget {
       // `details` falls back to `SuccessModal`'s hardcoded frame sample
       // (KFC Fried Chicken / Meja A-12 / Budi Santoso), which showed the
       // tenant a confirmation for an order that wasn't the one just taken.
-      details: _successDetails(detail),
+      details: claimedOrderDetails(
+        tenantName: detail.tenantName,
+        tableName: detail.tableName,
+        location: detail.location,
+        customerName: detail.customerName,
+      ),
       onConfirm: () {
         ref.read(orderTabProvider.notifier).selectStatus(OrderStatus.antar);
         context.goNamed(AppRoutes.order);
       },
     );
-  }
-
-  /// The claimed delivery's identity, as the three `berhasil-ditambahkan`
-  /// detail rows. Icons/tints mirror [OrderDetailCard]'s rows so the modal
-  /// reads as the same order the screen behind it is showing.
-  List<SuccessModalDetail> _successDetails(OrderDetail detail) {
-    return [
-      SuccessModalDetail(
-        icon: Icons.storefront_outlined,
-        label: 'Dari Tenant',
-        value: detail.tenantName,
-        tileColor: AppColors.orderTileTenantBg,
-        iconColor: AppColors.orderTileTenantIcon,
-      ),
-      SuccessModalDetail(
-        icon: Icons.chair_outlined,
-        label: 'Ke Meja',
-        // A busboy delivery carries no zone/area name (see
-        // `Delivery.toOrderCardData`), so the dot separator is only added
-        // when there is actually a second value to separate.
-        value: detail.location.isEmpty
-            ? detail.tableName
-            : '${detail.tableName}  •  ${detail.location}',
-        tileColor: AppColors.successTint,
-        iconColor: AppColors.successGreen,
-      ),
-      SuccessModalDetail(
-        icon: Icons.person_outline,
-        label: 'Pelanggan',
-        value: detail.customerName,
-        tileColor: AppColors.orderTileCustomerBg,
-        iconColor: AppColors.orderTileCustomerIcon,
-      ),
-    ];
   }
 
   @override

@@ -1,22 +1,26 @@
+import 'dart:async';
+
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/widgets/app_shell.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
-import 'package:dtw_app/core/widgets/placeholder_screen.dart';
+import 'package:dtw_app/core/widgets/success_modal.dart';
 import 'package:dtw_app/features/akun/presentation/screens/akun_screen.dart';
 import 'package:dtw_app/features/akun/presentation/screens/profile_saya_screen.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_detail_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_selesai_detail_screen.dart';
+import 'package:dtw_app/features/order/presentation/widgets/order_success_details.dart';
 import 'package:dtw_app/features/performa/presentation/screens/performa_screen.dart';
 import 'package:dtw_app/features/performa/presentation/screens/performa_v2_screen.dart';
 import 'package:dtw_app/features/riwayat/data/models/riwayat_models.dart';
 import 'package:dtw_app/features/riwayat/presentation/providers/riwayat_provider.dart';
 import 'package:dtw_app/features/riwayat/presentation/screens/riwayat_detail_screen.dart';
 import 'package:dtw_app/features/riwayat/presentation/screens/riwayat_screen.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -114,6 +118,114 @@ class _RiwayatTabDeepLinkState extends ConsumerState<_RiwayatTabDeepLink> {
   Widget build(BuildContext context) => const RiwayatScreen();
 }
 
+/// Deep-link shim for the two `berhasil-ditambahkan` frames: raises the
+/// matching success modal over the Order home for ONE real delivery.
+///
+/// The order id is a path parameter, and required. The in-flow versions of
+/// these modals are raised by `OrderDetailScreen`/`OrderScreen` from the
+/// delivery the busboy just acted on, and `SuccessModal.details` has no
+/// default precisely so a modal can never describe an order it doesn't have —
+/// a deep link is no exception. An id that isn't on the board renders the same
+/// not-found copy the detail screens use instead of an empty modal.
+class _OrderSuccessRouteScreen extends ConsumerStatefulWidget {
+  const _OrderSuccessRouteScreen({
+    required this.orderId,
+    required this.delivered,
+  });
+
+  final String orderId;
+
+  /// False = `berhasil-ditambahkan` (just claimed, advances to Antar).
+  /// True = `berhasil-ditambahkan-2` (just delivered, advances to Selesai).
+  final bool delivered;
+
+  @override
+  ConsumerState<_OrderSuccessRouteScreen> createState() =>
+      _OrderSuccessRouteScreenState();
+}
+
+class _OrderSuccessRouteScreenState
+    extends ConsumerState<_OrderSuccessRouteScreen> {
+  bool _raised = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = ref.watch(orderDetailProvider(widget.orderId));
+    final boardAsync = ref.watch(orderBoardNotifierProvider);
+
+    // The board is fetched asynchronously, so the order is only resolvable a
+    // frame or more after this route builds — raise the modal on the first
+    // build that actually has it, once.
+    if (detail != null && !_raised) {
+      _raised = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_show(detail));
+      });
+    }
+
+    if (detail == null && !boardAsync.isLoading) {
+      return const _OrderNotFound();
+    }
+    return const OrderScreen();
+  }
+
+  Future<void> _show(OrderDetail detail) {
+    if (widget.delivered) {
+      return showSuccessModal(
+        context,
+        title: DeliveredOrderCopy.title,
+        message: DeliveredOrderCopy.message,
+        confirmLabel: DeliveredOrderCopy.confirmLabel,
+        details: deliveredOrderDetails(
+          tableName: detail.tableName,
+          customerName: detail.customerName,
+        ),
+        onConfirm: () => ref
+            .read(orderTabProvider.notifier)
+            .selectStatus(OrderStatus.selesai),
+      );
+    }
+    return showSuccessModal(
+      context,
+      // Uses the SuccessModal frame defaults (Tugas Berhasil Diambil! …).
+      details: claimedOrderDetails(
+        tenantName: detail.tenantName,
+        tableName: detail.tableName,
+        location: detail.location,
+        customerName: detail.customerName,
+      ),
+      onConfirm: () {
+        ref.read(orderTabProvider.notifier).selectStatus(OrderStatus.antar);
+        context.goNamed(AppRoutes.order);
+      },
+    );
+  }
+}
+
+/// Shown when a success deep link names a delivery that is not on the board.
+/// Same copy as the order detail screens.
+class _OrderNotFound extends StatelessWidget {
+  const _OrderNotFound();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Pesanan tidak ditemukan di daftar order.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The post-login landing path for [role].
 ///
 /// `data.user.role` is the routing signal, confirmed with the backend team:
@@ -204,11 +316,15 @@ GoRouter appRouter(Ref ref) {
                     builder: (context, state) =>
                         const _OrderTabDeepLink(status: OrderStatus.antar),
                   ),
+                  // berhasil-ditambahkan (modal): the claim confirmation.
+                  // Primary UX raises it from the detail screen; this route is
+                  // a deep-link entry for one real delivery.
                   GoRoute(
-                    path: 'berhasil',
+                    path: 'berhasil/:orderId',
                     name: AppRoutes.orderBerhasil,
-                    builder: (context, state) => const PlaceholderScreen(
-                      title: 'Berhasil Ditambahkan',
+                    builder: (context, state) => _OrderSuccessRouteScreen(
+                      orderId: state.pathParameters['orderId']!,
+                      delivered: false,
                     ),
                   ),
                   GoRoute(
@@ -224,11 +340,14 @@ GoRouter appRouter(Ref ref) {
                           orderId: state.pathParameters['orderId']!,
                         ),
                       ),
+                      // berhasil-ditambahkan-2 (modal): the delivered
+                      // confirmation, same deep-link contract as above.
                       GoRoute(
-                        path: 'berhasil',
+                        path: 'berhasil/:orderId',
                         name: AppRoutes.orderSelesaiBerhasil,
-                        builder: (context, state) => const PlaceholderScreen(
-                          title: 'Berhasil Ditambahkan (Selesai)',
+                        builder: (context, state) => _OrderSuccessRouteScreen(
+                          orderId: state.pathParameters['orderId']!,
+                          delivered: true,
                         ),
                       ),
                     ],

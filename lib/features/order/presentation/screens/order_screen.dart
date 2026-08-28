@@ -9,6 +9,7 @@ import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_empty_state.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_home_header.dart';
+import 'package:dtw_app/features/order/presentation/widgets/order_success_details.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,25 +66,13 @@ class OrderScreen extends ConsumerWidget {
     if (!context.mounted) return;
     await showSuccessModal(
       context,
-      title: 'Sampai dimeja',
-      message: 'Pesanan telah berhasil diantar',
-      confirmLabel: 'Lanjutkan',
-      details: [
-        SuccessModalDetail(
-          icon: Icons.chair_outlined,
-          label: 'Ke Meja',
-          value: data.tableName,
-          tileColor: AppColors.successTint,
-          iconColor: AppColors.successGreen,
-        ),
-        SuccessModalDetail(
-          icon: Icons.person_outline,
-          label: 'Pelanggan',
-          value: data.customerName,
-          tileColor: AppColors.orderTileCustomerBg,
-          iconColor: AppColors.orderTileCustomerIcon,
-        ),
-      ],
+      title: DeliveredOrderCopy.title,
+      message: DeliveredOrderCopy.message,
+      confirmLabel: DeliveredOrderCopy.confirmLabel,
+      details: deliveredOrderDetails(
+        tableName: data.tableName,
+        customerName: data.customerName,
+      ),
       onConfirm: () =>
           ref.read(orderTabProvider.notifier).selectStatus(OrderStatus.selesai),
     );
