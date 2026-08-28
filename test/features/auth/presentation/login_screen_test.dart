@@ -190,6 +190,132 @@ void main() {
       expect(find.text('Laporan'), findsOneWidget);
     });
 
+    // `data.user.role` is the routing signal now, confirmed with the backend
+    // team: tenant_keeper -> tenant shell, busboy -> busboy shell.
+    testWidgets('a tenant_keeper role lands on the tenant shell',
+        (tester) async {
+      await pumpApp(
+        tester,
+        statusCode: 200,
+        orderDio: cannedOrderListDio([]),
+        body: {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_123',
+            'user': {
+              'id': 'u1',
+              'username': 'janji_jiwa_smlb',
+              'role': 'tenant_keeper',
+            },
+            'abilities': <dynamic>[],
+            'scopes': [
+              {'type': 'branch', 'tenant_branch_id': testBranchId},
+            ],
+          },
+        },
+      );
+
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'janji_jiwa_smlb',
+      );
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Password'),
+        'secret',
+      );
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      // Tenant bottom nav.
+      expect(find.text('Menu'), findsOneWidget);
+      expect(find.text('Laporan'), findsOneWidget);
+    });
+
+    testWidgets('a busboy role lands on the busboy shell', (tester) async {
+      await pumpApp(
+        tester,
+        statusCode: 200,
+        deliveryDio: cannedDeliveryListDio([]),
+        body: {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_123',
+            'user': {'id': 'u1', 'username': 'busboy1', 'role': 'busboy'},
+            'abilities': <dynamic>[],
+            'scopes': [
+              {'type': 'zone', 'zone_id': 'zone-1'},
+            ],
+          },
+        },
+      );
+
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'busboy1',
+      );
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Password'),
+        'secret',
+      );
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      // Busboy bottom nav.
+      expect(find.text('Performa'), findsOneWidget);
+      expect(find.text('Riwayat'), findsOneWidget);
+    });
+
+    // The discriminating case: a branch scope alone used to force the tenant
+    // shell. The role overrides it now.
+    testWidgets('the role wins over a disagreeing branch scope',
+        (tester) async {
+      await pumpApp(
+        tester,
+        statusCode: 200,
+        deliveryDio: cannedDeliveryListDio([]),
+        body: {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_123',
+            'user': {'id': 'u1', 'username': 'busboy1', 'role': 'busboy'},
+            'abilities': <dynamic>[],
+            'scopes': [
+              {'type': 'branch', 'tenant_branch_id': testBranchId},
+            ],
+          },
+        },
+      );
+
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'busboy1',
+      );
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Password'),
+        'secret',
+      );
+      await tester.tap(find.byType(PrimaryButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Performa'), findsOneWidget);
+      expect(find.text('Laporan'), findsNothing);
+    });
+
     testWidgets('shows the mapped error message on a failed login',
         (tester) async {
       await pumpApp(

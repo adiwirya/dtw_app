@@ -47,6 +47,7 @@ Dio dio(Ref ref) {
           }
           ref.read(isLoggedInProvider.notifier).state = false;
           ref.read(sessionUsernameProvider.notifier).state = null;
+          ref.read(sessionRoleProvider.notifier).state = null;
           ref.read(sessionBranchIdProvider.notifier).state = null;
           ref.read(sessionZoneIdProvider.notifier).state = null;
         }

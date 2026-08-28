@@ -40,6 +40,10 @@ void main() {
     );
     addTearDown(container.dispose);
     container.read(isLoggedInProvider.notifier).state = true;
+    container.read(sessionRoleProvider.notifier).state = 'tenant_keeper';
+    container.read(sessionUsernameProvider.notifier).state = 'janji';
+    container.read(sessionBranchIdProvider.notifier).state = 'branch-1';
+    container.read(sessionZoneIdProvider.notifier).state = 'zone-1';
 
     final dio = container.read(dioProvider);
     dio.httpClientAdapter = CannedAdapter(401, {'errors': null});
@@ -52,6 +56,12 @@ void main() {
 
     expect(await storage.read(authTokenStorageKey), isNull);
     expect(container.read(isLoggedInProvider), isFalse);
+    // The whole session context goes, not just the token — otherwise the
+    // router would keep routing on a stale role after the session expired.
+    expect(container.read(sessionRoleProvider), isNull);
+    expect(container.read(sessionUsernameProvider), isNull);
+    expect(container.read(sessionBranchIdProvider), isNull);
+    expect(container.read(sessionZoneIdProvider), isNull);
   });
 
   test('401 also disconnects the realtime socket', () async {

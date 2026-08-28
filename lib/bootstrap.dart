@@ -18,6 +18,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   final branchId = await storage.read(tenantBranchIdStorageKey);
   final zoneId = await storage.read(busboyZoneIdStorageKey);
   final username = await storage.read(sessionUsernameStorageKey);
+  final role = await storage.read(sessionRoleStorageKey);
 
   final container = ProviderContainer(
     overrides: [
@@ -29,6 +30,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       // what `AuthController.login` sets at login time, from the same
       // storage key `AuthRepository` writes it to.
       sessionUsernameProvider.overrideWith((ref) => username),
+      sessionRoleProvider.overrideWith((ref) => role),
       sessionBranchIdProvider.overrideWith((ref) => branchId),
       sessionZoneIdProvider.overrideWith((ref) => zoneId),
       ...overrides,

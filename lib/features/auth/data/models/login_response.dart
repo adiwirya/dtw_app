@@ -14,11 +14,13 @@ class AuthUser {
   final String? username;
   final String? email;
 
-  /// A descriptive label (e.g. `tenant_keeper`) — confirmed live on
-  /// `data.user`, not documented in the cached API reference. Not used for
-  /// branch/zone routing: [LoginResponse.branchId]/[LoginResponse.zoneId]
-  /// (from `scopes`) are the actual signal every branch/zone-scoped call
-  /// keys off.
+  /// The user's role (e.g. `tenant_keeper`, `busboy`) — confirmed live on
+  /// `data.user`, not documented in the cached API reference.
+  ///
+  /// This is what decides which shell a login lands on (see `homePathFor` in
+  /// `core/router/app_router.dart`). It does NOT replace
+  /// [LoginResponse.branchId]/[LoginResponse.zoneId]: those come from `scopes`
+  /// and are still what every branch/zone-scoped call and channel keys off.
   final String? role;
 }
 

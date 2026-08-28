@@ -332,6 +332,72 @@ void main() {
     expect(storage.values[sessionUsernameStorageKey], 'busboy1');
   });
 
+  test('login sets and persists sessionRoleProvider', () async {
+    final storage = FakeLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {
+                'id': 'u1',
+                'username': 'janji_jiwa_smlb',
+                'role': 'tenant_keeper',
+              },
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+              ],
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(container.read(sessionRoleProvider), 'tenant_keeper');
+    // Persisted so a relaunched session resumes on the same shell.
+    expect(storage.values[sessionRoleStorageKey], 'tenant_keeper');
+  });
+
+  test('logout clears sessionRoleProvider and its stored value', () async {
+    final storage = FakeLocalStorage()
+      ..values[authTokenStorageKey] = 'tok_123'
+      ..values[sessionRoleStorageKey] = 'tenant_keeper';
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(sessionRoleProvider.notifier).state = 'tenant_keeper';
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(container.read(sessionRoleProvider), isNull);
+    expect(storage.values.containsKey(sessionRoleStorageKey), isFalse);
+  });
+
   test('logout clears sessionUsernameProvider and its stored value', () async {
     final storage = FakeLocalStorage()
       ..values[authTokenStorageKey] = 'tok_123'

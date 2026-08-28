@@ -39,6 +39,7 @@ class AuthController extends _$AuthController {
           );
       ref.read(isLoggedInProvider.notifier).state = true;
       ref.read(sessionUsernameProvider.notifier).state = response.user.username;
+      ref.read(sessionRoleProvider.notifier).state = response.user.role;
       ref.read(sessionBranchIdProvider.notifier).state = response.branchId;
       ref.read(sessionZoneIdProvider.notifier).state = response.zoneId;
       state = const AuthState();
@@ -90,6 +91,7 @@ class AuthController extends _$AuthController {
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
     ref.read(sessionUsernameProvider.notifier).state = null;
+    ref.read(sessionRoleProvider.notifier).state = null;
     ref.read(sessionBranchIdProvider.notifier).state = null;
     ref.read(sessionZoneIdProvider.notifier).state = null;
   }

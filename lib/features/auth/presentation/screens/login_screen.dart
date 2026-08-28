@@ -9,11 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// The login screen — the app's single shared entry point, hosted on `/login`.
 ///
-/// Tapping "Masuk" always calls the real login API via `AuthController`,
-/// which records the response's `branch_id` (`sessionBranchIdProvider`, see
-/// `core/flavor.dart`) rather than any role picked up front — a
-/// branch-scoped response is what lands the single merged router on the
-/// tenant shell's Order tab instead of the busboy one.
+/// Tapping "Masuk" always calls the real login API via `AuthController`. The
+/// response's `data.user.role` is what lands the single merged router on the
+/// tenant or the busboy shell (see `homePathFor` in `core/router/`), not a
+/// role picked up front on this screen — there is no role selector here. The
+/// response's `scopes` are recorded alongside it because every
+/// branch/zone-scoped call still needs them.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 

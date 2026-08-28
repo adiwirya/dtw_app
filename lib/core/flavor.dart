@@ -5,12 +5,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// (the login route once false, the signed-in home once true).
 final isLoggedInProvider = StateProvider<bool>((ref) => false);
 
+/// The `data.user.role` values the app routes on.
+///
+/// Confirmed with the backend team: `tenant_keeper` is a tenant-staff login and
+/// `busboy` is a busboy login. Other values exist server-side but their shells
+/// are undecided — `homePathFor` degrades to the scope-based decision for
+/// anything it does not recognise.
+abstract class AuthRoles {
+  static const tenantKeeper = 'tenant_keeper';
+  static const busboy = 'busboy';
+}
+
+/// The logged-in user's role, or null when unknown — set from
+/// `LoginResponse.user.role` by `AuthController.login`, cleared on
+/// logout/401.
+///
+/// This is what decides which shell a login lands on (see `homePathFor`).
+final sessionRoleProvider = StateProvider<String?>((ref) => null);
+
 /// The logged-in session's tenant branch id, or null for a non-tenant
 /// (busboy) session — set from `LoginResponse.branchId` by
-/// `AuthController.login`, cleared on logout/401. The single merged
-/// `GoRouter` reads this alongside [isLoggedInProvider] to decide which
-/// shell ("/order" or "/tenant/order") a successful login lands on: there is
-/// no separate "app flavor" concept, just this one piece of real login data.
+/// `AuthController.login`, cleared on logout/401.
+///
+/// Every branch-scoped call and channel keys off this
+/// (`GET /v1/orders?branch_id=`, `private-branch.<id>`), so it is required
+/// regardless of routing. It is also the fallback shell signal for a role
+/// `homePathFor` does not recognise.
 final sessionBranchIdProvider = StateProvider<String?>((ref) => null);
 
 /// The logged-in user's username, or null when unknown — set from

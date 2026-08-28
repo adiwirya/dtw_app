@@ -10,6 +10,11 @@ part 'secure_local_storage.g.dart';
 /// interceptors in `dioProvider`.
 const authTokenStorageKey = 'auth_token';
 
+/// Key the logged-in user's role is stored under (`data.user.role`). Restored
+/// on relaunch because it decides which shell a resumed session lands on —
+/// see `homePathFor` in `core/router/app_router.dart`.
+const sessionRoleStorageKey = 'session_role';
+
 /// Key the tenant branch id is stored under (only present for a
 /// branch-scoped/tenant session) — read by `TenantOrderBoard` to know which
 /// `branch_id` to fetch/subscribe with.

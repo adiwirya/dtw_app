@@ -114,22 +114,47 @@ class _RiwayatTabDeepLinkState extends ConsumerState<_RiwayatTabDeepLink> {
   Widget build(BuildContext context) => const RiwayatScreen();
 }
 
+/// The post-login landing path for [role].
+///
+/// `data.user.role` is the routing signal, confirmed with the backend team:
+/// [AuthRoles.tenantKeeper] lands on the tenant shell and [AuthRoles.busboy]
+/// on the busboy shell.
+///
+/// Anything else — null, or a role the backend adds later — falls back to
+/// [branchId], the signal the app used before roles were confirmed: a session
+/// carrying a branch scope goes to the tenant shell, everything else to
+/// busboy. That deliberately keeps an unrecognised role on whichever shell its
+/// real scope data can actually serve, rather than guessing from a value this
+/// build has never seen.
+///
+// TODO(open-question): a role whose required scope is missing (e.g.
+// `tenant_keeper` with no branch scope) still lands on the tenant shell, where
+// `TenantOrderBoard` throws and the screen shows the generic error copy. Only
+// two roles are confirmed so far, so whether that should be rejected at login
+// or surfaced as a dedicated screen is still open.
+String homePathFor({required String? role, required String? branchId}) =>
+    switch (role) {
+      AuthRoles.tenantKeeper => TenantRoutes.orderPath,
+      AuthRoles.busboy => AppRoutes.orderPath,
+      _ => branchId != null ? TenantRoutes.orderPath : AppRoutes.orderPath,
+    };
+
 /// The single `GoRouter` for the whole app — one login route, and the
 /// busboy and tenant bottom-nav shells mounted side by side (busboy at
 /// `/order` etc., tenant under `/tenant/...` — see `TenantRoutes`). There is
-/// no "app flavor" concept: which shell a login lands on is decided purely
-/// by [sessionBranchIdProvider] (set from the real login response), not by
-/// a separate router per flavor.
+/// no "app flavor" concept and no router per flavor: which shell a login
+/// lands on is [homePathFor] of the session's role.
 @riverpod
 GoRouter appRouter(Ref ref) {
   final loggedIn = ref.watch(isLoggedInProvider);
-  final branchId = ref.watch(sessionBranchIdProvider);
-  final homePath =
-      branchId != null ? TenantRoutes.orderPath : AppRoutes.orderPath;
+  final homePath = homePathFor(
+    role: ref.watch(sessionRoleProvider),
+    branchId: ref.watch(sessionBranchIdProvider),
+  );
   return GoRouter(
-    // [isLoggedInProvider] and [sessionBranchIdProvider] are what let a
-    // successful login land straight on the right shell's Order tab instead
-    // of the login screen — see [homePath] above.
+    // [isLoggedInProvider] and the session role are what let a successful
+    // login land straight on the right shell's Order tab instead of the
+    // login screen — see [homePath] above.
     initialLocation: loggedIn ? homePath : AppRoutes.loginPath,
     // Session expiry (401, via dioProvider's interceptor) clears
     // isLoggedInProvider mid-use; this guard makes that redirect to /login
