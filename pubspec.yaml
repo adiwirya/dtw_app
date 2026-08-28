@@ -76,6 +76,20 @@ flutter:
   assets:
     - assets/images/
 
+  # Bundled rather than fetched at runtime: `google_fonts` needs the network,
+  # which means the family never resolves in `flutter_test` and every golden
+  # renders the harness fallback instead of real text. Both families are
+  # OFL-licensed; the licences ship beside them in assets/fonts/.
+  fonts:
+    - family: Open Sans
+      fonts:
+        # A variable font, so one file covers every weight the design uses
+        # (Regular 400 / SemiBold 600 / Bold 700).
+        - asset: assets/fonts/OpenSans-Variable.ttf
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico-Regular.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

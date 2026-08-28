@@ -95,7 +95,6 @@ class _ValueLine extends StatelessWidget {
                 for (final span in spans)
                   TextSpan(
                     text: span.text,
-                    // TODO(open-question): Open Sans in the cache; not bundled.
                     style: TextStyle(
                       color: AppColors.neutral900,
                       fontSize: span.emphasized ? 22 : 15,

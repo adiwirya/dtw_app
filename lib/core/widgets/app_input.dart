@@ -92,8 +92,6 @@ class _AppInputState extends State<AppInput> {
   Widget build(BuildContext context) {
     final trailing = _buildTrailing();
 
-    // TODO(open-question): Open Sans isn't bundled yet; hint/text fall back to
-    // the default family until the font is added.
     const hintStyle = TextStyle(
       color: AppColors.neutral500,
       fontSize: 14,

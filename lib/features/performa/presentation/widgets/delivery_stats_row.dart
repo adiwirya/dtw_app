@@ -36,7 +36,6 @@ class _StatColumn extends StatelessWidget {
             children: [
               TextSpan(
                 text: stat.value,
-                // TODO(open-question): Open Sans in the cache; not bundled.
                 style: TextStyle(
                   color: color,
                   fontSize: 20,

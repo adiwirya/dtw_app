@@ -68,7 +68,6 @@ class _GreetingRow extends StatelessWidget {
             children: [
               Text(
                 'Hi, ${greeting.name} 👋',
-                // TODO(open-question): Open Sans Bold in cache; not bundled.
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 16,

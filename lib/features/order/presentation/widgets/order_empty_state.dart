@@ -56,7 +56,6 @@ class OrderEmptyState extends StatelessWidget {
             Text(
               _title,
               textAlign: TextAlign.center,
-              // TODO(open-question): Open Sans Bold in the cache; not bundled.
               style: const TextStyle(
                 color: AppColors.neutral900,
                 fontSize: 16,

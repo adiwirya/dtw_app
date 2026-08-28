@@ -31,8 +31,8 @@ class HistoryRow extends StatelessWidget {
   static const double _radius = 12;
   static const double _pad = 12;
 
-  // Text styles (Open Sans in the cache; not bundled yet — default family).
-  // TODO(open-question): swap to Open Sans once the font is added.
+  // Text styles. No family is set: `Text` merges these onto the ambient
+  // `DefaultTextStyle`, which the theme sources from Open Sans.
   static const TextStyle _metaStyle = TextStyle(
     color: AppColors.neutral500,
     fontSize: 12,

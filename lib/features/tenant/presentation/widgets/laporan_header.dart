@@ -35,7 +35,6 @@ class LaporanHeader extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Laporan',
-                      // TODO(open-question): Open Sans Bold in cache; not
                       // bundled (mirrors the busboy Performa TODO).
                       style: TextStyle(
                         color: AppColors.neutral900,

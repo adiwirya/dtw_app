@@ -40,7 +40,6 @@ class RiwayatSearchField extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              // TODO(open-question): Open Sans in the cache; not bundled yet.
               style: const TextStyle(
                 color: AppColors.neutral900,
                 fontSize: 14,

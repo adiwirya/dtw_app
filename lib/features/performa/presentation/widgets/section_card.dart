@@ -42,7 +42,6 @@ class SectionCard extends StatelessWidget {
             if (title != null) ...[
               Text(
                 title!,
-                // TODO(open-question): Open Sans Bold in cache; not bundled.
                 style: const TextStyle(
                   color: AppColors.neutral900,
                   fontSize: 16,

@@ -134,8 +134,6 @@ class SuccessModal extends StatelessWidget {
   static const double _tileRadius = 8;
   static const double _icon = 16;
 
-  // TODO(open-question): family is Open Sans in the cache; the app doesn't
-  // bundle it yet, so these use the default family (see [PrimaryButton]).
   static const TextStyle _titleStyle = TextStyle(
     color: AppColors.neutral900,
     fontSize: 24,

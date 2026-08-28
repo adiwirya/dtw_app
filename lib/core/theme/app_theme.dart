@@ -149,9 +149,21 @@ class AppSpacing {
 class AppTheme {
   const AppTheme._();
 
+  /// Open Sans is the design's body family. Every screen writes bare
+  /// `TextStyle(fontSize:, fontWeight:, color:)` with no family, and `Text`
+  /// merges those onto the ambient `DefaultTextStyle` — which Material takes
+  /// from this `textTheme`. So setting it here is what gives the whole app the
+  /// right family without touching ~200 individual styles.
+  ///
+  /// Bundled under `assets/fonts/` and declared in `pubspec.yaml`, not fetched
+  /// at runtime: a network-fetched family never resolves in `flutter_test`, so
+  /// the goldens would keep pinning the harness fallback instead of real text.
+  static const fontFamily = 'Open Sans';
+
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        fontFamily: fontFamily,
       );
 
   static ThemeData get dark => ThemeData(
@@ -161,5 +173,6 @@ class AppTheme {
           seedColor: Colors.indigo,
           brightness: Brightness.dark,
         ),
+        fontFamily: fontFamily,
       );
 }

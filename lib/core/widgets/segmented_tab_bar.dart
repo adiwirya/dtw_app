@@ -118,9 +118,6 @@ class _Segment extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        // TODO(open-question): family is Open Sans in the
-                        // design cache; the app doesn't bundle it yet, so this
-                        // uses the default family (matches PrimaryButton).
                         style: TextStyle(
                           color: color,
                           fontSize: 16,

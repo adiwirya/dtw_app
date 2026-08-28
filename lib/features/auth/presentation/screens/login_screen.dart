@@ -109,10 +109,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               height: 121,
             ),
           ),
-          // Brand wordmark + subtitle, left-aligned.
-          // TODO(open-question): the "Order" wordmark is Pacifico and "DTW" is
-          // Open Sans in the cache; neither font is bundled yet, so both use
-          // the default family (green accent preserved).
+          // Brand wordmark + subtitle, left-aligned. "DTW" takes the app's
+          // Open Sans from the theme; "Order" is Pacifico, the one place the
+          // design uses a second family.
           const Positioned(
             top: 46,
             left: 16,
@@ -135,10 +134,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextSpan(
                         text: 'Order',
                         style: TextStyle(
+                          fontFamily: 'Pacifico',
                           color: AppColors.success700,
                           fontSize: 30,
-                          fontWeight: FontWeight.w600,
-                          fontStyle: FontStyle.italic,
                           height: 1,
                         ),
                       ),

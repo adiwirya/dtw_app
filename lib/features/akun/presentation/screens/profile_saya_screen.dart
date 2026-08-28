@@ -101,8 +101,6 @@ class _ProfileNavBar extends StatelessWidget {
                 ),
                 Text(
                   title,
-                  // TODO(open-question): Open Sans Bold in the cache; not
-                  // bundled, so this falls back to the default family.
                   style: const TextStyle(
                     color: AppColors.neutral900,
                     fontSize: 18,
@@ -293,7 +291,6 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      // TODO(open-question): Open Sans Bold in the cache; not bundled.
       style: const TextStyle(
         color: AppColors.neutral900,
         fontSize: 16,

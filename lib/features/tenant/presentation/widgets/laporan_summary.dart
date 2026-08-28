@@ -44,7 +44,6 @@ class ReportSummaryCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       summary.value,
-                      // TODO(open-question): Open Sans Bold in cache.
                       style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 24,

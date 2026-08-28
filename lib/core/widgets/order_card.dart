@@ -125,8 +125,8 @@ class OrderCard extends StatelessWidget {
   static const Color _customerTileBg = Color(0xFFF4ECFB);
   static const Color _customerTileIcon = Color(0xFF9B51E0);
 
-  // Text styles (Open Sans in the cache; not bundled yet — default family).
-  // TODO(open-question): swap to Open Sans once the font is added.
+  // Text styles. No family is set: `Text` merges these onto the ambient
+  // `DefaultTextStyle`, which the theme sources from Open Sans.
   static const TextStyle _idStyle = TextStyle(
     color: AppColors.neutral900,
     fontSize: 16,

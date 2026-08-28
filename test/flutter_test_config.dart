@@ -7,9 +7,26 @@ import 'package:flutter_test/flutter_test.dart';
 /// Loads real fonts for golden tests so images reflect actual rendering
 /// instead of the default Ahem placeholder glyphs.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  setUpAll(_loadAppFonts);
   setUpAll(_loadRealFonts);
   setUpAll(_loadObraIcons);
   await testMain();
+}
+
+/// Loads the app's own bundled families (`assets/fonts/`) so golden tests
+/// render real Open Sans / Pacifico rather than the harness fallback. The
+/// family names must match `pubspec.yaml` exactly, or `TextStyle`s asking for
+/// them silently fall back.
+Future<void> _loadAppFonts() async {
+  const families = {
+    'Open Sans': 'assets/fonts/OpenSans-Variable.ttf',
+    'Pacifico': 'assets/fonts/Pacifico-Regular.ttf',
+  };
+  for (final entry in families.entries) {
+    final data = await rootBundle.load(entry.value);
+    final loader = FontLoader(entry.key)..addFont(Future.value(data));
+    await loader.load();
+  }
 }
 
 /// Loads the bundled `obra_icons` glyph font so golden tests render its icons

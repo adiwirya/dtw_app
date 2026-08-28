@@ -33,7 +33,6 @@ class AkunHeader extends StatelessWidget {
                 padding: EdgeInsets.only(bottom: 34),
                 child: Text(
                   'Akun',
-                  // TODO(open-question): Open Sans in the cache; not bundled.
                   style: TextStyle(
                     color: AppColors.white,
                     fontSize: 18,

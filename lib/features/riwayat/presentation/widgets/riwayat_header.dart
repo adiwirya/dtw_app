@@ -43,8 +43,6 @@ class RiwayatHeader extends StatelessWidget {
                     padding: EdgeInsets.only(bottom: 8),
                     child: Text(
                       'Riwayat',
-                      // TODO(open-question): Open Sans in the cache; not
-                      // bundled yet, so this uses the default family.
                       style: TextStyle(
                         color: AppColors.white,
                         fontSize: 18,

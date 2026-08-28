@@ -47,8 +47,6 @@ class TenantOrderHeader extends StatelessWidget {
                 Expanded(
                   child: Text(
                     tenantName,
-                    // TODO(open-question): Open Sans Bold in the cache; not
-                    // bundled yet (mirrors the other tenant headers).
                     style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 18,

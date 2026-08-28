@@ -54,7 +54,6 @@ class _IdentityRow extends StatelessWidget {
             children: [
               Text(
                 'Hi, ${account.name}',
-                // TODO(open-question): Open Sans Bold cache font not bundled.
                 style: const TextStyle(
                   color: AppColors.neutral900,
                   fontSize: 16,
@@ -191,7 +190,6 @@ class _StatColumn extends StatelessWidget {
           children: [
             Text(
               stat.value,
-              // TODO(open-question): Open Sans Bold in the cache; not bundled.
               style: TextStyle(
                 color: valueColor,
                 fontSize: 20,

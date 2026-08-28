@@ -26,7 +26,6 @@ class OrderTabBadge extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        // TODO(open-question): Open Sans in the cache; not bundled.
         style: const TextStyle(
           color: AppColors.white,
           fontSize: 12,

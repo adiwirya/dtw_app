@@ -36,7 +36,6 @@ class PerformaScreen extends ConsumerWidget {
                 children: [
                   const Text(
                     'Ringkasan Performa',
-                    // TODO(open-question): Open Sans Bold in the cache.
                     style: TextStyle(
                       color: AppColors.neutral900,
                       fontSize: 16,

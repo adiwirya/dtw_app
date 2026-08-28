@@ -84,7 +84,6 @@ class _GreetingRow extends StatelessWidget {
             children: [
               Text(
                 username == null ? 'Hi 👋' : 'Hi, $username 👋',
-                // TODO(open-question): Open Sans Bold in cache; not bundled.
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 16,
@@ -156,7 +155,6 @@ class _StatColumn extends StatelessWidget {
           children: [
             Text(
               stat.value,
-              // TODO(open-question): Open Sans Bold in the cache; not bundled.
               style: TextStyle(
                 color: valueColor,
                 fontSize: 18,

@@ -44,8 +44,6 @@ class PrimaryButton extends StatelessWidget {
           child: Center(
             child: Text(
               label,
-              // TODO(open-question): family is Open Sans in the cache; the app
-              // doesn't bundle it yet, so this uses the default family.
               style: const TextStyle(
                 color: AppColors.white,
                 fontSize: 16,

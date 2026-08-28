@@ -48,7 +48,6 @@ class AccountMenuTile extends StatelessWidget {
                 children: [
                   Text(
                     item.title,
-                    // TODO(open-question): Open Sans Bold cache font unbundled.
                     style: TextStyle(
                       color: titleColor,
                       fontSize: 14,

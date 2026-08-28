@@ -181,8 +181,6 @@ class _DetailNavBar extends StatelessWidget {
                 ),
                 Text(
                   title,
-                  // TODO(open-question): Open Sans Bold in the cache; not
-                  // bundled.
                   style: const TextStyle(
                     color: AppColors.white,
                     fontSize: 18,

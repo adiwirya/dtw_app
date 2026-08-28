@@ -84,10 +84,12 @@ class CompletedOrderDetail {
   /// Source tenant/merchant name, e.g. `KFC Fried Chicken` (card title).
   final String tenantName;
 
-  /// Asset key for the brand logo chip, e.g. `assets/images/brand-kfc.png`.
-  /// Null when there's no real per-brand logo to show — a delivery can span
-  /// multiple brands, so there's no single logo anyway; the view falls back
-  /// to a plain placeholder tile.
+  /// Asset key for the brand logo chip.
+  ///
+  /// Always null today, and there is no bundled per-brand logo to point it at:
+  /// a delivery can span several brands, so there is no single logo to show
+  /// and the view falls back to a plain placeholder tile. Kept as a seam for
+  /// when a single-brand delivery gets one.
   final String? brandLogoAsset;
 
   /// Destination table label, e.g. `Meja A-12`.
