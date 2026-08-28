@@ -40,6 +40,11 @@ class AuthRepository {
       } else {
         await _localStorage.delete(tenantBranchIdStorageKey);
       }
+      if (loginResponse.zoneId != null) {
+        await _localStorage.write(busboyZoneIdStorageKey, loginResponse.zoneId!);
+      } else {
+        await _localStorage.delete(busboyZoneIdStorageKey);
+      }
       return loginResponse;
     } on DioException catch (error) {
       throw mapDioError(
@@ -57,6 +62,7 @@ class AuthRepository {
     } finally {
       await _localStorage.delete(authTokenStorageKey);
       await _localStorage.delete(tenantBranchIdStorageKey);
+      await _localStorage.delete(busboyZoneIdStorageKey);
     }
   }
 

@@ -15,6 +15,11 @@ const authTokenStorageKey = 'auth_token';
 /// `branch_id` to fetch/subscribe with.
 const tenantBranchIdStorageKey = 'tenant_branch_id';
 
+/// Key the busboy zone id is stored under (only present for a
+/// zone-scoped/busboy session) — read by `BusboyOrderBoard` to know which
+/// `zone_id` to fetch/subscribe with.
+const busboyZoneIdStorageKey = 'busboy_zone_id';
+
 /// [LocalStorage] backed by the platform Keychain (iOS) / EncryptedShared
 /// Preferences+Keystore (Android) via `flutter_secure_storage`.
 class SecureLocalStorage implements LocalStorage {

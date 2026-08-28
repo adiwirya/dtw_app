@@ -8,10 +8,6 @@ import 'package:flutter/foundation.dart';
 /// fields (booth/location, brand logo, rating, contact, operating hours) have
 /// no backing API field yet — they stay null, and the Admin screen hides
 /// those rows/chips rather than show fabricated data.
-///
-/// The online/offline flag is NOT part of this model — it is mutable screen
-/// state owned by `AdminOnlineStatus` — so this holds only the fields that are
-/// constant across both states.
 @immutable
 class TenantAdminInfo {
   const TenantAdminInfo({

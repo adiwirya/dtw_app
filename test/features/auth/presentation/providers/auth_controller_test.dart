@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../support/canned_dio.dart';
+import '../../../../support/fake_busboy_realtime_service.dart';
 import '../../../../support/fake_local_storage.dart';
 import '../../../../support/fake_tenant_realtime_service.dart';
 
@@ -143,11 +145,50 @@ void main() {
     expect(realtime.connectCalls, [(token: 'tok_123', branchId: 'branch-1')]);
   });
 
-  test('login does not connect the realtime service for a busboy response',
-      () async {
+  test('login connects the busboy realtime service for a zone-scoped '
+      'response', () async {
     final storage = FakeLocalStorage();
-    final realtime = FakeTenantRealtimeService();
+    final realtime = FakeBusboyRealtimeService();
     addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'busboy1'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'zone', 'zone_id': 'zone-1'},
+              ],
+            },
+          }, storage),
+        ),
+        busboyRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'busboy1', password: 'secret');
+
+    expect(realtime.connectCalls, [(token: 'tok_123', zoneId: 'zone-1')]);
+  });
+
+  test('login does not connect either realtime service for a scope-less '
+      'response', () async {
+    final storage = FakeLocalStorage();
+    final tenantRealtime = FakeTenantRealtimeService();
+    addTearDown(tenantRealtime.close);
+    final busboyRealtime = FakeBusboyRealtimeService();
+    addTearDown(busboyRealtime.close);
     final container = ProviderContainer(
       overrides: [
         authRepositoryProvider.overrideWithValue(
@@ -164,7 +205,8 @@ void main() {
             },
           }, storage),
         ),
-        tenantRealtimeServiceProvider.overrideWithValue(realtime),
+        tenantRealtimeServiceProvider.overrideWithValue(tenantRealtime),
+        busboyRealtimeServiceProvider.overrideWithValue(busboyRealtime),
       ],
     );
     addTearDown(container.dispose);
@@ -173,7 +215,8 @@ void main() {
         .read(authControllerProvider.notifier)
         .login(username: 'budi', password: 'secret');
 
-    expect(realtime.connectCalls, isEmpty);
+    expect(tenantRealtime.connectCalls, isEmpty);
+    expect(busboyRealtime.connectCalls, isEmpty);
   });
 
   // Reverb only drives live order-status updates on the tenant order board —
@@ -222,6 +265,65 @@ void main() {
     expect(realtime.connectCalls, [(token: 'tok_123', branchId: 'branch-1')]);
   });
 
+  test('login sets sessionZoneIdProvider for a zone-scoped response',
+      () async {
+    final storage = FakeLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'busboy1'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'zone', 'zone_id': 'zone-1'},
+              ],
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'busboy1', password: 'secret');
+
+    expect(container.read(sessionZoneIdProvider), 'zone-1');
+    expect(container.read(sessionBranchIdProvider), isNull);
+  });
+
+  test('logout clears sessionZoneIdProvider', () async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(sessionZoneIdProvider.notifier).state = 'zone-1';
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(container.read(sessionZoneIdProvider), isNull);
+  });
+
   test('logout disconnects the realtime service', () async {
     final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
     final realtime = FakeTenantRealtimeService();
@@ -239,6 +341,32 @@ void main() {
           }, storage),
         ),
         tenantRealtimeServiceProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(realtime.disconnectCallCount, 1);
+  });
+
+  test('logout disconnects the busboy realtime service', () async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final realtime = FakeBusboyRealtimeService();
+    addTearDown(realtime.close);
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+        busboyRealtimeServiceProvider.overrideWithValue(realtime),
       ],
     );
     addTearDown(container.dispose);

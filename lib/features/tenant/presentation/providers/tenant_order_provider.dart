@@ -155,23 +155,77 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   List<TenantOrder> _excludeCancelled(List<TenantOrder> orders) =>
       orders.where((o) => o.status != TenantOrderStatus.cancelled).toList();
 
+  /// Accepts every item — a thin wrapper over [_process] with nothing
+  /// rejected.
   Future<void> accept(String orderId) =>
-      _transition(orderId, TenantOrderStatus.preparing);
+      _process(orderId, rejectedItemIds: const []);
+
+  /// Sends the tenant's per-item decision for a PENDING order. The backend
+  /// derives the result: [rejectedItemIds] empty is a no-op for this method
+  /// (use [accept]); some or all of the order's items rejected moves it to
+  /// PREPARING (partial) or CANCELLED (all) — see [_process].
+  Future<void> reject(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) =>
+      _process(orderId, rejectedItemIds: rejectedItemIds);
+
+  /// `POST /v1/orders/{id}/process` — the PENDING-only accept/reject
+  /// decision. Guards + optimistic-update-then-rollback mirror [_transition];
+  /// the one extra piece of logic is deriving whether every item was
+  /// rejected (→ remove the now-cancelled order from the board, same as
+  /// `_transition`'s old cancelled case) or not (→ PREPARING, in place).
+  Future<void> _process(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) async {
+    final current = state.value;
+    if (current == null) {
+      throw StateError(
+        'TenantOrderBoard: cannot process order $orderId — the board has not '
+        'finished loading',
+      );
+    }
+    final index = current.indexWhere((o) => o.id == orderId);
+    if (index == -1) {
+      throw StateError(
+        'TenantOrderBoard: cannot process order $orderId — it is not on the '
+        'board',
+      );
+    }
+    final previous = current[index];
+    final allRejected = previous.items.isNotEmpty &&
+        previous.items.every((item) => rejectedItemIds.contains(item.id));
+
+    // ponytail: the item list itself isn't pruned on a partial reject (stays
+    // stale until the next fetch/realtime event) — upgrade if the Diproses
+    // card needs to reflect exactly which items survived.
+    final optimistic = allRejected
+        ? [for (final o in current) if (o.id != orderId) o]
+        : [
+            for (final o in current)
+              if (o.id == orderId)
+                previous.copyWith(status: TenantOrderStatus.preparing)
+              else
+                o,
+          ];
+    state = AsyncData(optimistic);
+
+    try {
+      await ref.read(tenantOrderRepositoryProvider).processOrder(
+            orderId,
+            rejectedItemIds: rejectedItemIds,
+          );
+    } on Object catch (_) {
+      state = AsyncData(current);
+      rethrow;
+    }
+  }
 
   Future<void> markReady(String orderId) =>
       _transition(orderId, TenantOrderStatus.ready);
 
-  /// Cancels the WHOLE order. The API has no partial-item rejection (see
-  /// `TenantRejectOrderScreen`, which is all-or-nothing for that reason), so
-  /// [reason] is the one cancellation reason for the order as a unit.
-  Future<void> reject(String orderId, {required String reason}) =>
-      _transition(orderId, TenantOrderStatus.cancelled, reason: reason);
-
-  Future<void> _transition(
-    String orderId,
-    TenantOrderStatus target, {
-    String? reason,
-  }) async {
+  Future<void> _transition(String orderId, TenantOrderStatus target) async {
     // Both guards below used to `return` silently. That turned every
     // mis-targeted mutation into a fake success: the caller saw no
     // exception, showed its success feedback, and the backend was never
@@ -195,25 +249,15 @@ class TenantOrderBoard extends _$TenantOrderBoard {
       );
     }
     final previous = current[index];
-
-    // A cancelled order is excluded from the board entirely (see
-    // `incomingOrderStatusFromBackend`, which deliberately throws for
-    // `cancelled` — it must never reach the mapper), so "reject" removes
-    // the row instead of updating it in place like accept/markReady do.
-    final optimistic = target == TenantOrderStatus.cancelled
-        ? [for (final o in current) if (o.id != orderId) o]
-        : [
-            for (final o in current)
-              if (o.id == orderId) previous.copyWith(status: target) else o,
-          ];
-    state = AsyncData(optimistic);
+    state = AsyncData([
+      for (final o in current)
+        if (o.id == orderId) previous.copyWith(status: target) else o,
+    ]);
 
     try {
-      await ref.read(tenantOrderRepositoryProvider).updateStatus(
-            orderId,
-            status: target,
-            reason: reason,
-          );
+      await ref
+          .read(tenantOrderRepositoryProvider)
+          .updateStatus(orderId, status: target);
     } on Object catch (_) {
       state = AsyncData(current);
       rethrow;

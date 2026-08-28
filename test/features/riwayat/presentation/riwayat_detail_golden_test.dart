@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../support/busboy_board.dart';
+
 /// Self-golden for the `detail-riwayat` history-entry detail screen.
 ///
 /// NOTE: the headless harness does not load Open Sans (the cache font), so the
@@ -21,9 +23,30 @@ void main() {
       tester.view.physicalSize = const Size(390, 950);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
+      final dio = cannedDeliveryListDio([
+        deliveryJson(
+          id: 'delivery-1',
+          status: 'DELIVERED',
+          tableNumber: 'A-12',
+          claimedAt: '2026-08-27 10:27:00',
+          deliveredAt: '2026-08-27 10:45:00',
+          orders: [
+            deliveryOrderJson(
+              orderId: 'order-1',
+              items: [
+                deliveryItemJson(productName: 'Paket Super Besar'),
+                deliveryItemJson(productName: 'Es Lemon Tea'),
+              ],
+            ),
+          ],
+        ),
+      ]);
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(home: RiwayatDetailScreen()),
+        ProviderScope(
+          overrides: busboyBoardOverrides(dio: dio),
+          child: const MaterialApp(
+            home: RiwayatDetailScreen(entryId: 'delivery-1'),
+          ),
         ),
       );
       await tester.pumpAndSettle();

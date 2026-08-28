@@ -29,6 +29,7 @@ Map<String, dynamic> tenantOrderJson({
   String? receiptNumber,
   String createdAt = '2026-08-07 09:24:08',
   int? broadcastEventId,
+  List<Map<String, dynamic>> items = const [],
 }) => {
   'id': id,
   'order_group_id': 'group-$id',
@@ -38,8 +39,23 @@ Map<String, dynamic> tenantOrderJson({
   'order_status': status,
   'created_at': createdAt,
   'updated_at': createdAt,
-  'items': <dynamic>[],
+  'items': items,
   'broadcast_event_id': ?broadcastEventId,
+};
+
+/// One order item in the live item shape — just enough for
+/// `TenantOrder.fromJson`'s item mapping (`id`, `product_name`, `subtotal`,
+/// `quantity`).
+Map<String, dynamic> tenantOrderItemJson({
+  required String id,
+  String productName = 'Item',
+  int subtotal = 10000,
+  int quantity = 1,
+}) => {
+  'id': id,
+  'product_name': productName,
+  'subtotal': subtotal,
+  'quantity': quantity,
 };
 
 /// Wraps [data] in the CMS success envelope every endpoint returns.

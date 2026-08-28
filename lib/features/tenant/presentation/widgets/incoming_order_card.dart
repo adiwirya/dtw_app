@@ -19,10 +19,18 @@ class OrderLineItem {
   const OrderLineItem({
     required this.name,
     required this.price,
+    this.id = '',
+    this.subtotal = 0,
     this.qty = 1,
     this.available = true,
     this.imageUrl,
   });
+
+  /// The real item id — what `POST /v1/orders/{id}/process`'s
+  /// `rejected_item_ids` targets. Defaults to `''` for presentational-only
+  /// call sites (prototype frames, widget tests); `TenantOrder.fromJson`
+  /// always sets the real one.
+  final String id;
 
   /// Item name, e.g. `Paket Super Besar`.
   final String name;
@@ -30,6 +38,10 @@ class OrderLineItem {
   /// Pre-formatted price string, e.g. `Rp35.000`. Formatting is a caller
   /// concern — the widget never does currency math.
   final String price;
+
+  /// Numeric subtotal backing [price] — kept alongside the formatted string
+  /// so the reject screen can sum an "accepted total" without re-parsing it.
+  final int subtotal;
 
   /// Ordered quantity. Rendered as `<qty>x` in the card and `Qty : <qty>` in
   /// [OrderItemAvailabilityRow].
@@ -46,8 +58,10 @@ class OrderLineItem {
   final String? imageUrl;
 
   OrderLineItem copyWith({bool? available}) => OrderLineItem(
+    id: id,
     name: name,
     price: price,
+    subtotal: subtotal,
     qty: qty,
     available: available ?? this.available,
     imageUrl: imageUrl,
@@ -105,7 +119,7 @@ class IncomingOrderData {
 /// One widget covers all three sub-tabs; [IncomingOrderData.status] drives the
 /// coloured label and the action affordance:
 /// - [IncomingOrderStatus.baru]: [onReject] ("Tolak") + [onAccept] with an
-///   overridable [acceptLabel] (defaults to `Terima`, e.g. `Terima (29s)`).
+///   overridable [acceptLabel] (defaults to `Terima`).
 /// - [IncomingOrderStatus.diproses]: a single [onPickupReady] ("Siap Diambil").
 /// - [IncomingOrderStatus.selesai]: no buttons.
 ///
@@ -138,8 +152,9 @@ class IncomingOrderCard extends StatelessWidget {
   /// "Siap Diambil" handler ([IncomingOrderStatus.diproses]).
   final VoidCallback? onPickupReady;
 
-  /// Overrides the accept button label (defaults to `Terima`). Callers pass the
-  /// live countdown, e.g. `Terima (29s)`.
+  /// Overrides the accept button label (defaults to `Terima`). No caller uses
+  /// this today — a prior static `Terima (29s)` label was removed (it never
+  /// actually counted down) — kept for when a real countdown is built.
   final String? acceptLabel;
 
   static const double _radius = 12;

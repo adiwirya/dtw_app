@@ -27,18 +27,36 @@ class TenantOrderRepository {
     }
   }
 
+  /// Moves an order already past PENDING to [status] (only `markReady` —
+  /// PREPARING → READY — calls this; the PENDING accept/reject decision goes
+  /// through [processOrder] instead).
   Future<void> updateStatus(
     String orderId, {
     required TenantOrderStatus status,
-    String? reason,
   }) async {
     try {
       await _dio.patch<void>(
         '/v1/orders/$orderId/status',
-        data: {
-          'order_status': tenantOrderStatusToWire(status),
-          if (reason case final String r) 'reason': r,
-        },
+        data: {'order_status': tenantOrderStatusToWire(status)},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// The tenant's item-level decision on a PENDING order. The backend derives
+  /// the resulting status from [rejectedItemIds]: empty → every item
+  /// accepted, order → PREPARING; some → the rest accepted, order →
+  /// PREPARING; all → order → CANCELLED. 400s if the order is no longer
+  /// PENDING.
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/v1/orders/$orderId/process',
+        data: {'rejected_item_ids': rejectedItemIds},
       );
     } on DioException catch (error) {
       throw mapDioError(error);

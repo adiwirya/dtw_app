@@ -233,15 +233,7 @@ class _IdentityCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.asset(
-                  detail.brandLogoAsset,
-                  width: 24,
-                  height: 24,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              _brandLogo(),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -268,6 +260,32 @@ class _IdentityCard extends StatelessWidget {
           _summaryBox(),
         ],
       ),
+    );
+  }
+
+  /// The round brand logo chip, or a plain storefront placeholder when
+  /// there's no [CompletedOrderDetail.brandLogoAsset] (a delivery can span
+  /// multiple brands, so there's often no single logo to show).
+  Widget _brandLogo() {
+    final asset = detail.brandLogoAsset;
+    if (asset == null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 24,
+          height: 24,
+          color: AppColors.neutralTint,
+          child: const Icon(
+            Icons.storefront,
+            size: 16,
+            color: AppColors.neutral500,
+          ),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.asset(asset, width: 24, height: 24, fit: BoxFit.cover),
     );
   }
 

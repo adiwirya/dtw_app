@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
@@ -16,8 +17,10 @@ import 'package:go_router/go_router.dart';
 /// One screen hosts all three date tabs (Hari Ini / Kemarin / 7 Hari
 /// Terakhir); the shared [SegmentedTabBar] switches the date-grouped history
 /// list in place (mirroring the Order home's sub-tab pattern via
-/// [riwayatTabProvider]). Rows open `detail-riwayat`. Hosted inside the app
-/// shell, so the bottom nav is provided by `AppShell`.
+/// [riwayatTabProvider]). Backed by the real, zone-scoped
+/// [riwayatBoardProvider] (`GET /api/v1/busboy/deliveries?status=DELIVERED`),
+/// bucketed client-side by [riwayatDaysFrom]. Rows open `detail-riwayat`.
+/// Hosted inside the app shell, so the bottom nav is provided by `AppShell`.
 class RiwayatScreen extends ConsumerWidget {
   const RiwayatScreen({super.key});
 
@@ -27,15 +30,18 @@ class RiwayatScreen extends ConsumerWidget {
     RiwayatRange.tujuhHari,
   ];
 
-  void _openDetail(BuildContext context) {
-    context.goNamed(AppRoutes.riwayatDetail);
+  void _openDetail(BuildContext context, String entryId) {
+    context.goNamed(
+      AppRoutes.riwayatDetail,
+      pathParameters: {'entryId': entryId},
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final boardAsync = ref.watch(riwayatBoardProvider);
     final selected = ref.watch(riwayatTabProvider);
     final range = _ranges[selected];
-    final days = ref.watch(riwayatDaysProvider(range));
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -68,9 +74,19 @@ class RiwayatScreen extends ConsumerWidget {
                     ],
                   ),
                   Expanded(
-                    child: _HistoryList(
-                      days: days,
-                      onDetail: () => _openDetail(context),
+                    child: boardAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, _) =>
+                          Center(child: Text(errorMessage(error))),
+                      data: (deliveries) => _HistoryList(
+                        days: riwayatDaysFrom(
+                          deliveries,
+                          range,
+                          DateTime.now(),
+                        ),
+                        onDetail: (entryId) => _openDetail(context, entryId),
+                      ),
                     ),
                   ),
                 ],
@@ -90,7 +106,7 @@ class _HistoryList extends StatelessWidget {
   const _HistoryList({required this.days, required this.onDetail});
 
   final List<RiwayatDayGroup> days;
-  final VoidCallback onDetail;
+  final ValueChanged<String> onDetail;
 
   static const TextStyle _dateStyle = TextStyle(
     color: AppColors.neutral900,
@@ -106,6 +122,18 @@ class _HistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (days.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Belum ada riwayat pesanan.',
+            style: TextStyle(color: AppColors.neutral500, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
     final children = <Widget>[];
     for (var g = 0; g < days.length; g++) {
       final group = days[g];
@@ -123,7 +151,10 @@ class _HistoryList extends StatelessWidget {
         ..add(const SizedBox(height: 12));
       for (var e = 0; e < group.entries.length; e++) {
         if (e > 0) children.add(const SizedBox(height: 12));
-        children.add(HistoryRow(entry: group.entries[e], onTap: onDetail));
+        final entry = group.entries[e];
+        children.add(
+          HistoryRow(entry: entry, onTap: () => onDetail(entry.id)),
+        );
       }
     }
 

@@ -1,20 +1,38 @@
+import 'dart:async';
+
 import 'package:dtw_app/core/models/completed_order_detail.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
+import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
-import 'package:flutter/material.dart';
+import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:obra_icons/obra_icons.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'order_provider.g.dart';
 
-// TODO(open-question): the order data source, real state transitions, empty /
-// error / loading, and pagination are all unresolved (Open Questions 2–5).
-// Everything below is hard-coded, in-memory mock data harvested from the
-// `menu-order-*` Figma references, and the Baru → Antar → Selesai movement is a
-// UI-only mock. When the real source lands, replace these synchronous providers
-// with an async repository fetch (`Future<OrderBoard>` backed by dio, per
-// knowledge/riverpod-patterns.md) and have the screen consume the AsyncValue.
+// The Order board (list + claim + complete) and the completed-order detail
+// below are real, backed by `BusboyDeliveryRepository`. `orderHeaderStats`
+// (the 3 summary stats on the Order home) has no backing endpoint yet and
+// stays mock.
+
+/// Derives the three Menu Order sub-tab lists from the raw fetched
+/// deliveries — pure mapping, kept out of the notifier so it's trivially
+/// testable on its own.
+OrderBoard orderBoardFrom(List<Delivery> deliveries) {
+  final byStatus = <DeliveryStatus, List<OrderCardData>>{
+    for (final status in DeliveryStatus.values) status: [],
+  };
+  for (final delivery in deliveries) {
+    byStatus[delivery.status]!.add(delivery.toOrderCardData());
+  }
+  return OrderBoard(
+    baru: byStatus[DeliveryStatus.pendingPickup]!,
+    antar: byStatus[DeliveryStatus.claimed]!,
+    selesai: byStatus[DeliveryStatus.delivered]!,
+  );
+}
 
 /// The three header summary stats on the Order home (`menu-order-baru`).
 @riverpod
@@ -56,195 +74,142 @@ class OrderTab extends _$OrderTab {
   void selectStatus(OrderStatus status) => state = status.index;
 }
 
-/// The mock Menu Order board, with UI-only Baru → Antar → Selesai transitions.
+/// The busboy's raw delivery list, fetched once from
+/// `GET /api/v1/busboy/deliveries` and kept live via
+/// `BusboyRealtimeService.deliveryCreated` (`private-zone.<zoneId>`,
+/// `delivery.created`) — no polling. The Order screen's three sub-tabs are
+/// [orderBoardFrom] projections of this same list, and [orderDetailProvider]
+/// looks a single delivery up out of it, so `claim`/`deliver` only need to
+/// mutate this one list for every dependent view to update together.
 @riverpod
 class OrderBoardNotifier extends _$OrderBoardNotifier {
+  StreamSubscription<Map<String, dynamic>>? _deliveryCreatedSubscription;
+
   @override
-  OrderBoard build() {
-    return const OrderBoard(
-      baru: [
-        OrderCardData(
-          orderId: '92842',
-          time: '10:31 WIB',
-          tenantName: 'KFC Fried Chicken',
-          tableName: 'Meja A-12',
-          location: 'Downtown',
-          customerName: 'Budi Santoso',
-          itemCount: 2,
-          status: OrderStatus.baru,
-        ),
-        OrderCardData(
-          orderId: '92842',
-          time: '10:31 WIB',
-          tenantName: 'Solaria',
-          tableName: 'Meja A-12',
-          location: 'Downtown',
-          customerName: 'Budi Santoso',
-          itemCount: 3,
-          status: OrderStatus.baru,
-        ),
-      ],
-      antar: [
-        OrderCardData(
-          orderId: '92842',
-          time: '10:31 WIB',
-          tenantName: 'KFC Fried Chicken',
-          tableName: 'Meja A-12',
-          location: 'Downtown',
-          customerName: 'Budi Santoso',
-          itemCount: 2,
-          status: OrderStatus.antar,
-        ),
-        OrderCardData(
-          orderId: '92842',
-          time: '10:31 WIB',
-          tenantName: 'Solaria',
-          tableName: 'Meja A-12',
-          location: 'Downtown',
-          customerName: 'Septian Adityo',
-          itemCount: 2,
-          status: OrderStatus.antar,
-        ),
-      ],
-      selesai: [
-        OrderCardData(
-          orderId: '92842',
-          time: '10:31 WIB',
-          tenantName: 'KFC Fried Chicken',
-          tableName: 'Meja A-12',
-          location: 'Downtown',
-          customerName: 'Budi Santoso',
-          itemCount: 3,
-          status: OrderStatus.selesai,
-          deliveredDate: '12 Mei 2024',
-          deliveredTime: '10:45 WIB',
-        ),
-      ],
+  Future<List<Delivery>> build() async {
+    final zoneId =
+        await ref.watch(localStorageProvider).read(busboyZoneIdStorageKey);
+    if (zoneId == null) {
+      throw StateError('OrderBoardNotifier requires a zone-scoped session');
+    }
+
+    final repository = ref.watch(busboyDeliveryRepositoryProvider);
+    final realtime = ref.watch(busboyRealtimeServiceProvider);
+
+    ref.onDispose(() {
+      unawaited(_deliveryCreatedSubscription?.cancel() ?? Future.value());
+    });
+
+    // Mirrors `TenantOrderBoard`: `state.value` is null until the initial
+    // fetch resolves, so events that arrive during that window are buffered
+    // here (keyed by id, to collapse a same-delivery redelivery) and folded
+    // into the fetched list once it's ready — see that class for the fuller
+    // rationale.
+    final pendingDuringFetch = <String, Delivery>{};
+    var initialFetchSettled = false;
+    _deliveryCreatedSubscription = realtime.deliveryCreated.listen((payload) {
+      final delivery = Delivery.fromJson(payload);
+      if (state.value == null && !initialFetchSettled) {
+        pendingDuringFetch[delivery.id] = delivery;
+      } else {
+        _onDeliveryCreated(delivery);
+      }
+    });
+
+    final List<Delivery> deliveries;
+    try {
+      deliveries = await repository.fetchDeliveries();
+    } finally {
+      initialFetchSettled = true;
+    }
+    if (pendingDuringFetch.isEmpty) return deliveries;
+
+    final fetchedIds = deliveries.map((d) => d.id).toSet();
+    final fresh = pendingDuringFetch.values.where(
+      (d) => !fetchedIds.contains(d.id),
     );
+    return [...fresh, ...deliveries];
   }
 
-  /// Promote the Baru order at [index] to the Antar tab (the detail screen's
-  /// "Ambil Pesanan" action). UI-only mock.
-  void takeBaru(int index) {
-    final board = state;
-    if (index < 0 || index >= board.baru.length) return;
-    final taken = _withStatus(board.baru[index], OrderStatus.antar);
-    state = board.copyWith(
-      baru: [...board.baru]..removeAt(index),
-      antar: [...board.antar, taken],
-    );
+  void _onDeliveryCreated(Delivery delivery) {
+    final current = state.value;
+    if (current == null) return;
+    if (current.any((d) => d.id == delivery.id)) return;
+    state = AsyncData([delivery, ...current]);
   }
 
-  /// Promote the Antar order at [index] to the Selesai tab (the "Sampai dimeja"
-  /// action). UI-only mock.
-  void deliverAntar(int index) {
-    final board = state;
-    if (index < 0 || index >= board.antar.length) return;
-    final src = board.antar[index];
-    final delivered = OrderCardData(
-      orderId: src.orderId,
-      time: src.time,
-      tenantName: src.tenantName,
-      tableName: src.tableName,
-      location: src.location,
-      customerName: src.customerName,
-      itemCount: src.itemCount,
-      status: OrderStatus.selesai,
-      deliveredDate: '12 Mei 2024',
-      deliveredTime: '10:45 WIB',
-    );
-    state = board.copyWith(
-      antar: [...board.antar]..removeAt(index),
-      selesai: [...board.selesai, delivered],
-    );
-  }
+  /// Claims a PENDING_PICKUP delivery (the detail screen's "Ambil Pesanan"
+  /// action) — `POST /deliveries/{id}/claim`.
+  Future<void> claim(String deliveryId) => _transition(
+        deliveryId,
+        DeliveryStatus.claimed,
+        (repository) => repository.claim(deliveryId),
+      );
 
-  OrderCardData _withStatus(OrderCardData d, OrderStatus status) {
-    return OrderCardData(
-      orderId: d.orderId,
-      time: d.time,
-      tenantName: d.tenantName,
-      tableName: d.tableName,
-      location: d.location,
-      customerName: d.customerName,
-      itemCount: d.itemCount,
-      status: status,
-      deliveredDate: d.deliveredDate,
-      deliveredTime: d.deliveredTime,
-    );
+  /// Completes a CLAIMED delivery (the "Sampai dimeja" action) —
+  /// `POST /deliveries/{id}/complete`.
+  Future<void> deliver(String deliveryId) => _transition(
+        deliveryId,
+        DeliveryStatus.delivered,
+        (repository) => repository.complete(deliveryId),
+      );
+
+  Future<void> _transition(
+    String deliveryId,
+    DeliveryStatus target,
+    Future<void> Function(BusboyDeliveryRepository repository) call,
+  ) async {
+    final current = state.value;
+    if (current == null) {
+      throw StateError(
+        'OrderBoardNotifier: cannot move delivery $deliveryId to $target — '
+        'the board has not finished loading',
+      );
+    }
+    final index = current.indexWhere((d) => d.id == deliveryId);
+    if (index == -1) {
+      throw StateError(
+        'OrderBoardNotifier: cannot move delivery $deliveryId to $target — '
+        'it is not on the board',
+      );
+    }
+    final previous = current[index];
+    state = AsyncData([
+      for (final d in current)
+        if (d.id == deliveryId) previous.copyWith(status: target) else d,
+    ]);
+
+    try {
+      await call(ref.read(busboyDeliveryRepositoryProvider));
+    } on Object catch (_) {
+      state = AsyncData(current);
+      rethrow;
+    }
   }
 }
 
-/// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-/// id; only the single harvested mock (`92842`) exists for now.
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardNotifierProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
 @riverpod
-OrderDetail orderDetail(Ref ref, String orderId) {
-  return const OrderDetail(
-    orderId: '92842',
-    time: '10:31 WIB',
-    tenantName: 'KFC Fried Chicken',
-    tableName: 'Meja A-12',
-    location: 'Downtown',
-    customerName: 'Budi Santoso',
-    itemCount: 3,
-    items: [
-      OrderLineItem(qty: 1, name: 'Paket Super Besar', price: 'Rp35.000'),
-      OrderLineItem(qty: 1, name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-    note: '-',
-  );
+OrderDetail? orderDetail(Ref ref, String orderId) {
+  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  if (deliveries == null) return null;
+  for (final delivery in deliveries) {
+    if (delivery.id == orderId) return delivery.toOrderDetail();
+  }
+  return null;
 }
 
-// TODO(open-question): the completed-order detail data source is unresolved
-// (Open Question 2 / work item L5). This is hard-coded, in-memory mock data
-// harvested from the `detail-selesai` reference; when the real source lands,
-// replace this synchronous provider with an async repository fetch keyed by
-// order id and have the screen consume the AsyncValue.
-/// Mock detail for the `detail-selesai` (completed-order detail) page. The
-/// frame is identical to `detail-riwayat` except the `Informasi Pesanan`
-/// "Tenan" value, which here shows the tenant name (`KFC Fried Chicken`).
+/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
 @riverpod
-CompletedOrderDetail completedOrderDetail(Ref ref) {
-  return const CompletedOrderDetail(
-    orderId: '92842',
-    tenantName: 'KFC Fried Chicken',
-    brandLogoAsset: 'assets/images/brand-kfc.png',
-    tableName: 'Meja A-12',
-    location: 'Downtown',
-    waktuAntar: '4 Menit',
-    diselesaikan: '12 Mei 2026, 10:45',
-    flowSteps: [
-      DetailFlowStep(
-        // TODO(open-question): no obra concierge-bell glyph; approximated.
-        icon: Icons.room_service_outlined,
-        label: 'Diambil',
-        timestamp: '12 Mei 2026, 10:27',
-      ),
-      DetailFlowStep(
-        // TODO(open-question): no obra hand-platter glyph; approximated.
-        icon: Icons.restaurant_outlined,
-        label: 'Diantar',
-        timestamp: '12 Mei 2026, 10:30',
-      ),
-      DetailFlowStep(
-        icon: ObraIcons.circle_check,
-        label: 'Sampai Dimeja',
-        timestamp: '12 Mei 2026, 10:45',
-      ),
-    ],
-    infoRows: [
-      DetailInfoRow(label: 'Tenan', value: 'KFC Fried Chicken'),
-      DetailInfoRow(label: 'Meja', value: 'A-12'),
-      DetailInfoRow(label: 'Zona', value: 'Downtown'),
-      DetailInfoRow(label: 'Pelanggan', value: 'Budi Santoso'),
-      DetailInfoRow(label: 'Jumlah Item', value: '2 Item'),
-      DetailInfoRow(label: 'Catatan Tenan', value: '-'),
-    ],
-    lineItems: [
-      DetailLineItem(qty: 1, name: 'Paket Super Besar', price: 'Rp35.000'),
-      DetailLineItem(qty: 1, name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-  );
+CompletedOrderDetail? completedOrderDetail(Ref ref, String orderId) {
+  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  if (deliveries == null) return null;
+  for (final delivery in deliveries) {
+    if (delivery.id == orderId) return delivery.toCompletedOrderDetail();
+  }
+  return null;
 }

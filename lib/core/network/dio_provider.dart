@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,8 +40,14 @@ Dio dio(Ref ref) {
           } on Object catch (_) {
             // Swallowed intentionally — see comment above.
           }
+          try {
+            await ref.read(busboyRealtimeServiceProvider).disconnect();
+          } on Object catch (_) {
+            // Swallowed intentionally — see comment above.
+          }
           ref.read(isLoggedInProvider.notifier).state = false;
           ref.read(sessionBranchIdProvider.notifier).state = null;
+          ref.read(sessionZoneIdProvider.notifier).state = null;
         }
         handler.next(error);
       },

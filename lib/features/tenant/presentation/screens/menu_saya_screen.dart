@@ -5,6 +5,7 @@ import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/menu_provider.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/kelola_menu_sheet.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_filter_tabs.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_item_card.dart';
@@ -39,6 +40,7 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
   @override
   Widget build(BuildContext context) {
     final menusAsync = ref.watch(menuListProvider);
+    final branch = ref.watch(currentTenantBranchProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -59,6 +61,8 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
                         ? ObraIcons.add
                         : ObraIcons.sliders,
                     onAction: _onHeaderAction,
+                    subtitleName: branch?.branchName ?? '',
+                    subtitleBooth: branch?.areaName ?? '',
                   ),
                   const SizedBox(height: 16),
                   const AppInput(

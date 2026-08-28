@@ -182,8 +182,10 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                       TenantRoutes.pesananDitolak,
                       pathParameters: {'orderId': order.orderId},
                     ),
-                    onOpenDetail: (order) =>
-                        context.goNamed(TenantRoutes.orderDetail),
+                    onOpenDetail: (order) => context.goNamed(
+                      TenantRoutes.orderDetail,
+                      pathParameters: {'orderId': order.orderId},
+                    ),
                   ),
           ),
         ),
@@ -235,9 +237,6 @@ class _OrderList extends StatelessWidget {
         final order = orders[i];
         return IncomingOrderCard(
           data: order,
-          acceptLabel: order.status == IncomingOrderStatus.baru
-              ? 'Terima (29s)'
-              : null,
           onTap: () => onOpenDetail(order),
           onAccept: () => onAccept(order),
           onReject: () => onReject(order),

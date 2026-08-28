@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'support/busboy_board.dart';
+
 void main() {
   testWidgets('App boots on the login screen (outside the shell)',
       (tester) async {
@@ -20,7 +22,9 @@ void main() {
   testWidgets('Tab switching changes the hosted screen', (tester) async {
     // Tab switching is independent of auth — authenticate directly via the
     // provider so the redirect guard doesn't bounce back to /login.
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: busboyBoardOverrides(dio: cannedDeliveryListDio([])),
+    );
     addTearDown(container.dispose);
     container.read(isLoggedInProvider.notifier).state = true;
 

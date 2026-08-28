@@ -9,16 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../support/canned_dio.dart';
 import '../../../support/tenant_board.dart';
 
-Widget _host({required Dio dio, bool initialOnline = false}) => ProviderScope(
+Widget _host({required Dio dio}) => ProviderScope(
       overrides: [
         localStorageProvider.overrideWithValue(branchScopedStorage()),
         tenantBranchRepositoryProvider.overrideWithValue(
           TenantBranchRepository(dio: dio),
         ),
       ],
-      child: MaterialApp(
-        home: AdminStatusScreen(initialOnline: initialOnline),
-      ),
+      child: const MaterialApp(home: AdminStatusScreen()),
     );
 
 Dio _cannedBranch({required bool isActive}) => cannedDio(
@@ -45,23 +43,6 @@ void main() {
       expect(find.text('Janji Jiwa'), findsOneWidget);
       expect(find.text('Bergabung Sejak'), findsOneWidget);
       expect(find.text('7 Agustus 2026'), findsOneWidget);
-    });
-
-    testWidgets('offline entry point renders the OFFLINE state',
-        (tester) async {
-      await tester.pumpWidget(_host(dio: _cannedBranch(isActive: false)));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Offline'), findsOneWidget); // hero pill
-    });
-
-    testWidgets('online entry point renders the ONLINE state', (tester) async {
-      await tester.pumpWidget(
-        _host(dio: _cannedBranch(isActive: false), initialOnline: true),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Online'), findsOneWidget); // hero pill
     });
 
     // The API has no booth/location, rating, contact or operating-hours

@@ -1,19 +1,12 @@
 import 'package:dtw_app/core/models/completed_order_detail.dart';
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/order/data/models/delivery.dart';
+import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
 import 'package:dtw_app/features/riwayat/data/models/riwayat_models.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:obra_icons/obra_icons.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'riwayat_provider.g.dart';
-
-// TODO(open-question): the Riwayat history data source, empty / loading /
-// error states, and pagination are all unresolved (Open Questions 2/4/5).
-// Everything below is hard-coded, in-memory mock data harvested from the
-// `riwayat-*` Figma references. When the real source lands, replace this
-// synchronous provider with an async repository fetch (`Future<List<
-// RiwayatDayGroup>>` backed by dio, per knowledge/riverpod-patterns.md) keyed
-// by [RiwayatRange], and have the screen consume the AsyncValue.
 
 /// Currently selected Riwayat date tab, as an index into
 /// `[hariIni, kemarin, tujuhHari]`. Kept as app state (not screen-local) so the
@@ -32,122 +25,80 @@ class RiwayatTab extends _$RiwayatTab {
   void selectRange(RiwayatRange range) => state = range.index;
 }
 
-// --- Mock day groups (harvested from the riwayat-* references) -------------
-
-const _hariIniGroup = RiwayatDayGroup(
-  date: '12 Mei 2026',
-  entries: [
-    RiwayatEntry(
-      time: '10:45',
-      statusLabel: 'Selesai',
-      tenantName: 'KFC Fried Chicken',
-      tableName: 'Meja A-12',
-      location: 'Downtown',
-    ),
-    RiwayatEntry(
-      time: '10:45',
-      statusLabel: 'Selesai',
-      tenantName: 'Starbucks',
-      tableName: 'Meja A-12',
-      location: 'Downtown',
-    ),
-    RiwayatEntry(
-      time: '10:45',
-      statusLabel: 'Selesai',
-      tenantName: 'J.CO Donuts',
-      tableName: 'Meja A-12',
-      location: 'Downtown',
-    ),
-  ],
-);
-
-const _kemarinGroup = RiwayatDayGroup(
-  date: '11 Mei 2026',
-  entries: [
-    RiwayatEntry(
-      time: '10:45',
-      statusLabel: 'Selesai',
-      tenantName: 'Solaria',
-      tableName: 'Meja A-12',
-      location: 'Downtown',
-    ),
-    RiwayatEntry(
-      time: '10:45',
-      statusLabel: 'Selesai',
-      tenantName: 'Starbucks',
-      tableName: 'Meja A-12',
-      location: 'Downtown',
-    ),
-  ],
-);
-
-/// Mock history for a [RiwayatRange].
-///
-/// - [RiwayatRange.hariIni] → today's single day group.
-/// - [RiwayatRange.kemarin] → yesterday's single day group.
-/// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-///   the multi-day `riwayat-7-hari` reference.
+/// The busboy's completed-delivery history, fetched once from
+/// `GET /api/v1/busboy/deliveries?status=DELIVERED`. [riwayatDaysFrom]
+/// buckets this same list by date for each [RiwayatRange] tab, and
+/// [riwayatDetailProvider] looks a single entry up out of it.
+// TODO(open-question): the busboy API has no date-range query param, so this
+// fetches every DELIVERED delivery (unbounded, no pagination) and buckets by
+// date client-side — fine for now, but will need a real range/pagination
+// param from backend once delivery history grows large.
 @riverpod
-List<RiwayatDayGroup> riwayatDays(Ref ref, RiwayatRange range) {
-  switch (range) {
-    case RiwayatRange.hariIni:
-      return const [_hariIniGroup];
-    case RiwayatRange.kemarin:
-      return const [_kemarinGroup];
-    case RiwayatRange.tujuhHari:
-      return const [_hariIniGroup, _kemarinGroup];
+class RiwayatBoard extends _$RiwayatBoard {
+  @override
+  Future<List<Delivery>> build() async {
+    final zoneId =
+        await ref.watch(localStorageProvider).read(busboyZoneIdStorageKey);
+    if (zoneId == null) {
+      throw StateError('RiwayatBoard requires a zone-scoped session');
+    }
+    return ref
+        .watch(busboyDeliveryRepositoryProvider)
+        .fetchDeliveries(status: DeliveryStatus.delivered);
   }
 }
 
-// TODO(open-question): the history-entry detail data source is unresolved (Open
-// Question 2 / work item L5). This is hard-coded, in-memory mock data harvested
-// from the `detail-riwayat` reference; when the real source lands, replace this
-// synchronous provider with an async repository fetch keyed by entry id and
-// have the screen consume the AsyncValue.
-/// Mock detail for the `detail-riwayat` (history entry detail) page. The frame
-/// is identical to `detail-selesai` except the `Informasi Pesanan` "Tenan"
-/// value, which here shows the tenant subtotal (`Rp35.000`).
+/// Buckets [deliveries] into date-grouped, newest-first [RiwayatDayGroup]s for
+/// [range] — pure mapping, kept out of the notifier so it's trivially
+/// testable on its own.
+///
+/// - [RiwayatRange.hariIni] → today's deliveries only.
+/// - [RiwayatRange.kemarin] → yesterday's deliveries only.
+/// - [RiwayatRange.tujuhHari] → the last 7 days (today inclusive).
+List<RiwayatDayGroup> riwayatDaysFrom(
+  List<Delivery> deliveries,
+  RiwayatRange range,
+  DateTime now,
+) {
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+  final sevenDaysAgo = today.subtract(const Duration(days: 6));
+
+  bool inRange(DateTime day) => switch (range) {
+        RiwayatRange.hariIni => day == today,
+        RiwayatRange.kemarin => day == yesterday,
+        RiwayatRange.tujuhHari =>
+          !day.isBefore(sevenDaysAgo) && !day.isAfter(today),
+      };
+
+  final byDay = <DateTime, List<Delivery>>{};
+  for (final delivery in deliveries) {
+    final day = delivery.riwayatDay;
+    if (!inRange(day)) continue;
+    (byDay[day] ??= []).add(delivery);
+  }
+
+  final sortedDays = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
+  return [
+    for (final day in sortedDays)
+      RiwayatDayGroup(
+        date: Delivery.formatDate(day),
+        entries: [
+          for (final delivery in byDay[day]!) delivery.toRiwayatEntry(),
+        ],
+      ),
+  ];
+}
+
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
 @riverpod
-CompletedOrderDetail riwayatDetail(Ref ref) {
-  return const CompletedOrderDetail(
-    orderId: '92842',
-    tenantName: 'KFC Fried Chicken',
-    brandLogoAsset: 'assets/images/brand-kfc.png',
-    tableName: 'Meja A-12',
-    location: 'Downtown',
-    waktuAntar: '4 Menit',
-    diselesaikan: '12 Mei 2026, 10:45',
-    flowSteps: [
-      DetailFlowStep(
-        // TODO(open-question): no obra concierge-bell glyph; approximated.
-        icon: Icons.room_service_outlined,
-        label: 'Diambil',
-        timestamp: '12 Mei 2026, 10:27',
-      ),
-      DetailFlowStep(
-        // TODO(open-question): no obra hand-platter glyph; approximated.
-        icon: Icons.restaurant_outlined,
-        label: 'Diantar',
-        timestamp: '12 Mei 2026, 10:30',
-      ),
-      DetailFlowStep(
-        icon: ObraIcons.circle_check,
-        label: 'Sampai Dimeja',
-        timestamp: '12 Mei 2026, 10:45',
-      ),
-    ],
-    infoRows: [
-      DetailInfoRow(label: 'Tenan', value: 'Rp35.000'),
-      DetailInfoRow(label: 'Meja', value: 'A-12'),
-      DetailInfoRow(label: 'Zona', value: 'Downtown'),
-      DetailInfoRow(label: 'Pelanggan', value: 'Budi Santoso'),
-      DetailInfoRow(label: 'Jumlah Item', value: '2 Item'),
-      DetailInfoRow(label: 'Catatan Tenan', value: '-'),
-    ],
-    lineItems: [
-      DetailLineItem(qty: 1, name: 'Paket Super Besar', price: 'Rp35.000'),
-      DetailLineItem(qty: 1, name: 'Es Lemon Tea', price: 'Rp5.000'),
-    ],
-    total: 'Rp40.000',
-  );
+CompletedOrderDetail? riwayatDetail(Ref ref, String entryId) {
+  final deliveries = ref.watch(riwayatBoardProvider).valueOrNull;
+  if (deliveries == null) return null;
+  for (final delivery in deliveries) {
+    if (delivery.id == entryId) return delivery.toCompletedOrderDetail();
+  }
+  return null;
 }

@@ -65,6 +65,39 @@ void main() {
     expect(storage.values[tenantBranchIdStorageKey], 'branch-1');
   });
 
+  test('loginWithPassword persists the zone id for a zone-scoped login',
+      () async {
+    final storage = FakeLocalStorage();
+    final repository = AuthRepository(
+      dio: cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {
+          'access_token': 'tok_123',
+          'user': {'id': 'u1', 'username': 'busboy1'},
+          'abilities': <dynamic>[],
+          'scopes': [
+            {'type': 'zone', 'zone_id': 'zone-1'},
+          ],
+        },
+      }),
+      localStorage: storage,
+    );
+
+    final response = await repository.loginWithPassword(
+      username: 'busboy1',
+      password: 'secret',
+    );
+
+    expect(response.zoneId, 'zone-1');
+    expect(storage.values[busboyZoneIdStorageKey], 'zone-1');
+    expect(storage.values.containsKey(tenantBranchIdStorageKey), isFalse);
+  });
+
   test('loginWithPassword throws AuthException with fieldErrors on 422', () async {
     final storage = FakeLocalStorage();
     final repository = AuthRepository(
@@ -168,5 +201,6 @@ void main() {
     await repository.logout();
 
     expect(storage.values.containsKey(authTokenStorageKey), isFalse);
+    expect(storage.values.containsKey(busboyZoneIdStorageKey), isFalse);
   });
 }

@@ -307,9 +307,11 @@ StatefulShellRoute tenantShellRoute() {
               // menu-order-baru-2: the Order view reached from a card
               // tap (a prototype duplicate of the Baru home).
               GoRoute(
-                path: 'baru-2',
+                path: 'baru-2/:orderId',
                 name: TenantRoutes.orderDetail,
-                builder: (context, state) => const TenantOrderDetailScreen(),
+                builder: (context, state) => TenantOrderDetailScreen(
+                  orderId: state.pathParameters['orderId']!,
+                ),
               ),
               // menu-diproses: the same Order home seeded to the
               // "Diproses" sub-tab.
@@ -345,15 +347,15 @@ StatefulShellRoute tenantShellRoute() {
                 ),
               ),
               // konfirmasi-pesanan: the same reject screen deep-linked to
-              // its reason-chosen state. The seeded reason is prototype
-              // frame state (like `initialStatus` / `prefilled`
-              // elsewhere in this router), not order data.
+              // its some-items-rejected state. The seed is prototype frame
+              // state (like `initialStatus` / `prefilled` elsewhere in this
+              // router), not order data.
               GoRoute(
                 path: 'konfirmasi/:orderId',
                 name: TenantRoutes.konfirmasiPesanan,
                 builder: (context, state) => TenantRejectOrderScreen(
                   orderId: state.pathParameters['orderId']!,
-                  initialReason: RejectReasonOption.stokHabis.title,
+                  seedFirstItemRejected: true,
                 ),
               ),
               // alasan-penolakan (modal): reason capture. Primary UX is a
@@ -587,15 +589,14 @@ StatefulShellRoute tenantShellRoute() {
             name: TenantRoutes.admin,
             builder: (context, state) => const AdminStatusScreen(),
             routes: [
-              // admin-online: same screen, seeded online. The prototype
-              // "Set Online" button flips state in place, so this route
-              // is a secondary entry point (e.g. deep-link), not the
-              // toggle's target.
+              // admin-online: same screen as admin-offline — the
+              // online/offline distinction was removed (no real toggle
+              // ever set it), so both frames render identically. The
+              // route stays for frame-route stability.
               GoRoute(
                 path: 'online',
                 name: TenantRoutes.adminOnline,
-                builder: (context, state) =>
-                    const AdminStatusScreen(initialOnline: true),
+                builder: (context, state) => const AdminStatusScreen(),
               ),
             ],
           ),

@@ -164,9 +164,11 @@ GoRouter appRouter(Ref ref) {
                 builder: (context, state) => const OrderScreen(),
                 routes: [
                   GoRoute(
-                    path: 'detail',
+                    path: 'detail/:orderId',
                     name: AppRoutes.orderDetail,
-                    builder: (context, state) => const OrderDetailScreen(),
+                    builder: (context, state) => OrderDetailScreen(
+                      orderId: state.pathParameters['orderId']!,
+                    ),
                   ),
                   // The Order home shows all three sub-tabs in place; these
                   // routes deep-link into the right sub-tab by setting the
@@ -191,10 +193,11 @@ GoRouter appRouter(Ref ref) {
                         const _OrderTabDeepLink(status: OrderStatus.selesai),
                     routes: [
                       GoRoute(
-                        path: 'detail',
+                        path: 'detail/:orderId',
                         name: AppRoutes.orderSelesaiDetail,
-                        builder: (context, state) =>
-                            const OrderSelesaiDetailScreen(),
+                        builder: (context, state) => OrderSelesaiDetailScreen(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
                       ),
                       GoRoute(
                         path: 'berhasil',
@@ -254,9 +257,11 @@ GoRouter appRouter(Ref ref) {
                     ),
                   ),
                   GoRoute(
-                    path: 'detail',
+                    path: 'detail/:entryId',
                     name: AppRoutes.riwayatDetail,
-                    builder: (context, state) => const RiwayatDetailScreen(),
+                    builder: (context, state) => RiwayatDetailScreen(
+                      entryId: state.pathParameters['entryId']!,
+                    ),
                   ),
                 ],
               ),

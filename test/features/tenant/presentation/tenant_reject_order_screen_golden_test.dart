@@ -12,19 +12,18 @@ import '../../../support/tenant_board.dart';
 const _orderId = 'order-1';
 
 /// Self-goldens for the tenant reject screen in its two states
-/// (`pesanan-ditolak`, no reason chosen / `konfirmasi-pesanan`, reason
-/// chosen).
-///
-/// The screen is all-or-nothing: there is no per-item availability state left
-/// to golden, because the API cannot do partial-item rejection (see
-/// `TenantRejectOrderScreen`).
+/// (`pesanan-ditolak`, nothing rejected yet / `konfirmasi-pesanan`, the first
+/// item rejected).
 ///
 /// NOTE: like the other tenant goldens, the harness loads Material + obra icons
 /// but not Open Sans, so these show the default family and cannot be
 /// pixel-diffed against the references — they pin layout against regressions.
 /// Fidelity vs. the references was confirmed separately (see the work-item
 /// report).
-Future<void> _pump(WidgetTester tester, {String? initialReason}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  bool seedFirstItemRejected = false,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -36,6 +35,18 @@ Future<void> _pump(WidgetTester tester, {String? initialReason}) async {
       grandTotal: 40000,
       receiptNumber: 'RCP-92842',
       createdAt: '2024-05-10 10:36:00',
+      items: [
+        tenantOrderItemJson(
+          id: 'item-1',
+          productName: 'Paket Super Besar',
+          subtotal: 35000,
+        ),
+        tenantOrderItemJson(
+          id: 'item-2',
+          productName: 'Es Lemon Tea',
+          subtotal: 5000,
+        ),
+      ],
     ),
   ]);
 
@@ -45,7 +56,7 @@ Future<void> _pump(WidgetTester tester, {String? initialReason}) async {
         path: '/',
         builder: (context, state) => TenantRejectOrderScreen(
           orderId: _orderId,
-          initialReason: initialReason,
+          seedFirstItemRejected: seedFirstItemRejected,
         ),
       ),
       GoRoute(
@@ -69,7 +80,7 @@ Future<void> _pump(WidgetTester tester, {String? initialReason}) async {
 
 void main() {
   testWidgets(
-    'reject screen — pesanan-ditolak (no reason chosen yet)',
+    'reject screen — pesanan-ditolak (nothing rejected yet)',
     (tester) async {
       await _pump(tester);
       await expectLater(
@@ -81,9 +92,9 @@ void main() {
   );
 
   testWidgets(
-    'reject screen — konfirmasi-pesanan (reason chosen)',
+    'reject screen — konfirmasi-pesanan (first item rejected)',
     (tester) async {
-      await _pump(tester, initialReason: 'Stok Habis');
+      await _pump(tester, seedFirstItemRejected: true);
       await expectLater(
         find.byType(TenantRejectOrderScreen),
         matchesGoldenFile('goldens/tenant_konfirmasi_pesanan.png'),

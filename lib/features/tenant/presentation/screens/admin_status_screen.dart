@@ -10,27 +10,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:obra_icons/obra_icons.dart';
 
-/// The Admin-tab home: the store online/offline status screen
-/// (`admin-offline` / `admin-online`).
+/// The Admin-tab home: the tenant profile/status screen (`admin-offline` /
+/// `admin-online` — both routes render this, see `tenant_router.dart`).
 ///
-/// A single screen drives both states: it watches [AdminOnlineStatus] and the
-/// `Set Online` / `Set Offline` button flips the flag **in place** (no
-/// navigation), rebuilding the hero pill, the Status Tenant card and its button
-/// into the other state. The two router entry points (`/admin`, `/admin/online`)
-/// select the starting state via [initialOnline]; hosted in the tenant shell so
-/// the bottom nav is provided by `TenantShell`.
+/// Hosted in the tenant shell so the bottom nav is provided by `TenantShell`.
 class AdminStatusScreen extends ConsumerWidget {
-  const AdminStatusScreen({this.initialOnline = false, super.key});
-
-  /// Starting online state for this entry point (`/admin` → false,
-  /// `/admin/online` → true).
-  final bool initialOnline;
+  const AdminStatusScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statusProvider =
-        adminOnlineStatusProvider(initialOnline: initialOnline);
-    final online = ref.watch(statusProvider);
     final infoAsync = ref.watch(tenantAdminInfoProvider);
 
     return Scaffold(
@@ -38,7 +26,7 @@ class AdminStatusScreen extends ConsumerWidget {
       body: infoAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(errorMessage(error))),
-        data: (info) => _buildBody(context, ref, info, online),
+        data: (info) => _buildBody(context, ref, info),
       ),
     );
   }
@@ -47,7 +35,6 @@ class AdminStatusScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     TenantAdminInfo info,
-    bool online,
   ) {
     final hasOperationalHours =
         info.operationalHours != null && info.operationalDays != null;
@@ -55,7 +42,7 @@ class AdminStatusScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AdminHeroHeader(info: info, online: online),
+        AdminHeroHeader(info: info),
         Expanded(
           child: Container(
             // Pull the white body up so its rounded top overlaps the green

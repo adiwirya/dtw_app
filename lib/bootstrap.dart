@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:flutter/widgets.dart';
@@ -15,6 +16,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   const storage = SecureLocalStorage();
   final token = await storage.read(authTokenStorageKey);
   final branchId = await storage.read(tenantBranchIdStorageKey);
+  final zoneId = await storage.read(busboyZoneIdStorageKey);
 
   final container = ProviderContainer(
     overrides: [
@@ -26,6 +28,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       // what `AuthController.login` sets at login time, from the same
       // storage key `AuthRepository` writes it to.
       sessionBranchIdProvider.overrideWith((ref) => branchId),
+      sessionZoneIdProvider.overrideWith((ref) => zoneId),
       ...overrides,
     ],
   );
@@ -40,6 +43,14 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       container
           .read(tenantRealtimeServiceProvider)
           .connect(token: token, branchId: branchId)
+          .catchError((_) {}),
+    );
+  }
+  if (zoneId != null && token != null && token.isNotEmpty) {
+    unawaited(
+      container
+          .read(busboyRealtimeServiceProvider)
+          .connect(token: token, zoneId: zoneId)
           .catchError((_) {}),
     );
   }

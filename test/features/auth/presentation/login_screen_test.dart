@@ -6,6 +6,7 @@ import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../support/busboy_board.dart';
 import '../../../support/canned_dio.dart';
 import '../../../support/fake_local_storage.dart';
 import '../../../support/fake_tenant_realtime_service.dart';
@@ -61,6 +63,7 @@ void main() {
       required Object? body,
       FakeLocalStorage? storage,
       Dio? orderDio,
+      Dio? deliveryDio,
     }) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
@@ -87,6 +90,10 @@ void main() {
               TenantBranchRepository(dio: tenantBranchDio()),
             ),
           ],
+          if (deliveryDio != null)
+            busboyDeliveryRepositoryProvider.overrideWithValue(
+              BusboyDeliveryRepository(dio: deliveryDio),
+            ),
         ],
       );
       addTearDown(container.dispose);
@@ -103,6 +110,7 @@ void main() {
       await pumpApp(
         tester,
         statusCode: 200,
+        deliveryDio: cannedDeliveryListDio([]),
         body: {
           'meta': {
             'success': true,
@@ -112,12 +120,19 @@ void main() {
           },
           'data': {
             'access_token': 'tok_123',
-            'user': {'id': 'u1', 'username': 'budi'},
+            'user': {'id': 'u1', 'username': 'busboy1'},
+            'abilities': <dynamic>[],
+            'scopes': [
+              {'type': 'zone', 'zone_id': 'zone-1'},
+            ],
           },
         },
       );
 
-      await tester.enterText(find.widgetWithText(AppInput, 'Username'), 'budi');
+      await tester.enterText(
+        find.widgetWithText(AppInput, 'Username'),
+        'busboy1',
+      );
       await tester.enterText(
         find.widgetWithText(AppInput, 'Password'),
         'secret',

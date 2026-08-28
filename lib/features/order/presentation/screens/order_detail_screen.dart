@@ -1,8 +1,10 @@
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
+import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_detail_card.dart';
@@ -15,19 +17,28 @@ import 'package:go_router/go_router.dart';
 /// Interpretation (see report): this is a dedicated full order-detail screen —
 /// its own "Detail Pesanan" nav bar and a bottom "Ambil Pesanan" CTA — NOT an
 /// expanded list-card state and NOT a populated list. It is reached from a
-/// Baru card's "Detail" affordance. The CTA takes the order (mock Baru → Antar)
-/// and raises the shared success modal (`berhasil-ditambahkan`); its
-/// `onConfirm` returns to the Order home on the Antar sub-tab.
+/// Baru card's "Detail" affordance. The CTA claims the real delivery
+/// (`POST /deliveries/{id}/claim`) and raises the shared success modal
+/// (`berhasil-ditambahkan`); its `onConfirm` returns to the Order home on the
+/// Antar sub-tab.
 class OrderDetailScreen extends ConsumerWidget {
-  const OrderDetailScreen({this.orderId = '92842', super.key});
+  const OrderDetailScreen({required this.orderId, super.key});
 
-  /// Order id to load. Defaults to the single harvested mock.
+  /// Delivery id to load (a path parameter — see `app_router.dart`).
   final String orderId;
 
   Future<void> _take(BuildContext context, WidgetRef ref) async {
-    // TODO(open-question): the detail screen isn't parameterised by list index
-    // yet (only one mock order exists); take the first Baru order.
-    ref.read(orderBoardNotifierProvider.notifier).takeBaru(0);
+    try {
+      await ref.read(orderBoardNotifierProvider.notifier).claim(orderId);
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage(error))));
+      return;
+    }
+
+    if (!context.mounted) return;
     await showSuccessModal(
       context,
       // Uses the SuccessModal frame defaults (Tugas Berhasil Diambil! …).
@@ -40,6 +51,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final boardAsync = ref.watch(orderBoardNotifierProvider);
     final detail = ref.watch(orderDetailProvider(orderId));
 
     return Scaffold(
@@ -56,26 +68,56 @@ class OrderDetailScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               clipBehavior: Clip.antiAlias,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                children: [
-                  OrderDetailCard(
-                    detail: detail,
-                    onCall: () {
-                      // TODO(open-question): calling the customer is out of
-                      // scope / no telephony flow specified.
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _SummaryCard(detail: detail),
-                  const SizedBox(height: 16),
-                  _NoteCard(note: detail.note),
-                ],
-              ),
+              child: _buildBody(boardAsync, detail),
             ),
           ),
-          _BottomAction(onPressed: () => _take(context, ref)),
+          if (detail != null)
+            _BottomAction(onPressed: () => _take(context, ref)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    AsyncValue<List<Delivery>> boardAsync,
+    OrderDetail? detail,
+  ) {
+    if (detail != null) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          OrderDetailCard(
+            detail: detail,
+            onCall: () {
+              // TODO(open-question): calling the customer is out of
+              // scope / no telephony flow specified.
+            },
+          ),
+          const SizedBox(height: 16),
+          _SummaryCard(detail: detail),
+          const SizedBox(height: 16),
+          _NoteCard(note: detail.note),
+        ],
+      );
+    }
+    if (boardAsync.hasError) {
+      return Center(child: Text(errorMessage(boardAsync.error!)));
+    }
+    if (boardAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Pesanan tidak ditemukan di daftar order.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.neutral500,
+            fontSize: 14,
+            height: 1.2,
+          ),
+        ),
       ),
     );
   }

@@ -105,33 +105,6 @@ void main() {
     );
 
     test(
-      'includes reason when provided',
-      () async {
-        final dio = cannedDio(200, {
-          'meta': {
-            'success': true,
-            'message': 'Success',
-            'code': 200,
-            'trace_id': 'abc'
-          },
-        });
-        final repository = TenantOrderRepository(dio: dio);
-
-        await repository.updateStatus(
-          'order-1',
-          status: TenantOrderStatus.cancelled,
-          reason: 'Stok Habis',
-        );
-
-        final adapter = dio.httpClientAdapter as CannedAdapter;
-        expect(adapter.lastRequest!.data, {
-          'order_status': 'CANCELLED',
-          'reason': 'Stok Habis',
-        });
-      },
-    );
-
-    test(
       'throws a mapped ApiException on failure',
       () async {
         final dio = cannedDio(500, {
@@ -156,6 +129,75 @@ void main() {
               'Terjadi kesalahan. Coba lagi.',
             ),
           ),
+        );
+      },
+    );
+  });
+
+  group('processOrder', () {
+    test(
+      'POSTs rejected_item_ids to /process',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await repository.processOrder(
+          'order-1',
+          rejectedItemIds: ['item-1', 'item-2'],
+        );
+
+        final adapter = dio.httpClientAdapter as CannedAdapter;
+        expect(adapter.lastRequest!.path, '/v1/orders/order-1/process');
+        expect(adapter.lastRequest!.method, 'POST');
+        expect(adapter.lastRequest!.data, {
+          'rejected_item_ids': ['item-1', 'item-2'],
+        });
+      },
+    );
+
+    test(
+      'sends an empty list to accept every item',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await repository.processOrder('order-1', rejectedItemIds: const []);
+
+        final adapter = dio.httpClientAdapter as CannedAdapter;
+        expect(adapter.lastRequest!.data, {'rejected_item_ids': <String>[]});
+      },
+    );
+
+    test(
+      'throws a mapped ApiException on failure (e.g. order no longer PENDING)',
+      () async {
+        final dio = cannedDio(400, {
+          'meta': {
+            'success': false,
+            'message': 'Error',
+            'code': 400,
+            'trace_id': 'abc',
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await expectLater(
+          repository.processOrder('order-1', rejectedItemIds: const []),
+          throwsA(isA<ApiException>()),
         );
       },
     );

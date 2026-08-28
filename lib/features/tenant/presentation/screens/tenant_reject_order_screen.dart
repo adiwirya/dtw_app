@@ -3,10 +3,10 @@ import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
-import 'package:dtw_app/core/widgets/success_modal.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
-import 'package:dtw_app/features/tenant/presentation/widgets/reject_reason_sheet.dart';
+import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
+import 'package:dtw_app/features/tenant/presentation/widgets/reject_confirmed_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,26 +42,23 @@ String _formatOrderDateTime(DateTime at) {
   return '${at.day} ${_monthNames[at.month - 1]} ${at.year} $hh:$mm WIB';
 }
 
-/// The `pesanan-ditolak` / `konfirmasi-pesanan` screen: the tenant picks a
-/// reason and confirms that an incoming order is rejected.
+/// The `pesanan-ditolak` / `konfirmasi-pesanan` screen: the tenant marks
+/// which items of a PENDING order are unavailable and confirms.
 ///
-/// **All-or-nothing, deliberately.** This screen used to let the tenant toggle
-/// individual items as unavailable, with copy promising "Pelanggan tetap akan
-/// menerima item yang tersedia". The API supports no such thing — the only
-/// rejection it offers is cancelling the whole order (`PATCH
-/// /v1/orders/{id}/status` -> `CANCELLED`; see [TenantOrderBoard.reject]), and
-/// nothing ever transmitted the per-item selection. Promising partial
-/// fulfillment the backend cannot deliver is worse than not offering it, so
-/// the toggles are gone and this screen captures one cancellation reason for
-/// the order as a unit. Restore per-item selection only once the backend
-/// confirms it supports partial-item rejection.
+/// **Per-item, backed by `POST /v1/orders/{id}/process`.** Toggling an item
+/// off marks it for rejection; confirming sends the rejected items' ids.
+/// The backend derives the outcome: none rejected → every item accepted,
+/// order → PREPARING; some → the rest accepted, order → PREPARING; all →
+/// order → CANCELLED. There is no reason field in that API, so this screen
+/// captures none (a prior all-or-nothing version required a cancellation
+/// reason for a whole-order-only API; that constraint is gone).
 ///
 /// Every value shown is read off the real [tenantOrderBoardProvider] entry for
 /// [orderId] — there is no seeded order data here.
 class TenantRejectOrderScreen extends ConsumerStatefulWidget {
   const TenantRejectOrderScreen({
     required this.orderId,
-    this.initialReason,
+    this.seedFirstItemRejected = false,
     super.key,
   });
 
@@ -74,9 +71,10 @@ class TenantRejectOrderScreen extends ConsumerStatefulWidget {
   /// tenant was shown success feedback.
   final String orderId;
 
-  /// Pre-selects a reason. Only the `konfirmasi-pesanan` deep link uses it, to
-  /// render this screen's reason-chosen state for that prototype frame.
-  final String? initialReason;
+  /// Seeds the first item as already rejected — only the `konfirmasi-pesanan`
+  /// Figma-frame deep link uses this, to preview the some-items-rejected
+  /// state for that prototype frame (see `tenant_router.dart`).
+  final bool seedFirstItemRejected;
 
   @override
   ConsumerState<TenantRejectOrderScreen> createState() =>
@@ -85,46 +83,34 @@ class TenantRejectOrderScreen extends ConsumerStatefulWidget {
 
 class _TenantRejectOrderScreenState
     extends ConsumerState<TenantRejectOrderScreen> {
-  final _otherReasonController = TextEditingController();
-  RejectReasonOption? _selectedOption;
-
   /// The last board entry that matched [TenantRejectOrderScreen.orderId].
   ///
-  /// Confirming optimistically REMOVES the order from the board (a cancelled
-  /// order is not shown), so a purely live lookup would flip this screen to
-  /// its not-found state underneath the success modal. Holding the last
-  /// resolved snapshot keeps the confirmed order on screen until the caller
-  /// navigates away.
+  /// Confirming optimistically REMOVES a fully-rejected order from the board
+  /// (see `TenantOrderBoard._process`), so a purely live lookup would flip
+  /// this screen to its not-found state underneath the success modal.
+  /// Holding the last resolved snapshot keeps the confirmed order on screen
+  /// until the caller navigates away.
   TenantOrder? _lastResolved;
   bool _submitting = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final initial = widget.initialReason;
-    if (initial == null) return;
-    for (final option in RejectReasonOption.values) {
-      if (option.title == initial) {
-        _selectedOption = option;
-        return;
-      }
-    }
-    _otherReasonController.text = initial;
+  /// Local, per-item availability state. Seeded once from [_lastResolved]'s
+  /// items (see [build]) and then only ever mutated by
+  /// [_onAvailabilityChanged] — a live board re-fetch must never clobber a
+  /// toggle the tenant already made.
+  List<OrderLineItem>? _items;
+
+  List<OrderLineItem> _seedItems(TenantOrder order) {
+    final items = order.items;
+    if (!widget.seedFirstItemRejected || items.isEmpty) return items;
+    return [items.first.copyWith(available: false), ...items.skip(1)];
   }
 
-  @override
-  void dispose() {
-    _otherReasonController.dispose();
-    super.dispose();
-  }
-
-  /// The free-text reason wins over the selected preset, mirroring
-  /// [RejectReasonSheet]. Null means "no reason given yet" — the CTA stays
-  /// disabled, since a cancellation the customer sees should say why.
-  String? get _reason {
-    final custom = _otherReasonController.text.trim();
-    if (custom.isNotEmpty) return custom;
-    return _selectedOption?.title;
+  void _onAvailabilityChanged(int index, bool available) {
+    setState(() {
+      final items = List<OrderLineItem>.of(_items!);
+      items[index] = items[index].copyWith(available: available);
+      _items = items;
+    });
   }
 
   TenantOrder? _findOrder(List<TenantOrder>? orders) {
@@ -144,14 +130,18 @@ class _TenantRejectOrderScreenState
   }
 
   Future<void> _confirm(TenantOrder order) async {
-    final reason = _reason;
-    if (reason == null || _submitting) return;
+    if (_submitting) return;
+    final items = _items ?? const <OrderLineItem>[];
+    final rejectedItemIds = [
+      for (final item in items)
+        if (!item.available) item.id,
+    ];
     setState(() => _submitting = true);
 
     try {
       await ref
           .read(tenantOrderBoardProvider.notifier)
-          .reject(order.id, reason: reason);
+          .reject(order.id, rejectedItemIds: rejectedItemIds);
     } on Object catch (error) {
       // Covers both the mapped ApiException from the repository and the
       // StateError the board throws when the target order is not on it — a
@@ -165,23 +155,17 @@ class _TenantRejectOrderScreenState
     }
 
     if (!mounted) return;
-    await showSuccessModal(
+    final acceptedCount = items.length - rejectedItemIds.length;
+    final acceptedTotal = formatRupiah(
+      items
+          .where((item) => item.available)
+          .fold<int>(0, (sum, item) => sum + item.subtotal),
+    );
+    await showRejectConfirmedModal(
       context,
-      title: rejectedOrderModalTitle,
-      message: 'Seluruh pesanan dibatalkan dan pelanggan akan diberi tahu',
-      confirmLabel: 'Selesai',
-      details: [
-        SuccessModalDetail(
-          icon: Icons.receipt_long_outlined,
-          label: 'Pesanan',
-          value: '#${order.id}',
-        ),
-        SuccessModalDetail(
-          icon: Icons.info_outline,
-          label: 'Alasan penolakan',
-          value: reason,
-        ),
-      ],
+      acceptedCount: acceptedCount,
+      rejectedCount: rejectedItemIds.length,
+      acceptedTotal: acceptedTotal,
       onConfirm: () => context.goNamed(TenantRoutes.pesananDiproses),
     );
   }
@@ -190,7 +174,21 @@ class _TenantRejectOrderScreenState
   Widget build(BuildContext context) {
     final board = ref.watch(tenantOrderBoardProvider);
     final order = _findOrder(board.value) ?? _lastResolved;
-    if (order != null) _lastResolved = order;
+    if (order != null) {
+      _lastResolved = order;
+      _items ??= List.of(_seedItems(order));
+    }
+    final items = _items;
+    final rejectedCount =
+        items == null ? 0 : items.where((item) => !item.available).length;
+    final acceptedCount = items == null ? 0 : items.length - rejectedCount;
+    final acceptedTotal = formatRupiah(
+      items == null
+          ? 0
+          : items
+              .where((item) => item.available)
+              .fold<int>(0, (sum, item) => sum + item.subtotal),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -203,12 +201,15 @@ class _TenantRejectOrderScreenState
             Expanded(
               child: order == null
                   ? _placeholderFor(board)
-                  : _buildReasonForm(order),
+                  : _buildRejectForm(order, items!),
             ),
             if (order != null)
               _BottomSummary(
-                orderTotal: formatRupiah(order.grandTotal),
-                onConfirm: _reason == null || _submitting
+                availableCount: acceptedCount,
+                totalItems: items?.length ?? 0,
+                rejectedCount: rejectedCount,
+                acceptedTotal: acceptedTotal,
+                onConfirm: rejectedCount == 0 || _submitting
                     ? null
                     : () => _confirm(order),
               ),
@@ -259,7 +260,7 @@ class _TenantRejectOrderScreenState
     );
   }
 
-  Widget _buildReasonForm(TenantOrder order) {
+  Widget _buildRejectForm(TenantOrder order, List<OrderLineItem> items) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
@@ -269,10 +270,10 @@ class _TenantRejectOrderScreenState
           dateTime: _formatOrderDateTime(order.createdAt),
         ),
         const SizedBox(height: 16),
-        const _WholeOrderWarning(),
+        const _InfoBanner(),
         const SizedBox(height: 16),
         const Text(
-          'Alasan Penolakan',
+          'Daftar Item',
           style: TextStyle(
             color: AppColors.neutral900,
             fontSize: 16,
@@ -280,41 +281,22 @@ class _TenantRejectOrderScreenState
             height: 1.2,
           ),
         ),
-        const SizedBox(height: 12),
-        for (final option in RejectReasonOption.values) ...[
-          RejectReasonOptionRow(
-            option: option,
-            selected: _selectedOption == option,
-            onTap: () => setState(() => _selectedOption = option),
+        const SizedBox(height: 16),
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(height: 16),
+          OrderItemAvailabilityRow(
+            item: items[i],
+            onAvailabilityChanged: (available) =>
+                _onAvailabilityChanged(i, available),
           ),
-          const SizedBox(height: 12),
         ],
-        RejectOtherReasonField(
-          controller: _otherReasonController,
-          onChanged: (_) => setState(() {}),
-        ),
       ],
     );
   }
 }
 
-/// Heading of the rejection-confirmed modal.
-const String rejectedOrderModalTitle = 'Pesanan ditolak';
-
 /// Shown when the requested order id is not on the loaded board.
 const String orderNotFoundMessage = 'Pesanan tidak ditemukan di daftar order.';
-
-/// Banner heading: this action cancels the entire order, not selected items.
-const String wholeOrderRejectionTitle = 'Seluruh pesanan akan ditolak';
-
-/// Banner body spelling out the consequence of confirming.
-const String wholeOrderRejectionBody =
-    'Penolakan berlaku untuk semua item. Pesanan dibatalkan dan pelanggan '
-    'akan diberi tahu.';
-
-/// Label of the bottom CTA. Distinct from the old "Konfirmasi Pesanan", which
-/// read as confirming (i.e. accepting) the order.
-const String rejectOrderConfirmLabel = 'Konfirmasi Penolakan';
 
 /// White top bar: back chevron + centered dark title.
 class _RejectNavBar extends StatelessWidget {
@@ -459,26 +441,22 @@ class _OrderInfoRow extends StatelessWidget {
   }
 }
 
-/// The banner spelling out that this cancels the ENTIRE order.
-///
-/// Replaces the old green "Anda dapat menolak sebagian item" /
-/// "Pelanggan tetap akan menerima item yang tersedia" pair, which promised
-/// partial fulfillment the API cannot perform.
-class _WholeOrderWarning extends StatelessWidget {
-  const _WholeOrderWarning();
+/// The light-green info banner explaining partial rejection.
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.dangerTint,
+        color: AppColors.successTint,
         borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(12),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info, size: 24, color: AppColors.dangerRed),
+          Icon(Icons.info, size: 24, color: AppColors.successGreen),
           SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -486,7 +464,7 @@ class _WholeOrderWarning extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  wholeOrderRejectionTitle,
+                  'Anda dapat menolak sebagian item',
                   style: TextStyle(
                     color: AppColors.neutral900,
                     fontSize: 14,
@@ -496,7 +474,7 @@ class _WholeOrderWarning extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  wholeOrderRejectionBody,
+                  'Pelanggan tetap akan menerima item yang tersedia',
                   style: TextStyle(
                     color: AppColors.neutral500,
                     fontSize: 12,
@@ -512,16 +490,31 @@ class _WholeOrderWarning extends StatelessWidget {
   }
 }
 
-/// The pinned bottom summary + confirm CTA. [onConfirm] is null until a reason
-/// has been given, which disables the button.
+/// The pinned bottom summary + "Konfirmasi Pesanan" CTA. [onConfirm] is null
+/// until at least one item is rejected — this screen exists to reject items;
+/// accepting everything is the card's "Terima" button instead.
 class _BottomSummary extends StatelessWidget {
-  const _BottomSummary({required this.orderTotal, required this.onConfirm});
+  const _BottomSummary({
+    required this.availableCount,
+    required this.totalItems,
+    required this.rejectedCount,
+    required this.acceptedTotal,
+    required this.onConfirm,
+  });
 
-  final String orderTotal;
+  final int availableCount;
+  final int totalItems;
+  final int rejectedCount;
+  final String acceptedTotal;
   final VoidCallback? onConfirm;
 
   @override
   Widget build(BuildContext context) {
+    final hasRejected = rejectedCount > 0;
+    final availabilityText = hasRejected
+        ? '$availableCount dari $totalItems item tersedia'
+        : '$availableCount item tersedia';
+
     return Material(
       color: AppColors.white,
       elevation: 8,
@@ -545,19 +538,48 @@ class _BottomSummary extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (hasRejected) ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info,
+                        size: 20,
+                        color: AppColors.dangerRed,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$rejectedCount item ditolak oleh tenant',
+                          style: const TextStyle(
+                            color: AppColors.neutral900,
+                            fontSize: 14,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.neutral100,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Container(
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: AppColors.dangerTint,
+                        color: AppColors.successTint,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.shopping_bag_outlined,
                         size: 18,
-                        color: AppColors.dangerRed,
+                        color: AppColors.successGreen,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -581,7 +603,7 @@ class _BottomSummary extends StatelessWidget {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Total dibatalkan',
+                                'Total diterima',
                                 style: TextStyle(
                                   color: AppColors.neutral500,
                                   fontSize: 12,
@@ -593,11 +615,11 @@ class _BottomSummary extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Seluruh item ditolak',
+                                  availabilityText,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: AppColors.neutral500,
                                     fontSize: 12,
                                     height: 1.2,
@@ -606,9 +628,9 @@ class _BottomSummary extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                orderTotal,
+                                acceptedTotal,
                                 style: const TextStyle(
-                                  color: AppColors.dangerRed,
+                                  color: AppColors.successGreen,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   height: 1.2,
@@ -623,7 +645,7 @@ class _BottomSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 PrimaryButton(
-                  label: rejectOrderConfirmLabel,
+                  label: 'Konfirmasi Pesanan',
                   onPressed: onConfirm,
                 ),
               ],

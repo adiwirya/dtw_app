@@ -74,9 +74,11 @@ void main() {
 
       expect(order.tableNumber, 'A-01');
       expect(order.items, hasLength(1));
+      expect(order.items.single.id, 'item-1');
       expect(order.items.single.name, 'Sahabat Latte');
       expect(order.items.single.qty, 1);
       expect(order.items.single.price, 'Rp5.000');
+      expect(order.items.single.subtotal, 5000);
     });
 
     test('leaves tableNumber null when the API does not send it', () {

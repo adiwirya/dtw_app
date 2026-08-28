@@ -1,12 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/network/dio_provider.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/canned_dio.dart';
+import '../../support/fake_busboy_realtime_service.dart';
 import '../../support/fake_local_storage.dart';
 import '../../support/fake_tenant_realtime_service.dart';
 
@@ -57,10 +59,13 @@ void main() {
     await storage.write(authTokenStorageKey, 'tok_abc');
     final realtime = FakeTenantRealtimeService();
     addTearDown(realtime.close);
+    final busboyRealtime = FakeBusboyRealtimeService();
+    addTearDown(busboyRealtime.close);
     final container = ProviderContainer(
       overrides: [
         localStorageProvider.overrideWithValue(storage),
         tenantRealtimeServiceProvider.overrideWithValue(realtime),
+        busboyRealtimeServiceProvider.overrideWithValue(busboyRealtime),
       ],
     );
     addTearDown(container.dispose);
@@ -77,5 +82,6 @@ void main() {
 
     expect(container.read(isLoggedInProvider), isFalse);
     expect(realtime.disconnectCallCount, 1);
+    expect(busboyRealtime.disconnectCallCount, 1);
   });
 }

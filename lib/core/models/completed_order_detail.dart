@@ -67,7 +67,6 @@ class CompletedOrderDetail {
   const CompletedOrderDetail({
     required this.orderId,
     required this.tenantName,
-    required this.brandLogoAsset,
     required this.tableName,
     required this.location,
     required this.waktuAntar,
@@ -76,6 +75,7 @@ class CompletedOrderDetail {
     required this.infoRows,
     required this.lineItems,
     required this.total,
+    this.brandLogoAsset,
   });
 
   /// Order number without the leading `#`. Rendered as `#<orderId>`.
@@ -85,7 +85,10 @@ class CompletedOrderDetail {
   final String tenantName;
 
   /// Asset key for the brand logo chip, e.g. `assets/images/brand-kfc.png`.
-  final String brandLogoAsset;
+  /// Null when there's no real per-brand logo to show — a delivery can span
+  /// multiple brands, so there's no single logo anyway; the view falls back
+  /// to a plain placeholder tile.
+  final String? brandLogoAsset;
 
   /// Destination table label, e.g. `Meja A-12`.
   final String tableName;

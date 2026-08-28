@@ -2,6 +2,7 @@ import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/features/performa/presentation/widgets/section_card.dart';
 import 'package:dtw_app/features/tenant/data/models/laporan_report.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/laporan_provider.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/laporan_charts.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/laporan_header.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/laporan_lists.dart';
@@ -20,6 +21,7 @@ class LaporanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final report = ref.watch(laporanReportProvider);
+    final branch = ref.watch(currentTenantBranchProvider).valueOrNull;
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -30,8 +32,11 @@ class LaporanScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               LaporanHeader(
-                tenantName: report.tenantName,
-                tableLabel: report.tableLabel,
+                // The report body below is still all mock data (see
+                // `laporan_provider.dart`), but tenant identity is real —
+                // same fix as the Order/Menu headers.
+                tenantName: branch?.branchName ?? report.tenantName,
+                tableLabel: branch?.areaName ?? report.tableLabel,
                 filters: report.filters,
                 activeFilter: report.activeFilter,
               ),

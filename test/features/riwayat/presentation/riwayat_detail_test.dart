@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/widgets/completed_detail_view.dart';
 import 'package:dtw_app/features/riwayat/presentation/screens/riwayat_detail_screen.dart';
 import 'package:dtw_app/features/riwayat/presentation/screens/riwayat_screen.dart';
@@ -7,6 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../support/busboy_board.dart';
+import '../../../support/canned_dio.dart';
+
+const _entryId = 'delivery-1';
+
 /// Minimal router exercising the Riwayat → history-entry detail flow so
 /// navigation targets can be asserted without the full app shell.
 GoRouter _router() => GoRouter(
@@ -14,56 +20,116 @@ GoRouter _router() => GoRouter(
       routes: [
         GoRoute(
           path: '/riwayat',
-          name: 'riwayat',
+          name: AppRoutes.riwayat,
           builder: (_, _) => const RiwayatScreen(),
           routes: [
             GoRoute(
-              path: 'detail',
-              name: 'riwayatDetail',
-              builder: (_, _) => const RiwayatDetailScreen(),
+              path: 'detail/:entryId',
+              name: AppRoutes.riwayatDetail,
+              builder: (context, state) => RiwayatDetailScreen(
+                entryId: state.pathParameters['entryId']!,
+              ),
             ),
           ],
         ),
       ],
     );
 
-Widget _wrapScreen() {
-  return const ProviderScope(
-    child: MaterialApp(home: RiwayatDetailScreen()),
+Future<CannedAdapter> _pump(
+  WidgetTester tester, {
+  String entryId = _entryId,
+}) async {
+  tester.view.physicalSize = const Size(390, 950);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  final dio = cannedDeliveryListDio([
+    deliveryJson(
+      id: _entryId,
+      status: 'DELIVERED',
+      tableNumber: 'A-12',
+      claimedAt: '2026-08-27 10:27:00',
+      deliveredAt: '2026-08-27 10:45:00',
+      orders: [
+        deliveryOrderJson(
+          orderId: 'order-1',
+          items: [
+            deliveryItemJson(productName: 'Paket Super Besar'),
+            deliveryItemJson(productName: 'Es Lemon Tea'),
+          ],
+        ),
+      ],
+    ),
+  ]);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: busboyBoardOverrides(dio: dio),
+      child: MaterialApp.router(
+        routerConfig: GoRouter(
+          initialLocation: '/detail/$entryId',
+          routes: [
+            GoRoute(
+              path: '/detail/:entryId',
+              builder: (context, state) => RiwayatDetailScreen(
+                entryId: state.pathParameters['entryId']!,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
+  await tester.pumpAndSettle();
+  return dio.httpClientAdapter as CannedAdapter;
 }
 
 void main() {
-  testWidgets('renders the key detail-riwayat content', (tester) async {
-    tester.view.physicalSize = const Size(390, 950);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(_wrapScreen());
-    await tester.pumpAndSettle();
+  testWidgets('renders the key detail-riwayat content off the real delivery',
+      (tester) async {
+    await _pump(tester);
 
     expect(find.text('Detail Pesanan'), findsOneWidget);
-    expect(find.text('#92842'), findsOneWidget);
+    expect(find.text('#$_entryId'), findsOneWidget);
     expect(find.text('Alur Tugas'), findsOneWidget);
     expect(find.text('Informasi Pesanan'), findsOneWidget);
     expect(find.text('Rincian item'), findsOneWidget);
+    expect(find.text('Diambil'), findsOneWidget);
     expect(find.text('Sampai Dimeja'), findsOneWidget);
-    expect(find.text('Rp40.000'), findsOneWidget);
-    // detail-riwayat's "Tenan" info-row value is the subtotal Rp35.000, which
-    // also appears as the first line-item price.
-    expect(find.text('Rp35.000'), findsNWidgets(2));
-    // The tenant name appears once (card title only), unlike detail-selesai.
-    expect(find.text('KFC Fried Chicken'), findsOneWidget);
+    // 10:45 - 10:27 = 18 minutes.
+    expect(find.text('18 Menit'), findsOneWidget);
+    // No price data on the busboy API — shown as a placeholder, not
+    // fabricated.
+    expect(find.text('-'), findsWidgets);
+    // The tenant name appears both as the card title and the "Tenan" row.
+    expect(find.text('Janji Jiwa'), findsNWidgets(2));
+  });
+
+  testWidgets('an unknown entry id surfaces not-found, not a crash',
+      (tester) async {
+    await _pump(tester, entryId: 'ghost-entry');
+
+    expect(find.text('Riwayat tidak ditemukan.'), findsOneWidget);
+    expect(find.byType(CompletedDetailView), findsNothing);
   });
 
   testWidgets('back button pops to the previous route', (tester) async {
+    final dio = cannedDeliveryListDio([
+      deliveryJson(id: _entryId, status: 'DELIVERED'),
+    ]);
     final router = _router();
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      ProviderScope(
+        overrides: busboyBoardOverrides(dio: dio),
+        child: MaterialApp.router(routerConfig: router),
+      ),
     );
     await tester.pumpAndSettle();
 
-    router.goNamed('riwayatDetail');
+    router.goNamed(
+      AppRoutes.riwayatDetail,
+      pathParameters: {'entryId': _entryId},
+    );
     await tester.pumpAndSettle();
     expect(find.byType(RiwayatDetailScreen), findsOneWidget);
 
@@ -74,23 +140,36 @@ void main() {
     expect(find.byType(RiwayatScreen), findsOneWidget);
   });
 
-  testWidgets('a Riwayat row lands on the real detail screen, not a '
-      'placeholder', (tester) async {
+  testWidgets('a Riwayat row lands on the real detail screen for that '
+      'delivery, not a placeholder', (tester) async {
     tester.view.physicalSize = const Size(390, 950);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
+    final now = DateTime.now();
+    final dio = cannedDeliveryListDio([
+      deliveryJson(
+        id: _entryId,
+        status: 'DELIVERED',
+        // Riwayat defaults to the "Hari Ini" tab, which buckets against the
+        // real DateTime.now() — a fixed past date would fall off it.
+        deliveredAt: '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+            '${now.day.toString().padLeft(2, '0')} 10:45:00',
+      ),
+    ]);
     await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: _router())),
+      ProviderScope(
+        overrides: busboyBoardOverrides(dio: dio),
+        child: MaterialApp.router(routerConfig: _router()),
+      ),
     );
     await tester.pumpAndSettle();
 
-    // Each history row exposes a "Detail" affordance that opens the detail.
     await tester.tap(find.byType(HistoryRow).first);
     await tester.pumpAndSettle();
 
     expect(find.byType(RiwayatDetailScreen), findsOneWidget);
     expect(find.byType(CompletedDetailView), findsOneWidget);
-    expect(find.text('Detail Pesanan'), findsOneWidget);
+    expect(find.text('#$_entryId'), findsOneWidget);
   });
 }

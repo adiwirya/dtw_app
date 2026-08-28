@@ -26,7 +26,7 @@ final orderHeaderStatsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef OrderHeaderStatsRef = AutoDisposeProviderRef<List<OrderHeaderStat>>;
-String _$orderDetailHash() => r'd0f2663f8488a7c0dc4f49bd96aec9314e04dca4';
+String _$orderDetailHash() => r'ba1c8be1515a2615ac5102c06ab7495bd0970ba3';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -49,26 +49,30 @@ class _SystemHash {
   }
 }
 
-/// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-/// id; only the single harvested mock (`92842`) exists for now.
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardNotifierProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
 ///
 /// Copied from [orderDetail].
 @ProviderFor(orderDetail)
 const orderDetailProvider = OrderDetailFamily();
 
-/// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-/// id; only the single harvested mock (`92842`) exists for now.
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardNotifierProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
 ///
 /// Copied from [orderDetail].
-class OrderDetailFamily extends Family<OrderDetail> {
-  /// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-  /// id; only the single harvested mock (`92842`) exists for now.
+class OrderDetailFamily extends Family<OrderDetail?> {
+  /// Looks [orderId] (a delivery id) up out of the same list
+  /// [orderBoardNotifierProvider] holds — null while the board is still
+  /// loading, has errored, or the delivery isn't (or is no longer) on it.
   ///
   /// Copied from [orderDetail].
   const OrderDetailFamily();
 
-  /// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-  /// id; only the single harvested mock (`92842`) exists for now.
+  /// Looks [orderId] (a delivery id) up out of the same list
+  /// [orderBoardNotifierProvider] holds — null while the board is still
+  /// loading, has errored, or the delivery isn't (or is no longer) on it.
   ///
   /// Copied from [orderDetail].
   OrderDetailProvider call(String orderId) {
@@ -97,13 +101,15 @@ class OrderDetailFamily extends Family<OrderDetail> {
   String? get name => r'orderDetailProvider';
 }
 
-/// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-/// id; only the single harvested mock (`92842`) exists for now.
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardNotifierProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
 ///
 /// Copied from [orderDetail].
-class OrderDetailProvider extends AutoDisposeProvider<OrderDetail> {
-  /// Mock order detail for the `menu-order-baru-2` screen. Parameterised by order
-  /// id; only the single harvested mock (`92842`) exists for now.
+class OrderDetailProvider extends AutoDisposeProvider<OrderDetail?> {
+  /// Looks [orderId] (a delivery id) up out of the same list
+  /// [orderBoardNotifierProvider] holds — null while the board is still
+  /// loading, has errored, or the delivery isn't (or is no longer) on it.
   ///
   /// Copied from [orderDetail].
   OrderDetailProvider(String orderId)
@@ -132,7 +138,7 @@ class OrderDetailProvider extends AutoDisposeProvider<OrderDetail> {
   final String orderId;
 
   @override
-  Override overrideWith(OrderDetail Function(OrderDetailRef provider) create) {
+  Override overrideWith(OrderDetail? Function(OrderDetailRef provider) create) {
     return ProviderOverride(
       origin: this,
       override: OrderDetailProvider._internal(
@@ -148,7 +154,7 @@ class OrderDetailProvider extends AutoDisposeProvider<OrderDetail> {
   }
 
   @override
-  AutoDisposeProviderElement<OrderDetail> createElement() {
+  AutoDisposeProviderElement<OrderDetail?> createElement() {
     return _OrderDetailProviderElement(this);
   }
 
@@ -168,13 +174,13 @@ class OrderDetailProvider extends AutoDisposeProvider<OrderDetail> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin OrderDetailRef on AutoDisposeProviderRef<OrderDetail> {
+mixin OrderDetailRef on AutoDisposeProviderRef<OrderDetail?> {
   /// The parameter `orderId` of this provider.
   String get orderId;
 }
 
 class _OrderDetailProviderElement
-    extends AutoDisposeProviderElement<OrderDetail>
+    extends AutoDisposeProviderElement<OrderDetail?>
     with OrderDetailRef {
   _OrderDetailProviderElement(super.provider);
 
@@ -183,28 +189,151 @@ class _OrderDetailProviderElement
 }
 
 String _$completedOrderDetailHash() =>
-    r'f8e6160c25e70a98d8615511df63d157aafc4374';
+    r'd3422f5c74da06722b66a0b9483b81f77c0364c2';
 
-/// Mock detail for the `detail-selesai` (completed-order detail) page. The
-/// frame is identical to `detail-riwayat` except the `Informasi Pesanan`
-/// "Tenan" value, which here shows the tenant name (`KFC Fried Chicken`).
+/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
 ///
 /// Copied from [completedOrderDetail].
 @ProviderFor(completedOrderDetail)
-final completedOrderDetailProvider =
-    AutoDisposeProvider<CompletedOrderDetail>.internal(
-      completedOrderDetail,
-      name: r'completedOrderDetailProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$completedOrderDetailHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
+const completedOrderDetailProvider = CompletedOrderDetailFamily();
+
+/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
+///
+/// Copied from [completedOrderDetail].
+class CompletedOrderDetailFamily extends Family<CompletedOrderDetail?> {
+  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+  /// `detail-selesai` (completed-order detail) page — null while the board is
+  /// still loading, has errored, or the delivery isn't on it.
+  ///
+  /// Copied from [completedOrderDetail].
+  const CompletedOrderDetailFamily();
+
+  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+  /// `detail-selesai` (completed-order detail) page — null while the board is
+  /// still loading, has errored, or the delivery isn't on it.
+  ///
+  /// Copied from [completedOrderDetail].
+  CompletedOrderDetailProvider call(String orderId) {
+    return CompletedOrderDetailProvider(orderId);
+  }
+
+  @override
+  CompletedOrderDetailProvider getProviderOverride(
+    covariant CompletedOrderDetailProvider provider,
+  ) {
+    return call(provider.orderId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'completedOrderDetailProvider';
+}
+
+/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
+///
+/// Copied from [completedOrderDetail].
+class CompletedOrderDetailProvider
+    extends AutoDisposeProvider<CompletedOrderDetail?> {
+  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+  /// `detail-selesai` (completed-order detail) page — null while the board is
+  /// still loading, has errored, or the delivery isn't on it.
+  ///
+  /// Copied from [completedOrderDetail].
+  CompletedOrderDetailProvider(String orderId)
+    : this._internal(
+        (ref) => completedOrderDetail(ref as CompletedOrderDetailRef, orderId),
+        from: completedOrderDetailProvider,
+        name: r'completedOrderDetailProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$completedOrderDetailHash,
+        dependencies: CompletedOrderDetailFamily._dependencies,
+        allTransitiveDependencies:
+            CompletedOrderDetailFamily._allTransitiveDependencies,
+        orderId: orderId,
+      );
+
+  CompletedOrderDetailProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.orderId,
+  }) : super.internal();
+
+  final String orderId;
+
+  @override
+  Override overrideWith(
+    CompletedOrderDetail? Function(CompletedOrderDetailRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: CompletedOrderDetailProvider._internal(
+        (ref) => create(ref as CompletedOrderDetailRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        orderId: orderId,
+      ),
     );
+  }
+
+  @override
+  AutoDisposeProviderElement<CompletedOrderDetail?> createElement() {
+    return _CompletedOrderDetailProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CompletedOrderDetailProvider && other.orderId == orderId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, orderId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef CompletedOrderDetailRef = AutoDisposeProviderRef<CompletedOrderDetail>;
+mixin CompletedOrderDetailRef on AutoDisposeProviderRef<CompletedOrderDetail?> {
+  /// The parameter `orderId` of this provider.
+  String get orderId;
+}
+
+class _CompletedOrderDetailProviderElement
+    extends AutoDisposeProviderElement<CompletedOrderDetail?>
+    with CompletedOrderDetailRef {
+  _CompletedOrderDetailProviderElement(super.provider);
+
+  @override
+  String get orderId => (origin as CompletedOrderDetailProvider).orderId;
+}
+
 String _$orderTabHash() => r'e1c76da6748a4f81085bd1a5c7e7b88675773f57';
 
 /// Currently selected Order sub-tab, as an index into
@@ -226,14 +355,23 @@ final orderTabProvider = AutoDisposeNotifierProvider<OrderTab, int>.internal(
 
 typedef _$OrderTab = AutoDisposeNotifier<int>;
 String _$orderBoardNotifierHash() =>
-    r'd7db957b022400be6f686c2d9ffeb97003362407';
+    r'c83e38a6da04a10a0285b6ae2c5f1f9b8ba604d3';
 
-/// The mock Menu Order board, with UI-only Baru → Antar → Selesai transitions.
+/// The busboy's raw delivery list, fetched once from
+/// `GET /api/v1/busboy/deliveries` and kept live via
+/// `BusboyRealtimeService.deliveryCreated` (`private-zone.<zoneId>`,
+/// `delivery.created`) — no polling. The Order screen's three sub-tabs are
+/// [orderBoardFrom] projections of this same list, and [orderDetailProvider]
+/// looks a single delivery up out of it, so `claim`/`deliver` only need to
+/// mutate this one list for every dependent view to update together.
 ///
 /// Copied from [OrderBoardNotifier].
 @ProviderFor(OrderBoardNotifier)
 final orderBoardNotifierProvider =
-    AutoDisposeNotifierProvider<OrderBoardNotifier, OrderBoard>.internal(
+    AutoDisposeAsyncNotifierProvider<
+      OrderBoardNotifier,
+      List<Delivery>
+    >.internal(
       OrderBoardNotifier.new,
       name: r'orderBoardNotifierProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -243,6 +381,6 @@ final orderBoardNotifierProvider =
       allTransitiveDependencies: null,
     );
 
-typedef _$OrderBoardNotifier = AutoDisposeNotifier<OrderBoard>;
+typedef _$OrderBoardNotifier = AutoDisposeAsyncNotifier<List<Delivery>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

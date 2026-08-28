@@ -1,26 +1,51 @@
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
-import 'package:dtw_app/features/order/data/models/order_models.dart';
-import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_screen.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A board notifier whose Antar sub-tab starts empty (empty-state test).
-class _EmptyAntarBoard extends OrderBoardNotifier {
-  @override
-  OrderBoard build() {
-    final full = super.build();
-    return full.copyWith(antar: const []);
-  }
-}
+import '../../../support/busboy_board.dart';
 
-Widget _wrap({List<Override> overrides = const []}) {
+/// The deliveries backing most tests: 2 pending pickup, 2 claimed, 1 already
+/// delivered — matches the old mock's Baru/Antar/Selesai split so the
+/// existing sub-tab assertions stay meaningful.
+List<Map<String, dynamic>> _seedDeliveries() => [
+  deliveryJson(
+    id: '1',
+    status: 'PENDING_PICKUP',
+    orders: [deliveryOrderJson(orderId: 'order-1')],
+  ),
+  deliveryJson(
+    id: '2',
+    status: 'PENDING_PICKUP',
+    orders: [deliveryOrderJson(orderId: 'order-2', brandName: 'Solaria')],
+  ),
+  deliveryJson(
+    id: '3',
+    status: 'CLAIMED',
+    orders: [deliveryOrderJson(orderId: 'order-3')],
+  ),
+  deliveryJson(
+    id: '4',
+    status: 'CLAIMED',
+    orders: [deliveryOrderJson(orderId: 'order-4', brandName: 'Solaria')],
+  ),
+  deliveryJson(
+    id: '5',
+    status: 'DELIVERED',
+    deliveredAt: '2026-08-27 10:45:00',
+    orders: [deliveryOrderJson(orderId: 'order-5')],
+  ),
+];
+
+Widget _wrap({List<Map<String, dynamic>>? deliveries}) {
   return ProviderScope(
-    overrides: overrides,
+    overrides: busboyBoardOverrides(
+      dio: cannedDeliveryListDio(deliveries ?? _seedDeliveries()),
+    ),
     child: const MaterialApp(home: OrderScreen()),
   );
 }
@@ -42,7 +67,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(OrderCard), findsNWidgets(2));
-    expect(find.text('KFC Fried Chicken'), findsOneWidget);
+    expect(find.text('Janji Jiwa'), findsOneWidget);
+    expect(find.text('Solaria'), findsOneWidget);
     // Baru cards expose the Detail affordance, no action button.
     expect(find.text('Detail'), findsNWidgets(2));
     expect(find.text('Sampai dimeja'), findsNothing);
@@ -62,8 +88,8 @@ void main() {
   testWidgets('an empty sub-tab renders the empty state', (tester) async {
     await tester.pumpWidget(
       _wrap(
-        overrides: [
-          orderBoardNotifierProvider.overrideWith(_EmptyAntarBoard.new),
+        deliveries: [
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         ],
       ),
     );

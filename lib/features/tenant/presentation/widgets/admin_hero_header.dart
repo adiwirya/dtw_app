@@ -7,20 +7,12 @@ import 'package:obra_icons/obra_icons.dart';
 /// (`admin-offline` / `admin-online`).
 ///
 /// Over the `assets/images/admin-hero.png` raster it lays a white status bar,
-/// round brand logo, the tenant name + booth, and a rating chip beside an
-/// online/offline pill. The white body panel drawn by the screen overlaps the
-/// bottom of this band.
+/// round brand logo, the tenant name + booth, and a rating chip. The white
+/// body panel drawn by the screen overlaps the bottom of this band.
 class AdminHeroHeader extends StatelessWidget {
-  const AdminHeroHeader({
-    required this.info,
-    required this.online,
-    super.key,
-  });
+  const AdminHeroHeader({required this.info, super.key});
 
   final TenantAdminInfo info;
-
-  /// Drives the status pill colour + label (green `Online` / red `Offline`).
-  final bool online;
 
   static const double _height = 234;
 
@@ -93,16 +85,10 @@ class AdminHeroHeader extends StatelessWidget {
                   ],
                 ),
               ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (info.heroRating case final rating?) ...[
-                    _ratingChip(rating),
-                    const SizedBox(width: 8),
-                  ],
-                  _statusPill(),
-                ],
-              ),
+              if (info.heroRating case final rating?) ...[
+                const SizedBox(height: 12),
+                _ratingChip(rating),
+              ],
             ],
           ),
         ),
@@ -156,36 +142,6 @@ class AdminHeroHeader extends StatelessWidget {
     );
   }
 
-  Widget _statusPill() {
-    final color = online ? AppColors.successGreen : AppColors.dangerRed;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            online ? 'Online' : 'Offline',
-            style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// White-on-green status bar (`9:41` + signal / wifi / battery). Mirrors the

@@ -8,17 +8,19 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../support/canned_dio.dart';
 import '../../../support/tenant_board.dart';
 
-/// Self-goldens for the Admin status screen (`admin-offline` / `admin-online`).
+/// Self-goldens for the Admin status screen (`admin-offline` / `admin-online`
+/// — both routes render the same `AdminStatusScreen`; the online/offline
+/// distinction was removed, see `AdminHeroHeader`/`tenant_router.dart`).
 ///
 /// NOTE: the headless harness does not load Open Sans (the cache font), so the
 /// goldens show placeholder text glyphs and CANNOT be pixel-diffed against the
 /// Figma `reference.png`. The Obra icon font IS loaded (see
 /// `flutter_test_config.dart`). These goldens pin layout (structure, spacing,
-/// colours, hero + card placement, online/offline styling) against regressions;
-/// fidelity vs. the two references was confirmed separately by rendering and
-/// comparing screenshots (see the work-item report).
+/// colours, hero + card placement) against regressions; fidelity vs. the two
+/// references was confirmed separately by rendering and comparing screenshots
+/// (see the work-item report).
 void main() {
-  Future<void> pumpScreen(WidgetTester tester, {required bool online}) async {
+  Future<void> pumpScreen(WidgetTester tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -30,7 +32,7 @@ void main() {
         'brand_name': 'Janji Jiwa',
         'branch_name': 'KFC Fried Chicken',
         'area_name': 'Downtown',
-        'is_active': online,
+        'is_active': true,
         'created_at': '2024-04-24 10:00:00',
       }),
     );
@@ -42,7 +44,7 @@ void main() {
             TenantBranchRepository(dio: dio),
           ),
         ],
-        child: MaterialApp(home: AdminStatusScreen(initialOnline: online)),
+        child: const MaterialApp(home: AdminStatusScreen()),
       ),
     );
     await tester.pumpAndSettle();
@@ -51,7 +53,7 @@ void main() {
   testWidgets(
     'admin-offline self-golden',
     (tester) async {
-      await pumpScreen(tester, online: false);
+      await pumpScreen(tester);
       await expectLater(
         find.byType(AdminStatusScreen),
         matchesGoldenFile('goldens/admin_offline.png'),
@@ -61,9 +63,10 @@ void main() {
   );
 
   testWidgets(
-    'admin-online self-golden',
+    'admin-online self-golden (same screen as admin-offline, route stays '
+    'for frame-route stability)',
     (tester) async {
-      await pumpScreen(tester, online: true);
+      await pumpScreen(tester);
       await expectLater(
         find.byType(AdminStatusScreen),
         matchesGoldenFile('goldens/admin_online.png'),

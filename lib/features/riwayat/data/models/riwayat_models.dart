@@ -12,12 +12,16 @@ enum RiwayatRange { hariIni, kemarin, tujuhHari }
 @immutable
 class RiwayatEntry {
   const RiwayatEntry({
+    required this.id,
     required this.time,
     required this.statusLabel,
     required this.tenantName,
     required this.tableName,
     required this.location,
   });
+
+  /// The real delivery id — what the `detail-riwayat` route targets.
+  final String id;
 
   /// Completion time, e.g. `10:45`. Rendered top-left of the row.
   final String time;

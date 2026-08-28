@@ -94,8 +94,10 @@ class TenantOrder {
       items: [
         for (final item in rawItems.cast<Map<String, dynamic>>())
           OrderLineItem(
+            id: item['id'] as String,
             name: item['product_name'] as String,
             price: formatRupiah((item['subtotal'] as num).round()),
+            subtotal: (item['subtotal'] as num).round(),
             qty: (item['quantity'] as num).toInt(),
           ),
       ],

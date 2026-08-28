@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -38,6 +39,7 @@ class AuthController extends _$AuthController {
           );
       ref.read(isLoggedInProvider.notifier).state = true;
       ref.read(sessionBranchIdProvider.notifier).state = response.branchId;
+      ref.read(sessionZoneIdProvider.notifier).state = response.zoneId;
       state = const AuthState();
 
       // Reverb only drives live order-status updates on the tenant order
@@ -55,6 +57,16 @@ class AuthController extends _$AuthController {
               .catchError((_) {}),
         );
       }
+      // Same fire-and-forget contract for the busboy zone board.
+      final zoneId = response.zoneId;
+      if (zoneId != null) {
+        unawaited(
+          ref
+              .read(busboyRealtimeServiceProvider)
+              .connect(token: response.accessToken, zoneId: zoneId)
+              .catchError((_) {}),
+        );
+      }
     } catch (error) {
       state = AuthState(error: error);
     }
@@ -69,8 +81,14 @@ class AuthController extends _$AuthController {
     } on Object catch (_) {
       // Swallowed intentionally — see comment above.
     }
+    try {
+      await ref.read(busboyRealtimeServiceProvider).disconnect();
+    } on Object catch (_) {
+      // Swallowed intentionally — see comment above.
+    }
     await ref.read(authRepositoryProvider).logout();
     ref.read(isLoggedInProvider.notifier).state = false;
     ref.read(sessionBranchIdProvider.notifier).state = null;
+    ref.read(sessionZoneIdProvider.notifier).state = null;
   }
 }

@@ -60,7 +60,7 @@ void main() {
       await _pumpScreen(tester);
 
       expect(find.byType(IncomingOrderCard), findsNWidgets(2));
-      expect(find.text('Terima (29s)'), findsNWidgets(2));
+      expect(find.text('Terima'), findsNWidgets(2));
       expect(find.text('Tolak'), findsNWidgets(2));
       expect(find.text('RCP-1'), findsOneWidget);
       expect(find.text('RCP-2'), findsOneWidget);
@@ -75,7 +75,7 @@ void main() {
 
       expect(find.byType(IncomingOrderCard), findsOneWidget);
       expect(find.text('Siap Diambil'), findsOneWidget);
-      expect(find.text('Terima (29s)'), findsNothing);
+      expect(find.text('Terima'), findsNothing);
     });
 
     testWidgets('tapping Selesai shows completed orders with no actions',
@@ -87,7 +87,7 @@ void main() {
 
       expect(find.byType(IncomingOrderCard), findsOneWidget);
       expect(find.text('Siap Diambil'), findsNothing);
-      expect(find.text('Terima (29s)'), findsNothing);
+      expect(find.text('Terima'), findsNothing);
       expect(find.text('Tolak'), findsNothing);
     });
 
@@ -96,7 +96,7 @@ void main() {
       await _pumpScreen(tester, initialStatus: IncomingOrderStatus.diproses);
 
       expect(find.text('Siap Diambil'), findsOneWidget);
-      expect(find.text('Terima (29s)'), findsNothing);
+      expect(find.text('Terima'), findsNothing);
     });
   });
 

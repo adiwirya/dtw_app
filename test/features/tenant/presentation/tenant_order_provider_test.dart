@@ -324,21 +324,54 @@ void main() {
     });
 
     test(
-        'reject removes the order from the board '
-        '(cancelled orders are not shown)', () async {
+        'reject removes the order from the board when every item is '
+        'rejected (cancelled orders are not shown)', () async {
       container = buildContainer(
         statusCode: 200,
-        body: tenantEnvelope([tenantOrderJson(id: '1', status: 'PENDING')]),
+        body: tenantEnvelope([
+          tenantOrderJson(
+            id: '1',
+            status: 'PENDING',
+            items: [tenantOrderItemJson(id: 'item-1')],
+          ),
+        ]),
       );
       await container.read(tenantOrderBoardProvider.future);
 
       await container.read(tenantOrderBoardProvider.notifier).reject(
             '1',
-            reason: 'Stok Habis',
+            rejectedItemIds: ['item-1'],
           );
 
       final orders = container.read(tenantOrderBoardProvider).value!;
       expect(orders, isEmpty);
+    });
+
+    test(
+        'reject moves the order to preparing when only some items are '
+        'rejected', () async {
+      container = buildContainer(
+        statusCode: 200,
+        body: tenantEnvelope([
+          tenantOrderJson(
+            id: '1',
+            status: 'PENDING',
+            items: [
+              tenantOrderItemJson(id: 'item-1'),
+              tenantOrderItemJson(id: 'item-2'),
+            ],
+          ),
+        ]),
+      );
+      await container.read(tenantOrderBoardProvider.future);
+
+      await container.read(tenantOrderBoardProvider.notifier).reject(
+            '1',
+            rejectedItemIds: ['item-1'],
+          );
+
+      final orders = container.read(tenantOrderBoardProvider).value!;
+      expect(orders.single.status, TenantOrderStatus.preparing);
     });
 
     test('reject reverts (order reappears) and rethrows on API failure',
@@ -365,7 +398,7 @@ void main() {
       await expectLater(
         container
             .read(tenantOrderBoardProvider.notifier)
-            .reject('1', reason: 'Stok Habis'),
+            .reject('1', rejectedItemIds: const ['item-1']),
         throwsA(isA<ApiException>()),
       );
 
@@ -424,7 +457,7 @@ void main() {
       await expectLater(
         container
             .read(tenantOrderBoardProvider.notifier)
-            .reject('nope', reason: 'Stok Habis'),
+            .reject('nope', rejectedItemIds: const ['item-1']),
         throwsA(isA<StateError>()),
       );
 
@@ -465,8 +498,8 @@ void main() {
 }
 
 /// A repository whose [fetchOrders] delegates to a real (canned) [Dio] but
-/// whose [updateStatus] always fails, so the rollback path can be tested in
-/// isolation.
+/// whose [updateStatus] and [processOrder] always fail, so the rollback path
+/// can be tested in isolation.
 class _FailingUpdateRepository implements TenantOrderRepository {
   _FailingUpdateRepository({required Dio dio})
       : _delegate = TenantOrderRepository(dio: dio);
@@ -481,7 +514,14 @@ class _FailingUpdateRepository implements TenantOrderRepository {
   Future<void> updateStatus(
     String orderId, {
     required TenantOrderStatus status,
-    String? reason,
+  }) {
+    throw ApiException(message: 'Terjadi kesalahan. Coba lagi.');
+  }
+
+  @override
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
   }) {
     throw ApiException(message: 'Terjadi kesalahan. Coba lagi.');
   }
@@ -516,9 +556,15 @@ class _RecordingReplayRepository implements TenantOrderRepository {
   Future<void> updateStatus(
     String orderId, {
     required TenantOrderStatus status,
-    String? reason,
   }) =>
-      _delegate.updateStatus(orderId, status: status, reason: reason);
+      _delegate.updateStatus(orderId, status: status);
+
+  @override
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) =>
+      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({
@@ -546,9 +592,15 @@ class _FailingReplayRepository implements TenantOrderRepository {
   Future<void> updateStatus(
     String orderId, {
     required TenantOrderStatus status,
-    String? reason,
   }) =>
-      _delegate.updateStatus(orderId, status: status, reason: reason);
+      _delegate.updateStatus(orderId, status: status);
+
+  @override
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) =>
+      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({
@@ -579,9 +631,15 @@ class _DelayedFetchRepository implements TenantOrderRepository {
   Future<void> updateStatus(
     String orderId, {
     required TenantOrderStatus status,
-    String? reason,
   }) =>
-      _delegate.updateStatus(orderId, status: status, reason: reason);
+      _delegate.updateStatus(orderId, status: status);
+
+  @override
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) =>
+      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({

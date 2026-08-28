@@ -31,10 +31,13 @@ class MenuSayaHeader extends StatelessWidget {
   /// Bold heading.
   final String title;
 
-  /// First subtitle segment (tenant name).
+  /// First subtitle segment — the real tenant branch name
+  /// (`currentTenantBranchProvider.branchName`), not the default.
   final String subtitleName;
 
-  /// Second subtitle segment (booth), shown after a dot separator.
+  /// Second subtitle segment, shown after a dot separator. The API has no
+  /// "booth" concept — this is the branch's `areaName`, the closest real
+  /// field, not the default.
   final String subtitleBooth;
 
   @override

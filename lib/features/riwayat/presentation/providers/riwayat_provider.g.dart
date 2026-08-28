@@ -6,7 +6,7 @@ part of 'riwayat_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$riwayatDaysHash() => r'f10bf372c98b6892919bd9a1b04bcc68da5f9583';
+String _$riwayatDetailHash() => r'2caa0ee90e29bce0d3626a6f5987eab0ca38ad16';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,53 +29,41 @@ class _SystemHash {
   }
 }
 
-/// Mock history for a [RiwayatRange].
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
 ///
-/// - [RiwayatRange.hariIni] → today's single day group.
-/// - [RiwayatRange.kemarin] → yesterday's single day group.
-/// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-///   the multi-day `riwayat-7-hari` reference.
-///
-/// Copied from [riwayatDays].
-@ProviderFor(riwayatDays)
-const riwayatDaysProvider = RiwayatDaysFamily();
+/// Copied from [riwayatDetail].
+@ProviderFor(riwayatDetail)
+const riwayatDetailProvider = RiwayatDetailFamily();
 
-/// Mock history for a [RiwayatRange].
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
 ///
-/// - [RiwayatRange.hariIni] → today's single day group.
-/// - [RiwayatRange.kemarin] → yesterday's single day group.
-/// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-///   the multi-day `riwayat-7-hari` reference.
-///
-/// Copied from [riwayatDays].
-class RiwayatDaysFamily extends Family<List<RiwayatDayGroup>> {
-  /// Mock history for a [RiwayatRange].
+/// Copied from [riwayatDetail].
+class RiwayatDetailFamily extends Family<CompletedOrderDetail?> {
+  /// Looks [entryId] (a delivery id) up out of the same list
+  /// [riwayatBoardProvider] holds — null while the board is still loading, has
+  /// errored, or the delivery isn't on it.
   ///
-  /// - [RiwayatRange.hariIni] → today's single day group.
-  /// - [RiwayatRange.kemarin] → yesterday's single day group.
-  /// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-  ///   the multi-day `riwayat-7-hari` reference.
-  ///
-  /// Copied from [riwayatDays].
-  const RiwayatDaysFamily();
+  /// Copied from [riwayatDetail].
+  const RiwayatDetailFamily();
 
-  /// Mock history for a [RiwayatRange].
+  /// Looks [entryId] (a delivery id) up out of the same list
+  /// [riwayatBoardProvider] holds — null while the board is still loading, has
+  /// errored, or the delivery isn't on it.
   ///
-  /// - [RiwayatRange.hariIni] → today's single day group.
-  /// - [RiwayatRange.kemarin] → yesterday's single day group.
-  /// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-  ///   the multi-day `riwayat-7-hari` reference.
-  ///
-  /// Copied from [riwayatDays].
-  RiwayatDaysProvider call(RiwayatRange range) {
-    return RiwayatDaysProvider(range);
+  /// Copied from [riwayatDetail].
+  RiwayatDetailProvider call(String entryId) {
+    return RiwayatDetailProvider(entryId);
   }
 
   @override
-  RiwayatDaysProvider getProviderOverride(
-    covariant RiwayatDaysProvider provider,
+  RiwayatDetailProvider getProviderOverride(
+    covariant RiwayatDetailProvider provider,
   ) {
-    return call(provider.range);
+    return call(provider.entryId);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -90,83 +78,78 @@ class RiwayatDaysFamily extends Family<List<RiwayatDayGroup>> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'riwayatDaysProvider';
+  String? get name => r'riwayatDetailProvider';
 }
 
-/// Mock history for a [RiwayatRange].
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
 ///
-/// - [RiwayatRange.hariIni] → today's single day group.
-/// - [RiwayatRange.kemarin] → yesterday's single day group.
-/// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-///   the multi-day `riwayat-7-hari` reference.
-///
-/// Copied from [riwayatDays].
-class RiwayatDaysProvider extends AutoDisposeProvider<List<RiwayatDayGroup>> {
-  /// Mock history for a [RiwayatRange].
+/// Copied from [riwayatDetail].
+class RiwayatDetailProvider extends AutoDisposeProvider<CompletedOrderDetail?> {
+  /// Looks [entryId] (a delivery id) up out of the same list
+  /// [riwayatBoardProvider] holds — null while the board is still loading, has
+  /// errored, or the delivery isn't on it.
   ///
-  /// - [RiwayatRange.hariIni] → today's single day group.
-  /// - [RiwayatRange.kemarin] → yesterday's single day group.
-  /// - [RiwayatRange.tujuhHari] → both groups stacked (newest first), matching
-  ///   the multi-day `riwayat-7-hari` reference.
-  ///
-  /// Copied from [riwayatDays].
-  RiwayatDaysProvider(RiwayatRange range)
+  /// Copied from [riwayatDetail].
+  RiwayatDetailProvider(String entryId)
     : this._internal(
-        (ref) => riwayatDays(ref as RiwayatDaysRef, range),
-        from: riwayatDaysProvider,
-        name: r'riwayatDaysProvider',
+        (ref) => riwayatDetail(ref as RiwayatDetailRef, entryId),
+        from: riwayatDetailProvider,
+        name: r'riwayatDetailProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
             ? null
-            : _$riwayatDaysHash,
-        dependencies: RiwayatDaysFamily._dependencies,
-        allTransitiveDependencies: RiwayatDaysFamily._allTransitiveDependencies,
-        range: range,
+            : _$riwayatDetailHash,
+        dependencies: RiwayatDetailFamily._dependencies,
+        allTransitiveDependencies:
+            RiwayatDetailFamily._allTransitiveDependencies,
+        entryId: entryId,
       );
 
-  RiwayatDaysProvider._internal(
+  RiwayatDetailProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
     required super.allTransitiveDependencies,
     required super.debugGetCreateSourceHash,
     required super.from,
-    required this.range,
+    required this.entryId,
   }) : super.internal();
 
-  final RiwayatRange range;
+  final String entryId;
 
   @override
   Override overrideWith(
-    List<RiwayatDayGroup> Function(RiwayatDaysRef provider) create,
+    CompletedOrderDetail? Function(RiwayatDetailRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: RiwayatDaysProvider._internal(
-        (ref) => create(ref as RiwayatDaysRef),
+      override: RiwayatDetailProvider._internal(
+        (ref) => create(ref as RiwayatDetailRef),
         from: from,
         name: null,
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
-        range: range,
+        entryId: entryId,
       ),
     );
   }
 
   @override
-  AutoDisposeProviderElement<List<RiwayatDayGroup>> createElement() {
-    return _RiwayatDaysProviderElement(this);
+  AutoDisposeProviderElement<CompletedOrderDetail?> createElement() {
+    return _RiwayatDetailProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is RiwayatDaysProvider && other.range == range;
+    return other is RiwayatDetailProvider && other.entryId == entryId;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, range.hashCode);
+    hash = _SystemHash.combine(hash, entryId.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -174,42 +157,20 @@ class RiwayatDaysProvider extends AutoDisposeProvider<List<RiwayatDayGroup>> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin RiwayatDaysRef on AutoDisposeProviderRef<List<RiwayatDayGroup>> {
-  /// The parameter `range` of this provider.
-  RiwayatRange get range;
+mixin RiwayatDetailRef on AutoDisposeProviderRef<CompletedOrderDetail?> {
+  /// The parameter `entryId` of this provider.
+  String get entryId;
 }
 
-class _RiwayatDaysProviderElement
-    extends AutoDisposeProviderElement<List<RiwayatDayGroup>>
-    with RiwayatDaysRef {
-  _RiwayatDaysProviderElement(super.provider);
+class _RiwayatDetailProviderElement
+    extends AutoDisposeProviderElement<CompletedOrderDetail?>
+    with RiwayatDetailRef {
+  _RiwayatDetailProviderElement(super.provider);
 
   @override
-  RiwayatRange get range => (origin as RiwayatDaysProvider).range;
+  String get entryId => (origin as RiwayatDetailProvider).entryId;
 }
 
-String _$riwayatDetailHash() => r'5f948db57e0dd2a254cace9c1f4c89ff7525d9d1';
-
-/// Mock detail for the `detail-riwayat` (history entry detail) page. The frame
-/// is identical to `detail-selesai` except the `Informasi Pesanan` "Tenan"
-/// value, which here shows the tenant subtotal (`Rp35.000`).
-///
-/// Copied from [riwayatDetail].
-@ProviderFor(riwayatDetail)
-final riwayatDetailProvider =
-    AutoDisposeProvider<CompletedOrderDetail>.internal(
-      riwayatDetail,
-      name: r'riwayatDetailProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$riwayatDetailHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef RiwayatDetailRef = AutoDisposeProviderRef<CompletedOrderDetail>;
 String _$riwayatTabHash() => r'1118aefd371c3b342a7fd644154e5476386f3e89';
 
 /// Currently selected Riwayat date tab, as an index into
@@ -231,5 +192,31 @@ final riwayatTabProvider =
     );
 
 typedef _$RiwayatTab = AutoDisposeNotifier<int>;
+String _$riwayatBoardHash() => r'b7269350f8e7638dc583dc2785a5294900e235eb';
+
+/// The busboy's completed-delivery history, fetched once from
+/// `GET /api/v1/busboy/deliveries?status=DELIVERED`. [riwayatDaysFrom]
+/// buckets this same list by date for each [RiwayatRange] tab, and
+/// [riwayatDetailProvider] looks a single entry up out of it.
+///
+/// TODO(open-question): the busboy API has no date-range query param, so
+/// this fetches every DELIVERED delivery (unbounded, no pagination) and
+/// buckets by date client-side — fine for now, but will need a real
+/// range/pagination param from backend once delivery history grows large.
+///
+/// Copied from [RiwayatBoard].
+@ProviderFor(RiwayatBoard)
+final riwayatBoardProvider =
+    AutoDisposeAsyncNotifierProvider<RiwayatBoard, List<Delivery>>.internal(
+      RiwayatBoard.new,
+      name: r'riwayatBoardProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$riwayatBoardHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$RiwayatBoard = AutoDisposeAsyncNotifier<List<Delivery>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

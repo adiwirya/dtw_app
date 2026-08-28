@@ -20,7 +20,8 @@ void main() {
         routes: [
           GoRoute(
             path: '/',
-            builder: (context, state) => const TenantOrderDetailScreen(),
+            builder: (context, state) =>
+                const TenantOrderDetailScreen(orderId: 'order-1'),
           ),
           GoRoute(
             path: '/ditolak',

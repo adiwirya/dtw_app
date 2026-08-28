@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/busboy_board.dart';
+
 void main() {
   testWidgets(
       'a mid-session logout (e.g. from a 401) redirects to the login screen',
@@ -12,7 +14,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: busboyBoardOverrides(dio: cannedDeliveryListDio([])),
+    );
     addTearDown(container.dispose);
     container.read(isLoggedInProvider.notifier).state = true;
 
