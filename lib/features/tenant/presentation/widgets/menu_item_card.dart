@@ -59,6 +59,24 @@ class MenuItemData {
       );
 }
 
+/// Neutral tile shown when a product has no photo, or its photo fails to load.
+class _ThumbnailPlaceholder extends StatelessWidget {
+  const _ThumbnailPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MenuItemCard._thumb,
+      height: MenuItemCard._thumb,
+      decoration: BoxDecoration(
+        color: AppColors.neutralTint,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.image_outlined, color: AppColors.neutral300),
+    );
+  }
+}
+
 /// Reusable menu list-item card (`menu-saya` / management list).
 ///
 /// Layout: thumbnail, name (+ optional "Populer" badge), price (with optional
@@ -124,17 +142,22 @@ class MenuItemCard extends StatelessWidget {
     );
   }
 
+  /// The product photo from `GET /v1/products`' `image_url`, falling back to
+  /// [_ThumbnailPlaceholder] when the product has none or the image fails to
+  /// load. Mirrors how `AdminHeroHeader` loads the brand logo.
   Widget _thumbnail() {
-    // TODO(open-question): imageUrl is a plain string placeholder; wire a real
-    // image loader once the menu media source exists.
-    return Container(
-      width: _thumb,
-      height: _thumb,
-      decoration: BoxDecoration(
-        color: AppColors.neutralTint,
-        borderRadius: BorderRadius.circular(8),
+    final url = data.imageUrl;
+    if (url == null) return const _ThumbnailPlaceholder();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url,
+        width: _thumb,
+        height: _thumb,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const _ThumbnailPlaceholder(),
       ),
-      child: const Icon(Icons.image_outlined, color: AppColors.neutral300),
     );
   }
 

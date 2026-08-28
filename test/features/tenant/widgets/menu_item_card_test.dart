@@ -32,6 +32,66 @@ void main() {
       expect(find.text('Populer'), findsNothing);
     });
 
+    // `image_url` is a real field on `GET /v1/products`; the thumbnail used to
+    // ignore it and always draw the placeholder.
+    testWidgets('renders the product photo when the API has one',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const MenuItemCard(
+            data: MenuItemData(
+              id: '1',
+              name: 'Paket Super Besar',
+              price: 'Rp35.000',
+              imageUrl: 'https://example.test/paket.png',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Image), findsOneWidget);
+    });
+
+    testWidgets('falls back to the placeholder without a photo',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const MenuItemCard(
+            data: MenuItemData(
+              id: '1',
+              name: 'Paket Super Besar',
+              price: 'Rp35.000',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Image), findsNothing);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    });
+
+    // The harness has no network, so the fetch fails and the errorBuilder must
+    // land on the same placeholder rather than an exception or a blank tile.
+    testWidgets('falls back to the placeholder when the photo fails to load',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const MenuItemCard(
+            data: MenuItemData(
+              id: '1',
+              name: 'Paket Super Besar',
+              price: 'Rp35.000',
+              imageUrl: 'https://example.test/missing.png',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('popular=true shows the Populer label', (tester) async {
       await tester.pumpWidget(
         _host(

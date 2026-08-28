@@ -21,9 +21,6 @@ import 'package:obra_icons/obra_icons.dart';
 ///
 /// The search field filters by variant name client-side over the fetched list
 /// — the endpoint takes no query param for it.
-///
-// TODO(open-question): the variant-form validation rules are unresolved Open
-// Questions.
 class KelolaVarianScreen extends ConsumerStatefulWidget {
   const KelolaVarianScreen({super.key});
 

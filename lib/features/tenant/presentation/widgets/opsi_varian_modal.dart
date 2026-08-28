@@ -16,9 +16,11 @@ import 'package:flutter/material.dart';
 /// [showOpsiVarianModal]; also embeddable directly (golden tests pump it at its
 /// 358 design width).
 ///
-// TODO(open-question): option data + price validation are unresolved Open
-// Questions; this is UI-only (no persistence, no numeric validation beyond
-// stripping non-digits).
+// TODO(open-question): the price is only sanitised (non-digits stripped) and
+// the name only trimmed — there are no server-side rules for either yet. The
+// option itself IS persisted: `TambahVarianScreen` collects what this modal
+// returns and `VariantList.create`/`updateVariant` POST each one through
+// `ModifierGroupRepository.addOption`.
 class OpsiVarianModal extends StatefulWidget {
   const OpsiVarianModal({
     this.initialName = '',
