@@ -117,9 +117,22 @@ void main() {
       );
     }, tags: 'golden');
 
+    // The picker reads the real `variantListProvider` now (it used to render
+    // the hardcoded `savedVariants` const), so it needs the same seeded
+    // branch + canned modifier-group response as `kelola-varian` above —
+    // otherwise its fetch hangs on the unmocked session-storage read and
+    // `pumpAndSettle` times out.
     testWidgets('tambah-varian (Pilih Varian picker)', (tester) async {
-      await _pump(tester, const PilihVarianScreen(),
-          size: const Size(390, 844));
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        size: const Size(390, 844),
+        overrides: _kelolaVarianOverrides([
+          _group('group-1', 'Tingkat Pedas'),
+          _group('group-2', 'Ukuran Minuman'),
+          _group('group-3', 'Extra Topping'),
+        ]),
+      );
       await expectLater(
         find.byType(PilihVarianScreen),
         matchesGoldenFile('goldens/tambah_varian.png'),

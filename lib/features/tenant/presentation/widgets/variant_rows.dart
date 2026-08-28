@@ -13,7 +13,8 @@ class VariantSelectData {
   const VariantSelectData({
     required this.name,
     required this.type,
-    required this.optionNames,
+    required this.optionCount,
+    this.optionNames = const [],
   });
 
   /// Variant name, e.g. `Tingkat Pedas`.
@@ -22,11 +23,18 @@ class VariantSelectData {
   /// Single vs. multi choice — renders the type chip.
   final VariantType type;
 
-  /// Option labels, e.g. `['Original', 'Spicy']`. The row shows `N Opsi` (the
-  /// count) and the comma-joined preview.
-  final List<String> optionNames;
+  /// How many options the variant has, for the `N Opsi` line.
+  ///
+  /// Deliberately independent of [optionNames]: a variant fetched from
+  /// `GET /v1/modifier-groups` knows its `option_count` but not its option
+  /// names. Deriving this from the names instead rendered every such row as
+  /// `0 Opsi`, which is why it is now passed explicitly.
+  final int optionCount;
 
-  int get optionCount => optionNames.length;
+  /// Option labels, e.g. `['Original', 'Spicy']`. Empty when the names aren't
+  /// known (the list endpoint doesn't return them) — the row previews these
+  /// only when non-empty.
+  final List<String> optionNames;
 }
 
 /// Multi-select picker row for attaching existing variants to a menu
@@ -111,15 +119,23 @@ class VariantSelectRow extends StatelessWidget {
                           height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        data.optionNames.join(', '),
-                        style: const TextStyle(
-                          color: AppColors.neutral500,
-                          fontSize: 14,
-                          height: 1.2,
+                      // `GET /v1/modifier-groups` returns `option_count`
+                      // without the options themselves, so a variant from the
+                      // list endpoint has no names to preview. Rendering the
+                      // join unconditionally left a blank line under the
+                      // count — mirrors the same guard in
+                      // `KelolaVarianScreen`'s card.
+                      if (data.optionNames.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          data.optionNames.join(', '),
+                          style: const TextStyle(
+                            color: AppColors.neutral500,
+                            fontSize: 14,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

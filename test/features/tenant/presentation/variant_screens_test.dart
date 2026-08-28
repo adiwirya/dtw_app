@@ -1,3 +1,5 @@
+import 'package:dtw_app/core/widgets/app_input.dart';
+import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_branch.dart';
 import 'package:dtw_app/features/tenant/data/repositories/modifier_group_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
@@ -30,9 +32,34 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-/// `KelolaVarianScreen` fetches the real variant list — seed a branch so it
-/// resolves instead of hanging on the real (unmocked) session-storage read.
-/// [groups] are the raw `GET /v1/modifier-groups` item JSON.
+/// One `GET /v1/modifier-groups` list item. `maxSelections > 1` is what the
+/// app derives `VariantType.ganda` from, and the list endpoint deliberately
+/// carries no `options` — only `option_count`.
+Map<String, dynamic> _group(
+  String id,
+  String name, {
+  int maxSelections = 1,
+  int optionCount = 2,
+}) => {
+  'id': id,
+  'brand_id': 'brand-1',
+  'brand_name': 'Janji Jiwa',
+  'name': name,
+  'description': null,
+  'is_required': true,
+  'min_selections': 1,
+  'max_selections': maxSelections,
+  'sequence_order': 1,
+  'is_active': true,
+  'option_count': optionCount,
+  'created_at': '2026-08-13 11:01:33',
+  'updated_at': '2026-08-13 11:01:33',
+};
+
+/// `KelolaVarianScreen` and `PilihVarianScreen` both fetch the real variant
+/// list — seed a branch so it resolves instead of hanging on the real
+/// (unmocked) session-storage read. [groups] are the raw
+/// `GET /v1/modifier-groups` item JSON.
 List<Override> _kelolaVarianOverrides(List<Map<String, dynamic>> groups) {
   final branch = TenantBranch(
     id: 'branch-1',
@@ -62,17 +89,6 @@ List<Override> _kelolaVarianOverrides(List<Map<String, dynamic>> groups) {
 }
 
 void main() {
-  test('savedVariants model the L6 rules and +price options', () {
-    final pedas = savedVariants.first;
-    expect(pedas.isRequired, isTrue); // Wajib Dipilih
-    expect(pedas.multiSelect, isFalse);
-
-    final topping = savedVariants.firstWhere((v) => v.name == 'Extra Topping');
-    expect(topping.multiSelect, isTrue); // Pilih Lebih dari Satu
-    // L6: options carry a "+price" add-on.
-    expect(topping.options!.any((o) => o.addonPrice != null), isTrue);
-  });
-
   group('KelolaVarianScreen', () {
     testWidgets('empty state shows placeholder + Buat Varian', (tester) async {
       await _pump(
@@ -116,19 +132,118 @@ void main() {
   });
 
   group('PilihVarianScreen (picker)', () {
-    testWidgets('renders rows and seeded selection count', (tester) async {
-      await _pump(tester, const PilihVarianScreen());
+    /// Taps a filter pill by label.
+    ///
+    /// The pills live in a horizontal `ListView`, and the headless harness
+    /// renders text as full-em Ahem boxes — wide enough that the trailing
+    /// pills sit outside the 390px design width. Scroll it into view first or
+    /// `tap` derives an offset outside the render tree and silently misses.
+    Future<void> tapPill(WidgetTester tester, String label) async {
+      final pill = find.text(label);
+      await tester.ensureVisible(pill);
+      await tester.pumpAndSettle();
+      await tester.tap(pill);
+      await tester.pumpAndSettle();
+    }
+
+    List<Override> pickerOverrides() => _kelolaVarianOverrides([
+      _group('group-1', 'Tingkat Pedas'),
+      _group('group-2', 'Ukuran Minuman'),
+      _group('group-3', 'Extra Topping', maxSelections: 3, optionCount: 5),
+    ]);
+
+    // The picker used to render a hardcoded `savedVariants` const with two
+    // rows pre-ticked. It now reads the same real `GET /v1/modifier-groups`
+    // list `KelolaVarianScreen` uses, and starts with nothing selected.
+    testWidgets('renders the real variant list, nothing preselected',
+        (tester) async {
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        overrides: pickerOverrides(),
+      );
+
       expect(find.text('Pilih Varian'), findsOneWidget);
       expect(find.byType(VariantSelectRow), findsNWidgets(3));
-      expect(find.text('2 Varian Dipilih'), findsOneWidget);
+      expect(find.text('Tingkat Pedas'), findsOneWidget);
+      expect(find.text('0 Varian Dipilih'), findsOneWidget);
     });
 
-    testWidgets('tapping a row updates the selection count', (tester) async {
-      await _pump(tester, const PilihVarianScreen());
-      // Third row starts unselected -> tapping it makes it 3 selected.
+    testWidgets('Tambah is disabled until something is selected',
+        (tester) async {
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        overrides: pickerOverrides(),
+      );
+
+      PrimaryButton button() => tester.widget<PrimaryButton>(
+        find.widgetWithText(PrimaryButton, 'Tambah'),
+      );
+      expect(button().onPressed, isNull);
+
       await tester.tap(find.text('Extra Topping'));
       await tester.pumpAndSettle();
-      expect(find.text('3 Varian Dipilih'), findsOneWidget);
+
+      expect(find.text('1 Varian Dipilih'), findsOneWidget);
+      expect(button().onPressed, isNotNull);
+    });
+
+    testWidgets('selection survives filtering (keyed by id, not row index)',
+        (tester) async {
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        overrides: pickerOverrides(),
+      );
+
+      // Select the only Ganda variant, then filter it out and back in.
+      await tester.tap(find.text('Extra Topping'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 Varian Dipilih'), findsOneWidget);
+
+      await tapPill(tester, 'Tunggal (2)');
+      expect(find.byType(VariantSelectRow), findsNWidgets(2));
+      expect(find.text('Extra Topping'), findsNothing);
+      // Still counted even though its row is filtered away.
+      expect(find.text('1 Varian Dipilih'), findsOneWidget);
+
+      await tapPill(tester, 'Ganda (1)');
+      expect(find.byType(VariantSelectRow), findsOneWidget);
+      expect(find.text('Extra Topping'), findsOneWidget);
+    });
+
+    testWidgets('search filters by name and reports no match', (tester) async {
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        overrides: pickerOverrides(),
+      );
+
+      await tester.enterText(find.byType(AppInput), 'ukuran');
+      await tester.pumpAndSettle();
+      expect(find.byType(VariantSelectRow), findsOneWidget);
+      expect(find.text('Ukuran Minuman'), findsOneWidget);
+
+      await tester.enterText(find.byType(AppInput), 'zzz');
+      await tester.pumpAndSettle();
+      expect(find.byType(VariantSelectRow), findsNothing);
+      expect(find.text('Varian tidak ditemukan.'), findsOneWidget);
+    });
+
+    // `GET /v1/modifier-groups` returns option_count without the option
+    // names, so the preview line must be omitted rather than render blank.
+    testWidgets('shows the option count but no name preview from the list '
+        'endpoint', (tester) async {
+      await _pump(
+        tester,
+        const PilihVarianScreen(),
+        overrides: pickerOverrides(),
+      );
+
+      expect(find.text('2 Opsi'), findsNWidgets(2));
+      expect(find.text('5 Opsi'), findsOneWidget);
+      expect(find.text('Original, Spicy'), findsNothing);
     });
   });
 

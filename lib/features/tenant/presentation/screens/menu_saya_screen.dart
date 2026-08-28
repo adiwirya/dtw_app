@@ -36,6 +36,24 @@ class MenuSayaScreen extends ConsumerStatefulWidget {
 
 class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
   int _filter = 0;
+  final TextEditingController _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// Client-side name search over the fetched list — `GET /v1/products` takes
+  /// no search query param.
+  List<MenuItemData> _visible(List<MenuItemData> all) {
+    final query = _search.text.trim().toLowerCase();
+    if (query.isEmpty) return all;
+    return [
+      for (final menu in all)
+        if (menu.name.toLowerCase().contains(query)) menu,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,9 +83,11 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
                     subtitleBooth: branch?.areaName ?? '',
                   ),
                   const SizedBox(height: 16),
-                  const AppInput(
+                  AppInput(
+                    controller: _search,
                     leadingIcon: ObraIcons.search,
                     hintText: 'Cari menu...',
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -92,24 +112,43 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
     );
   }
 
-  Widget _buildList(List<MenuItemData> menus) {
-    final rows = [
-      ...menus,
+  Widget _buildList(List<MenuItemData> all) {
+    // The `menu-berhasil-ditambahkan` frame previews the just-saved row. It is
+    // frame state rather than fetched data, so it is searchable but never
+    // toggleable (see the provider-index lookup below).
+    final candidates = [
+      ...all,
       if (widget.recentlyAdded) recentlyAddedMenu,
     ];
+    final rows = _visible(candidates);
+
+    // Only reachable via the search field, so this screen owns the state. An
+    // empty *fetched* list keeps its previous blank-list rendering.
+    if (rows.isEmpty && _search.text.trim().isNotEmpty) {
+      return const _NoSearchResult();
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       itemCount: rows.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),
-      itemBuilder: (context, i) => MenuItemCard(
-        data: rows[i],
-        onActiveChanged: i < menus.length
-            ? (active) => ref
-                .read(menuListProvider.notifier)
-                .setActive(i, active: active)
-            : null,
-        onTap: () => context.goNamed(TenantRoutes.menuDiisi),
-      ),
+      itemBuilder: (context, i) {
+        final menu = rows[i];
+        // `MenuList.setActive` addresses the PROVIDER's list by position, so
+        // the index has to be resolved against the unfiltered list. Passing
+        // the filtered row index would flip availability on a different
+        // product than the one whose toggle was tapped.
+        final providerIndex = all.indexWhere((m) => m.id == menu.id);
+        return MenuItemCard(
+          data: menu,
+          onActiveChanged: providerIndex == -1
+              ? null
+              : (active) => ref
+                    .read(menuListProvider.notifier)
+                    .setActive(providerIndex, active: active),
+          onTap: () => context.goNamed(TenantRoutes.menuDiisi),
+        );
+      },
     );
   }
 
@@ -123,6 +162,30 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
         context,
         onTambahMenu: () => context.goNamed(TenantRoutes.tambahMenu),
         onKelolaVarian: () => context.goNamed(TenantRoutes.kelolaVarian),
+      ),
+    );
+  }
+}
+
+/// Shown when the menu search matches nothing. Distinct from an empty fetched
+/// list, which keeps its original blank-list rendering.
+class _NoSearchResult extends StatelessWidget {
+  const _NoSearchResult();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 40),
+        child: Text(
+          'Menu tidak ditemukan.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.neutral500,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
       ),
     );
   }

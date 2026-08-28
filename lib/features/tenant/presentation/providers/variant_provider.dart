@@ -61,59 +61,16 @@ class VariantData {
       ];
 
   /// Projection onto the reused [VariantSelectRow] value object.
+  ///
+  /// [optionCount] is passed through explicitly — it is known even when
+  /// [options] (and therefore [optionNames]) is not.
   VariantSelectData get asSelectData => VariantSelectData(
         name: name,
         type: type,
         optionNames: optionNames,
+        optionCount: optionCount,
       );
 }
-
-/// Seed variants offered on the `tambah-varian` ("Pilih Varian") picker,
-/// which isn't wired to the real modifier-group list yet (see the TODO in
-/// `PilihVarianScreen`) — kept as mock data with full `options` known, unlike
-/// the real [VariantList] below.
-const List<VariantData> savedVariants = [
-  VariantData(
-    id: 'mock-1',
-    name: 'Tingkat Pedas',
-    type: VariantType.tunggal,
-    isRequired: true,
-    optionCount: 2,
-    options: [
-      VariantOptionData(name: 'Original'),
-      VariantOptionData(name: 'Spicy'),
-    ],
-    usedInMenuCount: 12,
-  ),
-  VariantData(
-    id: 'mock-2',
-    name: 'Ukuran Minuman',
-    type: VariantType.tunggal,
-    isRequired: true,
-    optionCount: 3,
-    options: [
-      VariantOptionData(name: 'Small'),
-      VariantOptionData(name: 'Medium', addonPrice: 'Rp3.000'),
-      VariantOptionData(name: 'Large', addonPrice: 'Rp5.000'),
-    ],
-    usedInMenuCount: 8,
-  ),
-  VariantData(
-    id: 'mock-3',
-    name: 'Extra Topping',
-    type: VariantType.ganda,
-    multiSelect: true,
-    optionCount: 5,
-    options: [
-      VariantOptionData(name: 'Keju', addonPrice: 'Rp3.000'),
-      VariantOptionData(name: 'Telur', addonPrice: 'Rp3.000'),
-      VariantOptionData(name: 'Sosis', addonPrice: 'Rp5.000'),
-      VariantOptionData(name: 'Jamur', addonPrice: 'Rp4.000'),
-      VariantOptionData(name: 'Bacon', addonPrice: 'Rp7.000'),
-    ],
-    usedInMenuCount: 4,
-  ),
-];
 
 /// The tenant's variant list (`kelola-varian` / `varian-disimpan`), fetched
 /// from `GET /v1/modifier-groups`.

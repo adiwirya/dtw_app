@@ -19,16 +19,44 @@ import 'package:obra_icons/obra_icons.dart';
 /// list with a "Digunakan di N menu" footer once it does — driven by the real
 /// `GET /v1/modifier-groups` list rather than a route-selected mock state.
 ///
+/// The search field filters by variant name client-side over the fetched list
+/// — the endpoint takes no query param for it.
+///
 // TODO(open-question): the variant-form validation rules are unresolved Open
-// Questions; search is a display-only field (no filtering yet).
-class KelolaVarianScreen extends ConsumerWidget {
+// Questions.
+class KelolaVarianScreen extends ConsumerStatefulWidget {
   const KelolaVarianScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KelolaVarianScreen> createState() =>
+      _KelolaVarianScreenState();
+}
+
+class _KelolaVarianScreenState extends ConsumerState<KelolaVarianScreen> {
+  final TextEditingController _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<VariantData> _visible(List<VariantData> all) {
+    final query = _search.text.trim().toLowerCase();
+    if (query.isEmpty) return all;
+    return [
+      for (final variant in all)
+        if (variant.name.toLowerCase().contains(query)) variant,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final variantsAsync = ref.watch(variantListProvider);
     // Only known once the fetch resolves — the bottom "Buat Varian" button is
     // the empty state's action, so it stays hidden while loading/erroring.
+    // Keyed off the unfiltered list: a search that matches nothing must not
+    // turn this into the "no variants yet" screen.
     final isEmpty = variantsAsync.valueOrNull?.isEmpty ?? false;
 
     return Scaffold(
@@ -50,9 +78,11 @@ class KelolaVarianScreen extends ConsumerWidget {
                         context.goNamed(TenantRoutes.tambahVarian),
                   ),
                   const SizedBox(height: 16),
-                  const AppInput(
+                  AppInput(
+                    controller: _search,
                     leadingIcon: ObraIcons.search,
                     hintText: 'Cari varian...',
+                    onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -62,20 +92,23 @@ class KelolaVarianScreen extends ConsumerWidget {
               child: variantsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(child: Text(errorMessage(error))),
-                data: (variants) => variants.isEmpty
-                    ? const _EmptyState()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        itemCount: variants.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 16),
-                        itemBuilder: (context, i) => _VariantManageCard(
-                          data: variants[i],
-                          onTap: () => context.goNamed(
-                            TenantRoutes.varianDiisi,
-                            pathParameters: {'variantId': variants[i].id},
-                          ),
-                        ),
+                data: (all) {
+                  if (all.isEmpty) return const _EmptyState();
+                  final variants = _visible(all);
+                  if (variants.isEmpty) return const _NoSearchResult();
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: variants.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    itemBuilder: (context, i) => _VariantManageCard(
+                      data: variants[i],
+                      onTap: () => context.goNamed(
+                        TenantRoutes.varianDiisi,
+                        pathParameters: {'variantId': variants[i].id},
                       ),
+                    ),
+                  );
+                },
               ),
             ),
             if (isEmpty)
@@ -231,6 +264,30 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the tenant HAS variants but the search matches none — distinct
+/// from [_EmptyState], which means "no variants created yet".
+class _NoSearchResult extends StatelessWidget {
+  const _NoSearchResult();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 40),
+        child: Text(
+          'Varian tidak ditemukan.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.neutral500,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       ),
     );

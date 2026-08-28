@@ -14,6 +14,7 @@ void main() {
     const data = VariantSelectData(
       name: 'Tingkat Pedas',
       type: VariantType.tunggal,
+      optionCount: 2,
       optionNames: ['Original', 'Spicy'],
     );
 
@@ -35,6 +36,49 @@ void main() {
       expect(find.text('Original, Spicy'), findsOneWidget);
     });
 
+    // Regression test: `optionCount` used to be derived from `optionNames`,
+    // so a variant coming from `GET /v1/modifier-groups` — which returns
+    // `option_count` WITHOUT the names — rendered as "0 Opsi" in the picker.
+    testWidgets('shows the real option count when names are unknown',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          VariantSelectRow(
+            data: const VariantSelectData(
+              name: 'Extra Topping',
+              type: VariantType.ganda,
+              optionCount: 5,
+            ),
+            selected: false,
+            onSelectedChanged: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('5 Opsi'), findsOneWidget);
+      expect(find.text('0 Opsi'), findsNothing);
+    });
+
+    testWidgets('omits the name preview when the names are unknown',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(
+          VariantSelectRow(
+            data: const VariantSelectData(
+              name: 'Extra Topping',
+              type: VariantType.ganda,
+              optionCount: 5,
+            ),
+            selected: false,
+            onSelectedChanged: (_) {},
+          ),
+        ),
+      );
+
+      // Only the name, the chip and the count — no blank preview line.
+      expect(find.text(''), findsNothing);
+    });
+
     testWidgets('ganda type shows the Ganda chip', (tester) async {
       await tester.pumpWidget(
         _host(
@@ -42,6 +86,7 @@ void main() {
             data: const VariantSelectData(
               name: 'Extra Topping',
               type: VariantType.ganda,
+              optionCount: 2,
               optionNames: ['Keju', 'Telur'],
             ),
             selected: false,
