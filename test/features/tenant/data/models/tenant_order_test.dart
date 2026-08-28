@@ -310,6 +310,37 @@ void main() {
     });
   });
 
+  // Single-sourced so the Order card and the reject screen can never disagree
+  // about which order the tenant is looking at.
+  group('TenantOrder.tableLabel', () {
+    TenantOrder order({String? tableNumber}) => TenantOrder.fromJson({
+      'id': 'order-1',
+      'order_group_id': 'group-1',
+      'branch_id': 'branch-1',
+      'receipt_number': 'RCP-1',
+      'table_number': tableNumber,
+      'grand_total': 5000,
+      'order_status': 'PENDING',
+      'created_at': '2026-08-26 07:58:02',
+      'updated_at': '2026-08-26 07:58:03',
+      'items': const <dynamic>[],
+    });
+
+    test('prefers the real table number', () {
+      expect(order(tableNumber: 'A-01').tableLabel, 'A-01');
+    });
+
+    test('falls back to the receipt number when the API has no table', () {
+      expect(order().tableLabel, 'RCP-1');
+    });
+
+    test('toIncomingOrderData uses the same label', () {
+      expect(order(tableNumber: 'A-01').toIncomingOrderData().tableName,
+          'A-01');
+      expect(order().toIncomingOrderData().tableName, 'RCP-1');
+    });
+  });
+
   group('TenantOrder.copyWith', () {
     test('overrides only status, keeps every other field', () {
       final order = TenantOrder.fromJson(const {

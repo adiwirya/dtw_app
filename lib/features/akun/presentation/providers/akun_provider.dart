@@ -69,7 +69,7 @@ AkunAccount akunAccount(Ref ref) {
         subtitle: 'Ketentuan dan kebijakan aplikasi',
       ),
     ],
-    // TODO(open-question): logout/auth is UI-only; the tap is stubbed.
+    // The tap is wired to the real `AuthController.logout` by `AkunScreen`.
     logoutItem: AccountMenuItem(
       icon: ObraIcons.log_out,
       title: 'Keluar',

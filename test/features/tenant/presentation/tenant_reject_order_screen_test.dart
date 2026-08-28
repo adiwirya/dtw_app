@@ -32,6 +32,7 @@ Future<CannedAdapter> _pump(
   WidgetTester tester, {
   String orderId = _orderId,
   bool seedFirstItemRejected = false,
+  String? tableNumber,
 }) async {
   // Taller than the app's real 390x844: with the rejected-items banner
   // showing, the item list + bottom summary no longer both fit a phone-size
@@ -48,6 +49,7 @@ Future<CannedAdapter> _pump(
       status: 'PENDING',
       grandTotal: 40000,
       receiptNumber: 'RCP-92842',
+      tableNumber: tableNumber,
       createdAt: '2024-05-10 10:36:00',
       items: [
         tenantOrderItemJson(
@@ -108,6 +110,7 @@ void main() {
 
     expect(find.text('Tolak Pesanan'), findsOneWidget);
     expect(find.text('#$_orderId'), findsOneWidget);
+    // No table_number on this fixture, so the label falls back to the receipt.
     expect(find.text('RCP-92842'), findsOneWidget);
     expect(find.text('10 Mei 2024 10:36 WIB'), findsOneWidget);
     expect(find.text('Anda dapat menolak sebagian item'), findsOneWidget);
@@ -118,6 +121,17 @@ void main() {
     expect(find.text('Tersedia'), findsNWidgets(2));
     expect(find.text('2 item tersedia'), findsOneWidget);
     expect(find.text('Rp40.000'), findsOneWidget);
+  });
+
+  // Regression test: this row kept showing the receipt number after
+  // `table_number` was added to the API, so the Order card said `A-01` while
+  // the reject screen for the same order said `RCP-...`.
+  testWidgets('shows the real table number when the API has one',
+      (tester) async {
+    await _pump(tester, tableNumber: 'A-01');
+
+    expect(find.text('A-01'), findsOneWidget);
+    expect(find.text('RCP-92842'), findsNothing);
   });
 
   testWidgets('no reason capture — this API has no such field', (tester) async {

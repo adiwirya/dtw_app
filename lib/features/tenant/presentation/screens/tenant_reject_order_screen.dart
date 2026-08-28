@@ -266,7 +266,7 @@ class _TenantRejectOrderScreenState
       children: [
         _OrderInfoRow(
           orderId: order.id,
-          receiptNumber: order.receiptNumber,
+          tableLabel: order.tableLabel,
           dateTime: _formatOrderDateTime(order.createdAt),
         ),
         const SizedBox(height: 16),
@@ -338,16 +338,20 @@ class _RejectNavBar extends StatelessWidget {
   }
 }
 
-/// The order identity row: a receipt icon tile + id/status + receipt/datetime.
+/// The order identity row: a receipt icon tile + id/status + table/datetime.
 class _OrderInfoRow extends StatelessWidget {
   const _OrderInfoRow({
     required this.orderId,
-    required this.receiptNumber,
+    required this.tableLabel,
     required this.dateTime,
   });
 
   final String orderId;
-  final String receiptNumber;
+
+  /// [TenantOrder.tableLabel] — the real table number, or the receipt number
+  /// for an order from before the API carried one.
+  final String tableLabel;
+
   final String dateTime;
 
   @override
@@ -407,10 +411,7 @@ class _OrderInfoRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      // TODO(open-question): the live order shape carries no
-                      // table name, so the receipt number fills this slot —
-                      // same repurposing as TenantOrder.toIncomingOrderData.
-                      receiptNumber,
+                      tableLabel,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.neutral500,

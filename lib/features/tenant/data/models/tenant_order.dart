@@ -153,13 +153,23 @@ class TenantOrder {
         broadcastEventId: broadcastEventId,
       );
 
+  /// The human-facing table label: the real [tableNumber] when the API has
+  /// one, else [receiptNumber].
+  ///
+  /// Single-sourced deliberately. This used to be computed inline in
+  /// `toIncomingOrderData` AND separately in `TenantRejectOrderScreen`, which
+  /// still showed the receipt number after `table_number` was added to the API
+  /// — so the Order card said `A-01` while the reject screen for the same
+  /// order said `RCP-...`.
+  String get tableLabel => tableNumber ?? receiptNumber;
+
   IncomingOrderData toIncomingOrderData() {
     final hh = createdAt.hour.toString().padLeft(2, '0');
     final mm = createdAt.minute.toString().padLeft(2, '0');
     return IncomingOrderData(
       orderId: id,
       displayNumber: receiptNumber,
-      tableName: tableNumber ?? receiptNumber,
+      tableName: tableLabel,
       time: '$hh:$mm',
       status: incomingOrderStatusFromBackend(status),
       items: items,
