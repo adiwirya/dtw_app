@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../support/tenant_board.dart';
+
 /// Self-golden for the `menu-order-baru-2` order view (from a card tap).
 /// It delegates to the Baru Order home; this golden pins that the route
 /// target renders the board. See the reject-screen golden note about fonts.
@@ -36,8 +38,19 @@ void main() {
         ],
       );
 
+      // This screen delegates to `TenantOrderScreen`, which watches the real
+      // `tenantOrderBoardProvider`. Without these overrides the board's
+      // initial fetch hangs on the unmocked `flutter_secure_storage`
+      // channel, the spinner never stops, and `pumpAndSettle` times out.
       await tester.pumpWidget(
-        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+        ProviderScope(
+          overrides: tenantBoardOverrides(
+            dio: cannedOrderListDio([
+              tenantOrderJson(id: 'order-1', status: 'PENDING'),
+            ]),
+          ),
+          child: MaterialApp.router(routerConfig: router),
+        ),
       );
       await tester.pumpAndSettle();
 
