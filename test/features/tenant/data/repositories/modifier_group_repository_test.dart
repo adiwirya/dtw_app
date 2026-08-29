@@ -349,6 +349,52 @@ void main() {
     });
   });
 
+  group('reorderOptions', () {
+    test('POSTs the ids in order', () async {
+      final dio = cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+      });
+      final repository = ModifierGroupRepository(dio: dio);
+
+      await repository.reorderOptions(
+        'group-1',
+        optionIds: ['option-2', 'option-1'],
+      );
+
+      final adapter = dio.httpClientAdapter as CannedAdapter;
+      expect(
+        adapter.lastRequest!.path,
+        '/v1/modifier-groups/group-1/options/reorder',
+      );
+      expect(adapter.lastRequest!.method, 'POST');
+      expect(adapter.lastRequest!.data, {
+        'ids': ['option-2', 'option-1'],
+      });
+    });
+
+    test('throws a mapped ApiException on failure', () async {
+      final dio = cannedDio(500, {
+        'meta': {
+          'success': false,
+          'message': 'Error',
+          'code': 500,
+          'trace_id': 'abc',
+        },
+      });
+      final repository = ModifierGroupRepository(dio: dio);
+
+      await expectLater(
+        repository.reorderOptions('group-1', optionIds: ['option-1']),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
+
   group('updateOption', () {
     test('PUTs name/price to the option-scoped endpoint', () async {
       final dio = cannedDio(200, {

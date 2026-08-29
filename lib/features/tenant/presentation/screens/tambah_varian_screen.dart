@@ -80,6 +80,12 @@ class TambahVarianScreen extends ConsumerStatefulWidget {
 class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
   late final TextEditingController _name;
   late List<VariantOptionData> _options;
+
+  /// A stable key per option row, so `ReorderableListView` tracks rows across
+  /// a drag. Option ids can't serve: an option added in this session has none
+  /// until its POST returns, and two options may share a name.
+  late List<int> _optionKeys;
+  int _nextOptionKey = 0;
   bool _required = false;
   bool _multiSelect = false;
   bool _saving = false;
@@ -92,7 +98,7 @@ class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
     _name = TextEditingController(
       text: widget.prefilled ? 'Ukuran Minuman' : '',
     );
-    _options = List.of(widget.options);
+    _setOptions(List.of(widget.options));
     if (widget.editingVariantId case final groupId?) {
       unawaited(_loadForEditing(groupId));
     }
@@ -102,6 +108,21 @@ class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  /// Replaces the option list and re-issues its row keys.
+  void _setOptions(List<VariantOptionData> options) {
+    _options = options;
+    _optionKeys = [for (final _ in options) _nextOptionKey++];
+  }
+
+  /// `onReorderItem` (unlike the deprecated `onReorder`) already accounts for
+  /// the dragged row being lifted out, so [newIndex] is the final position.
+  void _onReorderItem(int oldIndex, int newIndex) {
+    setState(() {
+      _options.insert(newIndex, _options.removeAt(oldIndex));
+      _optionKeys.insert(newIndex, _optionKeys.removeAt(oldIndex));
+    });
   }
 
   Future<void> _loadForEditing(String groupId) async {
@@ -114,7 +135,7 @@ class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
         _name.text = group.name;
         _required = group.isRequired;
         _multiSelect = group.type == VariantType.ganda;
-        _options = group.options ?? [];
+        _setOptions(group.options ?? []);
         _loading = false;
       });
     } on Object catch (error) {
@@ -137,7 +158,10 @@ class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
     unawaited(
       showOpsiVarianModal(context).then((option) {
         if (option != null && option.name.isNotEmpty && mounted) {
-          setState(() => _options = [..._options, option]);
+          setState(() {
+            _options = [..._options, option];
+            _optionKeys = [..._optionKeys, _nextOptionKey++];
+          });
         }
       }),
     );
@@ -341,15 +365,30 @@ class _TambahVarianScreenState extends ConsumerState<TambahVarianScreen> {
             ),
             const SizedBox(height: 16),
           ] else ...[
-            for (var i = 0; i < _options.length; i++) ...[
-              VariantOptionRow(
-                data: _options[i],
-                onRemove: _options[i].id == null
-                    ? () => setState(() => _options.removeAt(i))
-                    : null,
+            // The drag handle on each row is a real
+            // `ReorderableDragStartListener` now — the caption below used to
+            // promise reordering that nothing implemented.
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: _options.length,
+              onReorderItem: _onReorderItem,
+              itemBuilder: (context, i) => Padding(
+                key: ValueKey(_optionKeys[i]),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: VariantOptionRow(
+                  data: _options[i],
+                  dragIndex: i,
+                  onRemove: _options[i].id == null
+                      ? () => setState(() {
+                          _options.removeAt(i);
+                          _optionKeys.removeAt(i);
+                        })
+                      : null,
+                ),
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
             const Center(
               child: Text(
                 'Geser untuk mengubah urutan opsi',

@@ -89,6 +89,64 @@ void main() {
       expect(find.text('Belum ada opsi'), findsNothing);
     });
 
+    // The caption "Geser untuk mengubah urutan opsi" and the drag handle were
+    // decorative — no ReorderableListView, no onReorder anywhere.
+    testWidgets('the option rows are reorderable', (tester) async {
+      await _pump(
+        tester,
+        TambahVarianScreen(
+          prefilled: true,
+          options: const [
+            VariantOptionData(name: 'Small'),
+            VariantOptionData(name: 'Medium', addonPrice: 'Rp3.000'),
+            VariantOptionData(name: 'Large', addonPrice: 'Rp5.000'),
+          ],
+          onSave: () {},
+        ),
+      );
+
+      expect(find.byType(ReorderableListView), findsOneWidget);
+      // Each row's handle drives the drag, not a default handle on the side.
+      expect(
+        find.byType(ReorderableDragStartListener),
+        findsNWidgets(3),
+      );
+    });
+
+    testWidgets('dragging a row moves it', (tester) async {
+      await _pump(
+        tester,
+        TambahVarianScreen(
+          prefilled: true,
+          options: const [
+            VariantOptionData(name: 'Small'),
+            VariantOptionData(name: 'Medium', addonPrice: 'Rp3.000'),
+          ],
+          onSave: () {},
+        ),
+      );
+
+      List<String> order() => tester
+          .widgetList<VariantOptionRow>(find.byType(VariantOptionRow))
+          .map((r) => r.data.name)
+          .toList();
+      expect(order(), ['Small', 'Medium']);
+
+      // `ReorderableDragStartListener` starts the drag on pointer-down, and
+      // the list needs incremental moves to track it.
+      final handle = find.byType(ReorderableDragStartListener).first;
+      final drag = await tester.startGesture(tester.getCenter(handle));
+      await tester.pump(const Duration(milliseconds: 50));
+      for (var i = 0; i < 4; i++) {
+        await drag.moveBy(const Offset(0, 25));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await drag.up();
+      await tester.pumpAndSettle();
+
+      expect(order(), ['Medium', 'Small']);
+    });
+
     testWidgets('removing an option drops its row', (tester) async {
       await _pump(
         tester,

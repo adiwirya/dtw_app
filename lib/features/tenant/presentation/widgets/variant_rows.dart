@@ -286,6 +286,7 @@ class VariantOptionRow extends StatelessWidget {
     required this.data,
     this.onRemove,
     this.showReorderHandle = true,
+    this.dragIndex,
     super.key,
   });
 
@@ -297,6 +298,25 @@ class VariantOptionRow extends StatelessWidget {
 
   /// Whether to show the leading drag handle (reorderable list affordance).
   final bool showReorderHandle;
+
+  /// This row's index inside a `ReorderableListView`.
+  ///
+  /// When set, the handle becomes a real `ReorderableDragStartListener`. When
+  /// null the handle is decorative — which is what it was everywhere, under a
+  /// caption promising "Geser untuk mengubah urutan opsi" that nothing
+  /// implemented.
+  final int? dragIndex;
+
+  Widget _handle() {
+    const icon = Icon(
+      Icons.drag_indicator,
+      size: 20,
+      color: AppColors.neutral300,
+    );
+    final index = dragIndex;
+    if (index == null) return icon;
+    return ReorderableDragStartListener(index: index, child: icon);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,11 +330,7 @@ class VariantOptionRow extends StatelessWidget {
       child: Row(
         children: [
           if (showReorderHandle) ...[
-            const Icon(
-              Icons.drag_indicator,
-              size: 20,
-              color: AppColors.neutral300,
-            ),
+            _handle(),
             const SizedBox(width: 12),
           ],
           Expanded(

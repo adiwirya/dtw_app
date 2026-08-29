@@ -117,6 +117,27 @@ class ModifierGroupRepository {
     }
   }
 
+  /// Sets the display order of an existing group's options
+  /// (`POST /v1/modifier-groups/{groupId}/options/reorder`).
+  ///
+  /// [optionIds] must be already-saved options, in the wanted order. Options
+  /// created in the same editing session have no id until their POST returns,
+  /// and the server appends them in insertion order anyway, so they are simply
+  /// left out.
+  Future<void> reorderOptions(
+    String groupId, {
+    required List<String> optionIds,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/v1/modifier-groups/$groupId/options/reorder',
+        data: {'ids': optionIds},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
   /// Updates one existing option's name/price. There is no delete endpoint
   /// for an option (confirmed live: `DELETE` returns 405) — an option can
   /// only ever be renamed/repriced, never removed, once saved.

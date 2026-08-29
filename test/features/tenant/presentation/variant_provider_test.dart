@@ -165,6 +165,82 @@ void main() {
       expect(adapter.lastRequest!.path, '/v1/modifier-groups/group-1/options');
     });
 
+    // The form lets the tenant drag option rows; that order has to reach the
+    // server. Only already-saved options can be addressed by id.
+    test('updateVariant persists the option order for saved options',
+        () async {
+      final dio = routedDio({
+        'POST /v1/modifier-groups/group-1/options/reorder': (
+          200,
+          _groupsEnvelope([]),
+        ),
+        'GET /v1/modifier-groups/group-1': (
+          200,
+          {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              ..._group('group-1', 'Ukuran', maxSelections: 2, optionCount: 2),
+              'options': <dynamic>[],
+            },
+          },
+        ),
+        'PUT /v1/modifier-groups/group-1/options/': (
+          200,
+          _groupsEnvelope([]),
+        ),
+        'PUT /v1/modifier-groups/group-1': (
+          200,
+          {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': _group('group-1', 'Ukuran', maxSelections: 2,
+                optionCount: 2),
+          },
+        ),
+        'GET /v1/modifier-groups': (200, _groupsEnvelope([])),
+      });
+      final container = ProviderContainer(
+        overrides: [
+          currentTenantBranchProvider.overrideWith(
+            (ref) async => _testBranch(),
+          ),
+          modifierGroupRepositoryProvider.overrideWithValue(
+            ModifierGroupRepository(dio: dio),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(variantListProvider, (_, _) {});
+      await container.read(variantListProvider.future);
+
+      // Large first, Small second — the reverse of how they were created.
+      await container.read(variantListProvider.notifier).updateVariant(
+            groupId: 'group-1',
+            name: 'Ukuran',
+            isRequired: true,
+            multiSelect: true,
+            options: const [
+              VariantOptionData(id: 'option-2', name: 'Large'),
+              VariantOptionData(id: 'option-1', name: 'Small'),
+            ],
+          );
+
+      final adapter = dio.httpClientAdapter as RoutedAdapter;
+      final reorder = adapter.requests.firstWhere(
+        (r) => r.path.endsWith('/options/reorder'),
+      );
+      expect(reorder.data, {'ids': ['option-2', 'option-1']});
+    });
+
     test(
         'updateVariant PUTs the group and each already-saved option, POSTs '
         'each new option, then refetches the group for the final state',
@@ -221,6 +297,10 @@ void main() {
         'PUT /v1/modifier-groups/group-1/options/option-1': (
           200,
           _groupsEnvelope([]), // body content unused by updateOption
+        ),
+        'POST /v1/modifier-groups/group-1/options/reorder': (
+          200,
+          _groupsEnvelope([]),
         ),
         'POST /v1/modifier-groups/group-1/options': (
           201,
@@ -301,6 +381,11 @@ void main() {
           'POST /v1/modifier-groups/group-1/options',
           'GET /v1/modifier-groups/group-1',
         ]),
+      );
+      // Only one option was already saved, so there is nothing to reorder.
+      expect(
+        methodsAndPaths.where((p) => p.endsWith('/options/reorder')),
+        isEmpty,
       );
     });
   });

@@ -133,6 +133,9 @@ class VariantList extends _$VariantList {
   /// no delete endpoint, so an option removed from [options] that was
   /// already saved is NOT reflected on the server — `TambahVarianScreen`
   /// only offers removal for not-yet-saved options for exactly this reason.
+  /// The order of [options] is persisted too, via
+  /// `ModifierGroupRepository.reorderOptions`.
+  ///
   /// Refetches the group afterwards (rather than assembling the result
   /// locally like [create] does) so newly-added options end up with their
   /// real ids.
@@ -164,6 +167,15 @@ class VariantList extends _$VariantList {
         await repository.addOption(groupId, name: option.name, price: price);
       }
     }
+    // Persist the order the tenant dragged the rows into. Only options that
+    // already have an id can be addressed; ones created just above are
+    // appended by the server in POST order, which is the order they appear in
+    // [options] anyway.
+    final savedIds = [for (final o in options) ?o.id];
+    if (savedIds.length > 1) {
+      await repository.reorderOptions(groupId, optionIds: savedIds);
+    }
+
     final refreshed = await repository.fetchModifierGroup(groupId);
     final current = state.value ?? const [];
     state = AsyncData([
