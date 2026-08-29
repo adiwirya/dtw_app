@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/network/dio_provider.dart';
+import 'package:dtw_app/features/tenant/data/models/modifier_group.dart';
 import 'package:dtw_app/features/tenant/data/models/product.dart';
 import 'package:dtw_app/features/tenant/data/models/product_category.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,6 +87,69 @@ class ProductRepository {
         },
       );
       return Product.fromJson(response.data!['data'] as Map<String, dynamic>);
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// One product with its editable fields (`GET /v1/products/{id}`).
+  Future<Product> fetchProduct(String productId) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/products/$productId',
+      );
+      return Product.fromJson(response.data!['data'] as Map<String, dynamic>);
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// Updates a product (`PUT /v1/products/{id}`).
+  ///
+  /// [isActive] is sent as-is rather than hardcoded: it is the product's
+  /// brand-level flag, and defaulting it to true would silently reactivate a
+  /// product the tenant had turned off. See [createProduct] for the open
+  /// question about what `price` means.
+  Future<Product> updateProduct(
+    String productId, {
+    required String categoryId,
+    required String name,
+    required int price,
+    required bool isActive,
+    String? description,
+  }) async {
+    try {
+      final response = await _dio.put<Map<String, dynamic>>(
+        '/v1/products/$productId',
+        data: {
+          'category_id': categoryId,
+          'name': name,
+          'price': price,
+          'is_active': isActive,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+        },
+      );
+      return Product.fromJson(response.data!['data'] as Map<String, dynamic>);
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// The modifier groups (variants) currently attached to [productId]
+  /// (`GET /v1/products/{productId}/modifier-groups`), so an edit form can
+  /// show what is already attached instead of implying nothing is.
+  Future<List<ModifierGroup>> fetchProductModifierGroups(
+    String productId,
+  ) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/products/$productId/modifier-groups',
+      );
+      final data = response.data!['data'] as List;
+      return data
+          .map((json) => ModifierGroup.fromJson(json as Map<String, dynamic>))
+          .toList();
     } on DioException catch (error) {
       throw mapDioError(error);
     }

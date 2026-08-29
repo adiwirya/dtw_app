@@ -42,14 +42,25 @@ import 'package:obra_icons/obra_icons.dart';
 class TambahMenuScreen extends ConsumerStatefulWidget {
   const TambahMenuScreen({
     this.prefilled = false,
+    this.editingProductId,
     this.onBack,
     this.onSave,
     super.key,
   });
 
   /// Seeds the `menu-diisi` prototype frame (name/price/tags). Category is
-  /// never seeded — real categories come from the API.
+  /// never seeded — real categories come from the API. Ignored when
+  /// [editingProductId] is set, which loads real values instead.
   final bool prefilled;
+
+  /// When set, this is the real "edit an existing menu" entry point: the form
+  /// loads `GET /v1/products/{id}` plus its attached variants on open, and
+  /// "Simpan Menu" calls `MenuList.updateProduct` instead of `.create`.
+  ///
+  /// Tapping a Menu Saya row used to open this form on the `menu-diisi`
+  /// prototype seed — a hardcoded "Paket Komplit" — so every menu opened the
+  /// same fake product.
+  final String? editingProductId;
 
   /// Overrides the top-bar back action (used by the `varian-ditambahkan` route
   /// to return to `menu-berhasil-ditambahkan`). Falls back to `context.pop()`.
@@ -76,6 +87,11 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
   bool _saving = false;
   String? _errorMessage;
 
+  late bool _loading = widget.editingProductId != null;
+
+  /// The edited product's brand-level active flag, carried through the PUT.
+  bool _isActive = true;
+
   // Display-only: the `tambah-menu` tags and discount fields have no API
   // support at all (see the TODO above the class).
   late final List<String> _tags;
@@ -92,6 +108,46 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
     _price = TextEditingController(text: widget.prefilled ? '32.000' : '');
     _note = TextEditingController();
     _tags = widget.prefilled ? const ['Chicken', 'Combo Meal'] : const [];
+    if (widget.editingProductId case final productId?) {
+      unawaited(_loadForEditing(productId));
+    }
+  }
+
+  /// Loads the product being edited, plus the variants already attached to it.
+  ///
+  /// The attached variants seed [menuVariantSelectionProvider] because
+  /// `syncModifierGroups` is a full replace: if the form saved with an empty
+  /// selection it would silently detach everything the product had.
+  Future<void> _loadForEditing(String productId) async {
+    final repository = ref.read(productRepositoryProvider);
+    try {
+      final product = await repository.fetchProduct(productId);
+      // Best-effort: the attached variants are a display/pre-seed nicety, not
+      // something the edit form is unusable without.
+      List<VariantData> attached;
+      try {
+        final groups = await repository.fetchProductModifierGroups(productId);
+        attached = [for (final g in groups) g.toVariantData()];
+      } on Object {
+        attached = const [];
+      }
+      if (!mounted) return;
+      ref.read(menuVariantSelectionProvider.notifier).select(attached);
+      setState(() {
+        _name.text = product.name;
+        _price.text = product.totalPrice.toString();
+        _note.text = product.description ?? '';
+        _categoryId = product.categoryId;
+        _isActive = product.isActive;
+        _loading = false;
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMessage = errorMessage(error);
+      });
+    }
   }
 
   @override
@@ -130,12 +186,28 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
 
     final String productId;
     try {
-      productId = await ref.read(menuListProvider.notifier).create(
-            name: name,
-            categoryId: categoryId!,
-            price: price,
-            description: _note.text.trim(),
-          );
+      if (widget.editingProductId case final editingId?) {
+        await ref
+            .read(menuListProvider.notifier)
+            .updateProduct(
+              editingId,
+              name: name,
+              categoryId: categoryId!,
+              price: price,
+              isActive: _isActive,
+              description: _note.text.trim(),
+            );
+        productId = editingId;
+      } else {
+        productId = await ref
+            .read(menuListProvider.notifier)
+            .create(
+              name: name,
+              categoryId: categoryId!,
+              price: price,
+              description: _note.text.trim(),
+            );
+      }
     } on Object catch (error) {
       if (!mounted) return;
       setState(() {
@@ -149,12 +221,15 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
     // best-effort: the menu itself is already saved, so a failure here must
     // not read as "the menu wasn't created". It surfaces as a SnackBar and
     // leaves the menu in place with no variants attached.
-    final variantIds = ref.read(menuVariantSelectionProvider)
+    final variantIds = ref
+        .read(menuVariantSelectionProvider)
         .map((v) => v.id)
         .toList();
     if (variantIds.isNotEmpty) {
       try {
-        await ref.read(productRepositoryProvider).syncModifierGroups(
+        await ref
+            .read(productRepositoryProvider)
+            .syncModifierGroups(
               productId,
               modifierGroupIds: variantIds,
             );
@@ -162,8 +237,10 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Menu tersimpan, varian gagal: '
-                '${errorMessage(error)}'),
+            content: Text(
+              'Menu tersimpan, varian gagal: '
+              '${errorMessage(error)}',
+            ),
           ),
         );
       }
@@ -171,10 +248,19 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
 
     if (!mounted) return;
     ref.read(menuVariantSelectionProvider.notifier).clear();
+    final editing = widget.editingProductId != null;
     unawaited(
       showMenuSuccessModal(
         context,
-        onConfirm: () => context.goNamed(TenantRoutes.menuBerhasil),
+        message: editing
+            ? MenuSuccessModal.savedMessage
+            : MenuSuccessModal.addedMessage,
+        // `menu-berhasil-ditambahkan` is the post-ADD frame — its header
+        // action becomes "+ Tambah Menu". An edit just returns to the list it
+        // came from.
+        onConfirm: () => editing && context.canPop()
+            ? context.pop()
+            : context.goNamed(TenantRoutes.menuBerhasil),
       ),
     );
   }
@@ -187,43 +273,50 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
         child: Column(
           children: [
             _TopBar(
-              onBack: widget.onBack ??
+              title: widget.editingProductId == null
+                  ? 'Tambah Menu'
+                  : 'Ubah Menu',
+              onBack:
+                  widget.onBack ??
                   () => context.canPop() ? context.pop() : null,
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _PhotoCard(),
-                    const SizedBox(height: 16),
-                    _fieldsCard(),
-                    const SizedBox(height: 16),
-                    _diskonCard(),
-                    const SizedBox(height: 16),
-                    _populerCard(),
-                    const SizedBox(height: 16),
-                    _varianCard(),
-                    if (_errorMessage case final message?) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        message,
-                        style: const TextStyle(
-                          color: AppColors.dangerRed,
-                          fontSize: 13,
+            if (_loading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _PhotoCard(),
+                      const SizedBox(height: 16),
+                      _fieldsCard(),
+                      const SizedBox(height: 16),
+                      _diskonCard(),
+                      const SizedBox(height: 16),
+                      _populerCard(),
+                      const SizedBox(height: 16),
+                      _varianCard(),
+                      if (_errorMessage case final message?) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          message,
+                          style: const TextStyle(
+                            color: AppColors.dangerRed,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: PrimaryButton(
                 label: 'Simpan Menu',
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || _loading ? null : _save,
               ),
             ),
           ],
@@ -439,8 +532,9 @@ class _TambahMenuScreenState extends ConsumerState<TambahMenuScreen> {
 // --- Top bar ---------------------------------------------------------------
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onBack});
+  const _TopBar({required this.title, required this.onBack});
 
+  final String title;
   final VoidCallback? onBack;
 
   @override
@@ -452,11 +546,11 @@ class _TopBar extends StatelessWidget {
         child: Row(
           children: [
             _IconButton(icon: ObraIcons.arrow_left, onTap: onBack),
-            const Expanded(
+            Expanded(
               child: Center(
                 child: Text(
-                  'Tambah Menu',
-                  style: TextStyle(
+                  title,
+                  style: const TextStyle(
                     color: AppColors.neutral900,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,

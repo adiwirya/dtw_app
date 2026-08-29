@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 Future<void> showMenuSuccessModal(
   BuildContext context, {
   required VoidCallback onConfirm,
+  String message = MenuSuccessModal.addedMessage,
   Duration duration = const Duration(milliseconds: 1400),
 }) {
   var advanced = false;
@@ -21,7 +22,7 @@ Future<void> showMenuSuccessModal(
 
   final future = showDialog<void>(
     context: context,
-    builder: (_) => const MenuSuccessModal(),
+    builder: (_) => MenuSuccessModal(message: message),
   ).then((_) => advance());
 
   Timer(duration, () {
@@ -38,7 +39,17 @@ Future<void> showMenuSuccessModal(
 ///
 /// Public so it can be pumped directly in golden tests.
 class MenuSuccessModal extends StatelessWidget {
-  const MenuSuccessModal({super.key});
+  const MenuSuccessModal({this.message = addedMessage, super.key});
+
+  /// Copy for a newly created menu (`berhasil-ditambahkan`).
+  static const addedMessage = 'Menu baru berhasil ditambahkan';
+
+  /// Copy for an edited menu — the frame only ever covered the add case, and
+  /// telling a tenant their edit "berhasil ditambahkan" is simply wrong.
+  static const savedMessage = 'Perubahan menu berhasil disimpan';
+
+  /// What the modal says.
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -49,17 +60,17 @@ class MenuSuccessModal extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Padding(
-        padding: EdgeInsets.fromLTRB(24, 32, 24, 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ConfettiRing(),
-            SizedBox(height: 24),
+            const _ConfettiRing(),
+            const SizedBox(height: 24),
             Text(
-              'Menu baru berhasil ditambahkan',
+              message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.neutral900,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,

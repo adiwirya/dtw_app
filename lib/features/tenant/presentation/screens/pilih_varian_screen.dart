@@ -51,6 +51,17 @@ class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
   final TextEditingController _search = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Start from whatever is already attached to the menu being edited.
+    // `syncModifierGroups` is a full replace, so a picker that started empty
+    // would silently detach every existing variant on save.
+    for (final variant in ref.read(menuVariantSelectionProvider)) {
+      _selected[variant.id] = variant;
+    }
+  }
+
+  @override
   void dispose() {
     _search.dispose();
     super.dispose();

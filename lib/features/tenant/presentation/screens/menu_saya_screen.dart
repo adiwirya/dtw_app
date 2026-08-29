@@ -146,7 +146,14 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
               : (active) => ref
                     .read(menuListProvider.notifier)
                     .setActive(providerIndex, active: active),
-          onTap: () => context.goNamed(TenantRoutes.menuDiisi),
+          // The preview row on `menu-berhasil-ditambahkan` has no product to
+          // edit, so only real rows are tappable.
+          onTap: providerIndex == -1
+              ? null
+              : () => context.goNamed(
+                    TenantRoutes.menuDiisi,
+                    pathParameters: {'productId': menu.id},
+                  ),
         );
       },
     );

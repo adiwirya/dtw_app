@@ -78,6 +78,39 @@ class MenuList extends _$MenuList {
     return product.id;
   }
 
+  /// Updates a product (`PUT /v1/products/{id}`) and replaces its row.
+  ///
+  /// [isActive] is the product's brand-level flag, carried through from the
+  /// fetched product so an edit does not reactivate a deactivated one.
+  Future<void> updateProduct(
+    String productId, {
+    required String name,
+    required String categoryId,
+    required int price,
+    required bool isActive,
+    String? description,
+  }) async {
+    final product = await ref.read(productRepositoryProvider).updateProduct(
+          productId,
+          categoryId: categoryId,
+          name: name,
+          price: price,
+          isActive: isActive,
+          description: description,
+        );
+    final current = state.value ?? const <MenuItemData>[];
+    // The row's `active` is per-branch availability, which this call does not
+    // touch — so it is carried over from the row being replaced rather than
+    // taken from the response.
+    state = AsyncData([
+      for (final menu in current)
+        if (menu.id == productId)
+          product.toMenuItemData(isAvailable: menu.active)
+        else
+          menu,
+    ]);
+  }
+
   /// Flips the branch-scoped availability of the menu at [index] (the row
   /// toggle), optimistically, reverting if the API call fails.
   Future<void> setActive(int index, {required bool active}) async {

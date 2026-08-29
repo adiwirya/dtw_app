@@ -414,12 +414,17 @@ StatefulShellRoute tenantShellRoute() {
                 name: TenantRoutes.tambahMenu,
                 builder: (context, state) => const TambahMenuScreen(),
               ),
-              // menu-diisi: the same form seeded to its filled state.
+              // menu-diisi: edit an existing menu — the real product id is a
+              // path parameter (see the `ditolak/:orderId` comment above for
+              // why: it is the screen's whole identity). This used to render
+              // the form on a hardcoded "Paket Komplit" seed, so every menu
+              // row opened the same fake product.
               GoRoute(
-                path: 'diisi',
+                path: 'diisi/:productId',
                 name: TenantRoutes.menuDiisi,
-                builder: (context, state) =>
-                    const TambahMenuScreen(prefilled: true),
+                builder: (context, state) => TambahMenuScreen(
+                  editingProductId: state.pathParameters['productId'],
+                ),
               ),
               // kelola-menu (modal): Tambah Menu / Kelola Varian chooser.
               GoRoute(
