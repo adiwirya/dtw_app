@@ -156,9 +156,13 @@ Map<String, dynamic> productJson({
   'name': name,
   'description': null,
   'tags': null,
-  'dpp_price': totalPrice * 0.9,
+  // The real 11% PB1 split, not a 90/10 approximation: `total_price` is what
+  // the customer pays and `dpp_price` is the base backed out of it. Keeping
+  // these far apart is what makes a test asserting on 19900 fail if some code
+  // path ever reads `dpp_price` instead.
+  'dpp_price': totalPrice / 1.11,
   'pb1_percentage': 11,
-  'pb1_price': totalPrice * 0.1,
+  'pb1_price': totalPrice - totalPrice / 1.11,
   'total_price': totalPrice,
   'image_url': null,
   'is_active': true,

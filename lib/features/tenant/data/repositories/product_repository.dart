@@ -58,15 +58,16 @@ class ProductRepository {
   /// it back — the response carries the server-computed `total_price`, which
   /// is what the Menu Saya list renders.
   ///
-  /// [price] is sent verbatim as the endpoint's `price` field.
+  /// [price] is sent verbatim as the endpoint's `price` field, which is
+  /// **tax-inclusive** — the amount the customer pays, matching the
+  /// [Product.totalPrice] the response echoes back. The backend derives
+  /// `dpp_price` and `pb1_price` from it (the live sample splits total 19900
+  /// into dpp 17927.93 + 11% pb1 1972.07).
   ///
-  // TODO(open-question): whether `price` is the pre-tax base (`dpp_price`) or
-  // the tax-inclusive amount the customer pays (`total_price`) is NOT
-  // documented and NOT confirmed live. The live sample has
-  // dpp 17927.93 + 11% pb1 = total 19900, so the two differ by ~11%: if the
-  // backend treats this as `dpp_price`, a tenant who types 19900 meaning
-  // "customer pays 19900" would actually price the item at 22089. Confirm
-  // with the backend team before this form is put in front of tenants.
+  /// So the form round-trips one number: it seeds from `total_price` and sends
+  /// that same number back. Do NOT "correct" this by dividing out the 11% —
+  /// that would silently cut every edited price, and
+  /// `product_repository_test.dart` locks the round-trip against exactly that.
   Future<Product> createProduct({
     required String brandId,
     required String categoryId,
@@ -108,8 +109,9 @@ class ProductRepository {
   ///
   /// [isActive] is sent as-is rather than hardcoded: it is the product's
   /// brand-level flag, and defaulting it to true would silently reactivate a
-  /// product the tenant had turned off. See [createProduct] for the open
-  /// question about what `price` means.
+  /// product the tenant had turned off.
+  ///
+  /// [price] is tax-inclusive, as in [createProduct].
   Future<Product> updateProduct(
     String productId, {
     required String categoryId,

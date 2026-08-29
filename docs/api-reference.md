@@ -128,9 +128,9 @@ when in doubt.
 ### Products
 
 - `GET /v1/products` — list. Item shape: same as `GET /{id}` below.
-- `POST /v1/products` — create. Request: `brand_id`, `category_id`, `sku`, `name`, `description`, `tags`, `price`.
+- `POST /v1/products` — create. Request: `brand_id`, `category_id`, `sku`, `name`, `description`, `tags`, `price`. `price` is **tax-inclusive** (what the customer pays); the backend splits it into `dpp_price` + `pb1_price` and echoes the same figure back as `total_price`.
 - `GET /v1/products/{id}` — get. Response: `id`, `brand_id`, `brand_name`, `category_id`, `category_name`, `sku`, `name`, `description`, `tags`, `dpp_price`, `pb1_percentage`, `pb1_price`, `total_price`, `image_url`, `is_active`, `created_at`, `updated_at`.
-- `PUT /v1/products/{id}` — update. Request: `category_id`, `sku`, `name`, `description`, `tags`, `price`, `is_active`.
+- `PUT /v1/products/{id}` — update. Request: `category_id`, `sku`, `name`, `description`, `tags`, `price` (tax-inclusive, as on create), `is_active`.
 - `POST /v1/products/{id}/image` — upload product image (multipart `image`). Response: same shape as GET.
 
 ### Product Categories
@@ -149,8 +149,8 @@ when in doubt.
 - `GET /v1/modifier-groups/{id}` — get, with options. Response: `id`, `brand_id`, `brand_name`, `name`, `description`, `is_required`, `min_selections`, `max_selections`, `sequence_order`, `is_active`, `option_count`, `created_at`, `updated_at`, `options`.
 - `PUT /v1/modifier-groups/{id}` — update. Request: `name`, `description`, `min_selections`, `max_selections`, `is_active`.
 - `POST /v1/modifier-groups/reorder` — reorder within a brand. Request: `brand_id`, `ids`.
-- `POST /v1/modifier-groups/{groupId}/options` — add an option. Request: `name`, `price`. Response: `id`, `modifier_group_id`, `name`, `dpp_price`, `pb1_percentage`, `pb1_price`, `total_price`, `sequence_order`, `created_at`, `updated_at`.
-- `PUT /v1/modifier-groups/{groupId}/options/{optionId}` — update an option. Request: `name`, `price`.
+- `POST /v1/modifier-groups/{groupId}/options` — add an option. Request: `name`, `price` (tax-inclusive, as on products). Response: `id`, `modifier_group_id`, `name`, `dpp_price`, `pb1_percentage`, `pb1_price`, `total_price`, `sequence_order`, `created_at`, `updated_at`.
+- `PUT /v1/modifier-groups/{groupId}/options/{optionId}` — update an option. Request: `name`, `price` (tax-inclusive).
 - `POST /v1/modifier-groups/{groupId}/options/reorder` — reorder options. Request: `ids`.
 
 ### Menu Availability

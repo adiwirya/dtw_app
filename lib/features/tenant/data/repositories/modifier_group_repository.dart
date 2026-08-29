@@ -58,6 +58,10 @@ class ModifierGroupRepository {
   }
 
   /// Adds one option to an existing modifier group.
+  ///
+  /// [price] is the tax-inclusive add-on price, the same convention as
+  /// `POST /v1/products` — the response's `total_price` echoes it back, and
+  /// [ModifierGroup] reads options' `total_price` to render `+Rp3.000`.
   Future<void> addOption(
     String groupId, {
     required String name,
@@ -138,7 +142,8 @@ class ModifierGroupRepository {
     }
   }
 
-  /// Updates one existing option's name/price. There is no delete endpoint
+  /// Updates one existing option's name/price ([price] tax-inclusive, as in
+  /// [addOption]). There is no delete endpoint
   /// for an option (confirmed live: `DELETE` returns 405) — an option can
   /// only ever be renamed/repriced, never removed, once saved.
   Future<void> updateOption(

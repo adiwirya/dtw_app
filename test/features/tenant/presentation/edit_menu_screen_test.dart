@@ -203,6 +203,26 @@ void main() {
       await _drainSuccessModal(tester);
     });
 
+    // `price` on POST/PUT is the tax-inclusive figure the customer pays —
+    // the same number `total_price` returns. The fixture's `dpp_price` is
+    // 18000/1.11 = 16216, so seeding or sending the pre-tax base instead
+    // would shave 11% off the menu on every edit.
+    testWidgets('sends the tax-inclusive price, not the pre-tax base', (
+      tester,
+    ) async {
+      final adapter = await _pumpForm(tester);
+
+      await _tapSimpan(tester);
+
+      final put = adapter.requests.lastWhere((r) => r.method == 'PUT');
+      expect((put.data! as Map)['price'], 18000);
+      // What the form displayed is what it sent.
+      expect(find.text('18000'), findsOneWidget);
+      expect(find.text('16216'), findsNothing);
+
+      await _drainSuccessModal(tester);
+    });
+
     testWidgets('an active product stays active', (tester) async {
       final adapter = await _pumpForm(tester, isActive: true);
 
