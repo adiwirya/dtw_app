@@ -7,6 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// Loads real fonts for golden tests so images reflect actual rendering
 /// instead of the default Ahem placeholder glyphs.
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  // Every loader below reads through `rootBundle`, which needs a binding.
+  // A file containing only plain `test()` cases never initializes one on its
+  // own — `testWidgets` is what used to do it by side effect — so those files
+  // died in `setUpAll` with "Binding has not yet been initialized" before
+  // their first test ran. `ensureInitialized` is idempotent.
+  setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
   setUpAll(_loadAppFonts);
   setUpAll(_loadRealFonts);
   setUpAll(_loadObraIcons);
@@ -38,8 +44,10 @@ Future<void> _loadObraIcons() async {
     );
     final loader = FontLoader('ObraIcons')..addFont(Future.value(data));
     await loader.load();
-  } on Exception catch (_) {
+  } on Object catch (_) {
     // Font asset not bundled in this test run; icons fall back to notdef.
+    // `on Object`, not `on Exception`: a missing binding throws an *Error*,
+    // which an `on Exception` clause lets through to kill the whole file.
   }
 }
 

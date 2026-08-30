@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+ gates every notification behind a runtime grant.
+         `PluginNewOrderAlerts.initialize` asks for it at startup rather than
+         when the first order lands, so the system dialog never covers the
+         order it is announcing. Declining only costs the tray notification —
+         the in-app banner and chime still fire. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="dtw_app"
         android:name="${applicationName}"

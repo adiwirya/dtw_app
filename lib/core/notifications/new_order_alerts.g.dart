@@ -1,27 +1,27 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'dio_provider.dart';
+part of 'new_order_alerts.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dioHash() => r'92587972955c2a054e79cb6870470327e0be02e9';
+String _$newOrderAlertsHash() => r'a35f13529fb34f8dd9d6428fad0c015b31e465d7';
 
-/// See also [dio].
-@ProviderFor(dio)
-final dioProvider = AutoDisposeProvider<Dio>.internal(
-  dio,
-  name: r'dioProvider',
+/// See also [newOrderAlerts].
+@ProviderFor(newOrderAlerts)
+final newOrderAlertsProvider = Provider<NewOrderAlerts>.internal(
+  newOrderAlerts,
+  name: r'newOrderAlertsProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$dioHash,
+      : _$newOrderAlertsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef DioRef = AutoDisposeProviderRef<Dio>;
+typedef NewOrderAlertsRef = ProviderRef<NewOrderAlerts>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

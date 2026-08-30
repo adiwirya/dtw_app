@@ -6,7 +6,7 @@ part of 'variant_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$variantListHash() => r'b0e7d9cd8a955fcbc01e4f8f17d241fcf552763f';
+String _$variantListHash() => r'7c3965a38d1ce7a910d6c09cae7b05504047c33e';
 
 /// The tenant's variant list (`kelola-varian` / `varian-disimpan`), fetched
 /// from `GET /v1/modifier-groups`.

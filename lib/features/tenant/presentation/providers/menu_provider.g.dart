@@ -28,7 +28,7 @@ final productCategoriesProvider =
 // ignore: unused_element
 typedef ProductCategoriesRef =
     AutoDisposeFutureProviderRef<List<ProductCategory>>;
-String _$menuListHash() => r'ed59cd02c8fb0dd618a83c627e2f7df40fe80810';
+String _$menuListHash() => r'e377bddf492bc127a418f7ec8904b76685a83a18';
 
 /// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products` with
 /// per-branch availability (`GET /v1/tenant-branches/{id}/product-availability`)
