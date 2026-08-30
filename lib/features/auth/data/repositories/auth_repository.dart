@@ -11,9 +11,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'auth_repository.g.dart';
 
 class AuthRepository {
-  AuthRepository({required Dio dio, required LocalStorage localStorage})
-      : _dio = dio,
-        _localStorage = localStorage;
+  AuthRepository({required this._dio, required LocalStorage localStorage})
+      : _localStorage = localStorage;
 
   final Dio _dio;
   final LocalStorage _localStorage;

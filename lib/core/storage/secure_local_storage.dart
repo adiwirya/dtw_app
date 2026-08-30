@@ -34,8 +34,8 @@ const busboyZoneIdStorageKey = 'busboy_zone_id';
 /// Preferences+Keystore (Android) via `flutter_secure_storage`.
 class SecureLocalStorage implements LocalStorage {
   const SecureLocalStorage({
-    FlutterSecureStorage storage = const FlutterSecureStorage(),
-  }) : _storage = storage;
+    this._storage = const FlutterSecureStorage(),
+  });
 
   final FlutterSecureStorage _storage;
 
