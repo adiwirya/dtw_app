@@ -70,7 +70,6 @@ List<Override> _menuSayaOverrides() {
     productRepositoryProvider.overrideWithValue(
       ProductRepository(
         dio: routedDio({
-          '/v1/tenant-branches/branch-1/product-availability': (200, envelope),
           '/v1/products': (200, envelope),
         }),
       ),

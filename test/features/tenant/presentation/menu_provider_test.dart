@@ -18,7 +18,8 @@ TenantBranch _testBranch() => TenantBranch(
       createdAt: DateTime(2026, 8, 7),
     );
 
-/// Single-object envelope (the create response), vs the list one below.
+/// Single-object envelope (the create/get/update response), vs the list one
+/// below.
 Map<String, dynamic> _productsEnvelope0(Map<String, dynamic> item) => {
       'meta': {
         'success': true,
@@ -39,7 +40,12 @@ Map<String, dynamic> _productsEnvelope(List<Map<String, dynamic>> items) => {
       'data': items,
     };
 
-Map<String, dynamic> _product(String id, String name, int price) => {
+Map<String, dynamic> _product(
+  String id,
+  String name,
+  int price, {
+  bool isActive = true,
+}) => {
       'id': id,
       'brand_id': 'brand-1',
       'brand_name': 'Janji Jiwa',
@@ -54,7 +60,7 @@ Map<String, dynamic> _product(String id, String name, int price) => {
       'pb1_price': price * 0.1,
       'total_price': price,
       'image_url': null,
-      'is_active': true,
+      'is_active': isActive,
       'created_at': '2026-08-07 09:16:59',
       'updated_at': '2026-08-07 09:16:59',
     };
@@ -62,24 +68,16 @@ Map<String, dynamic> _product(String id, String name, int price) => {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  ProviderContainer buildContainer({
-    required Map<String, bool> availability,
-  }) {
+  /// [products] backs `GET /v1/products` (the list) and, per product,
+  /// `GET`/`PUT /v1/products/{id}` — the round trip `setActive` makes to
+  /// flip `is_active` without a per-branch availability endpoint.
+  ProviderContainer buildContainer(List<Map<String, dynamic>> products) {
     final dio = routedDio({
-      '/v1/tenant-branches/branch-1/product-availability': (
-        200,
-        _productsEnvelope([
-          for (final entry in availability.entries)
-            {'id': entry.key, 'is_available': entry.value},
-        ]),
-      ),
-      '/v1/products': (
-        200,
-        _productsEnvelope([
-          _product('product-1', 'Sahabat Latte', 19900),
-          _product('product-2', 'Sahabat Hazelnut Latte', 21000),
-        ]),
-      ),
+      for (final product in products)
+        'GET /v1/products/${product['id']}': (200, _productsEnvelope0(product)),
+      for (final product in products)
+        'PUT /v1/products/${product['id']}': (200, _productsEnvelope0(product)),
+      '/v1/products': (200, _productsEnvelope(products)),
     });
     final container = ProviderContainer(
       overrides: [
@@ -94,11 +92,13 @@ void main() {
   }
 
   group('MenuList', () {
-    test('fetches products for the current branch and merges availability',
+    test("derives active/inactive from each product's own is_active",
         () async {
-      final container = buildContainer(
-        availability: {'product-1': true, 'product-2': false},
-      );
+      final container = buildContainer([
+        _product('product-1', 'Sahabat Latte', 19900),
+        _product('product-2', 'Sahabat Hazelnut Latte', 21000,
+            isActive: false),
+      ]);
 
       final menus = await container.read(menuListProvider.future);
 
@@ -110,11 +110,13 @@ void main() {
       expect(menus[1].active, isFalse);
     });
 
-    test('setActive optimistically flips the row then confirms via PATCH',
-        () async {
-      final container = buildContainer(
-        availability: {'product-1': true, 'product-2': true},
-      )..listen(menuListProvider, (_, _) {});
+    test(
+        'setActive optimistically flips the row then confirms via '
+        'PUT /v1/products/{id}', () async {
+      final container = buildContainer([
+        _product('product-1', 'Sahabat Latte', 19900),
+        _product('product-2', 'Sahabat Hazelnut Latte', 21000),
+      ])..listen(menuListProvider, (_, _) {});
       await container.read(menuListProvider.future);
 
       await container
@@ -136,13 +138,6 @@ void main() {
           _productsEnvelope0(
             _product('product-3', 'Paket Komplit', 32000),
           ),
-        ),
-        '/v1/tenant-branches/branch-1/product-availability': (
-          200,
-          _productsEnvelope([
-            {'id': 'product-1', 'is_available': true},
-            {'id': 'product-2', 'is_available': true},
-          ]),
         ),
         '/v1/products': (
           200,
@@ -207,10 +202,6 @@ void main() {
               'category_id': ['The category id field is required.'],
             },
           },
-        ),
-        '/v1/tenant-branches/branch-1/product-availability': (
-          200,
-          _productsEnvelope([]),
         ),
         '/v1/products': (200, _productsEnvelope([])),
       });

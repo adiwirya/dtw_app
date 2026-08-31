@@ -98,7 +98,8 @@ void main() {
     expect(storage.values.containsKey(tenantBranchIdStorageKey), isFalse);
   });
 
-  test('loginWithPassword throws AuthException with fieldErrors on 422', () async {
+  test('loginWithPassword throws AuthException with fieldErrors on 422', () 
+  async {
     final storage = FakeLocalStorage();
     final repository = AuthRepository(
       dio: cannedDio(422, {

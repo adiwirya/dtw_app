@@ -56,5 +56,56 @@ Dio dio(Ref ref) {
     ),
   );
 
+  // Added last so it sees a failure first (Dio runs `onError` in reverse of
+  // insertion order) — a flaky request gets a couple of quiet retries before
+  // it ever reaches the 401 handler or `mapDioError`'s "Tidak bisa
+  // terhubung ke server" message.
+  dio.interceptors.add(_RetryOnConnectionFailureInterceptor(dio));
+
   return dio;
+}
+
+/// Retries a request when it failed without ever getting a server response —
+/// a dropped wifi handoff, a slow cell handover — instead of surfacing
+/// "Tidak bisa terhubung ke server" for what's often just one bad beat.
+///
+/// ponytail: fixed retry count + fixed delay, no exponential backoff; add
+/// backoff if retries start hammering a genuinely-down server.
+class _RetryOnConnectionFailureInterceptor extends Interceptor {
+  _RetryOnConnectionFailureInterceptor(this._dio);
+
+  final Dio _dio;
+
+  static const _maxRetries = 2;
+  static const _retryDelay = Duration(milliseconds: 400);
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final attempt = err.requestOptions.extra['retryAttempt'] as int? ?? 0;
+    if (attempt >= _maxRetries || !_isRetryable(err)) {
+      handler.next(err);
+      return;
+    }
+
+    await Future<void>.delayed(_retryDelay);
+    final options = err.requestOptions..extra['retryAttempt'] = attempt + 1;
+    try {
+      handler.resolve(await _dio.fetch<dynamic>(options));
+    } on DioException catch (retryError) {
+      handler.next(retryError);
+    }
+  }
+
+  /// A connection/handshake timeout never reached the server, so retrying is
+  /// always safe. A receive timeout means the request may already have
+  /// landed — only retry that for GET, which has no side effects.
+  bool _isRetryable(DioException err) => switch (err.type) {
+    DioExceptionType.connectionTimeout || DioExceptionType.connectionError =>
+      true,
+    DioExceptionType.receiveTimeout => err.requestOptions.method == 'GET',
+    _ => false,
+  };
 }

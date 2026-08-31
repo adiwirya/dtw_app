@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../support/canned_dio.dart';
 import '../../../../support/fake_busboy_realtime_service.dart';
 import '../../../../support/fake_local_storage.dart';
+import '../../../../support/fake_tenant_foreground_service.dart';
 import '../../../../support/fake_tenant_realtime_service.dart';
 
 AuthRepository _repositoryReturning(
@@ -18,7 +20,8 @@ AuthRepository _repositoryReturning(
   Object? body,
   FakeLocalStorage storage,
 ) {
-  return AuthRepository(dio: cannedDio(statusCode, body), localStorage: storage);
+  return AuthRepository(dio: cannedDio(statusCode, body), 
+  localStorage: storage);
 }
 
 void main() {
@@ -79,7 +82,8 @@ void main() {
 
     final state = container.read(authControllerProvider);
     expect(state.error, isNotNull);
-    expect((state.error! as AuthException).message, 'Username atau password salah.');
+    expect((state.error! as AuthException).message, 
+    'Username atau password salah.');
     expect(state.isLoading, isFalse);
     expect(container.read(isLoggedInProvider), isFalse);
   });
@@ -143,6 +147,76 @@ void main() {
         .login(username: 'janji_jiwa_smlb', password: 'secret');
 
     expect(realtime.connectCalls, [(token: 'tok_123', branchId: 'branch-1')]);
+  });
+
+  test(
+      'login starts the tenant foreground service for a branch-scoped '
+      'response', () async {
+    final storage = FakeLocalStorage();
+    final foregroundService = FakeTenantForegroundService();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'janji_jiwa_smlb'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+              ],
+            },
+          }, storage),
+        ),
+        tenantForegroundServiceProvider.overrideWithValue(foregroundService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'janji_jiwa_smlb', password: 'secret');
+
+    expect(foregroundService.startCallCount, 1);
+  });
+
+  test(
+      'login does not start the foreground service for a scope-less '
+      'response', () async {
+    final storage = FakeLocalStorage();
+    final foregroundService = FakeTenantForegroundService();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'budi'},
+            },
+          }, storage),
+        ),
+        tenantForegroundServiceProvider.overrideWithValue(foregroundService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'budi', password: 'secret');
+
+    expect(foregroundService.startCallCount, 0);
   });
 
   test('login connects the busboy realtime service for a zone-scoped '
@@ -473,6 +547,31 @@ void main() {
     await container.read(authControllerProvider.notifier).logout();
 
     expect(realtime.disconnectCallCount, 1);
+  });
+
+  test('logout stops the tenant foreground service', () async {
+    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final foregroundService = FakeTenantForegroundService();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+        tenantForegroundServiceProvider.overrideWithValue(foregroundService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(foregroundService.stopCallCount, 1);
   });
 
   test('logout disconnects the busboy realtime service', () async {

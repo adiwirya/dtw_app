@@ -38,9 +38,9 @@ class Product {
   final String id;
   final String name;
 
-  /// The brand-level active flag. Distinct from per-branch availability (the
-  /// `isAvailable` argument to [toMenuItemData]) — this one is not what the
-  /// Menu Saya toggle controls.
+  /// The product's active flag — this is what the Menu Saya toggle controls,
+  /// via `PUT /v1/products/{id}`'s `is_active`. There is no separate
+  /// per-branch availability endpoint on the live API.
   final bool isActive;
 
   /// The product's category. Needed to seed the edit form's `Kategori`
@@ -55,17 +55,11 @@ class Product {
   final int totalPrice;
   final String? imageUrl;
 
-  /// [isAvailable] is a separate per-branch fetch
-  /// (`GET /v1/tenant-branches/{branchId}/product-availability`) — distinct
-  /// from this product's own brand-level `is_active` (not modelled here; the
-  /// tenant Menu Saya screen only cares about the branch-scoped flag). The
-  /// caller merges it in, defaulting to available if that fetch hasn't
-  /// resolved.
-  MenuItemData toMenuItemData({bool isAvailable = true}) => MenuItemData(
+  MenuItemData toMenuItemData() => MenuItemData(
         id: id,
         name: name,
         price: formatRupiah(totalPrice),
-        active: isAvailable,
+        active: isActive,
         imageUrl: imageUrl,
       );
 }

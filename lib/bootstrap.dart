@@ -1,17 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Boots the app. [overrides] lets an entrypoint reconfigure the
 /// ProviderScope without changing `App`.
 Future<void> bootstrap({List<Override> overrides = const []}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Required once per process by `flutter_foreground_task`, regardless of
+  // whether a tenant session ends up starting the service this run.
+  if (Platform.isAndroid) FlutterForegroundTask.initCommunicationPort();
 
   const storage = SecureLocalStorage();
   final token = await storage.read(authTokenStorageKey);
@@ -47,6 +53,14 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       container
           .read(tenantRealtimeServiceProvider)
           .connect(token: token, branchId: branchId)
+          .catchError((_) {}),
+    );
+    // Same restoration as the realtime connect above — see
+    // `TenantForegroundService` and `AuthController.login`.
+    unawaited(
+      container
+          .read(tenantForegroundServiceProvider)
+          .start()
           .catchError((_) {}),
     );
   }

@@ -2,6 +2,8 @@ import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/notifications/new_order_alert_controller.dart';
 import 'package:dtw_app/core/notifications/new_order_alerts.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,47 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../support/fake_new_order_alerts.dart';
 import '../../support/fake_tenant_realtime_service.dart';
 import '../../support/tenant_board.dart';
+
+/// Answers `fetchMissedEvents` with [missed] (or throws [error]) without a
+/// real Dio round trip — mirrors `tenant_order_provider_test.dart`'s
+/// `_RecordingReplayRepository`. The gap-fill runs from a fire-and-forget
+/// stream listener with no Future for a test to await, so keeping this
+/// synchronous (beyond the one `async` hop) is what makes a single
+/// `_settle()` enough to observe it. `NewOrderAlertBanner` never calls the
+/// other methods, so they're left unimplemented.
+class _StubReplayRepository implements TenantOrderRepository {
+  _StubReplayRepository({this.missed = const [], this.error});
+
+  final List<TenantOrder> missed;
+  final Exception? error;
+
+  @override
+  Future<List<TenantOrder>> fetchMissedEvents({
+    required String branchId,
+    required int afterId,
+  }) async {
+    if (error case final e?) throw e;
+    return missed;
+  }
+
+  @override
+  Future<List<TenantOrder>> fetchOrders({required String branchId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> updateStatus(
+    String orderId, {
+    required TenantOrderStatus status,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> processOrder(
+    String orderId, {
+    required List<String> rejectedItemIds,
+  }) =>
+      throw UnimplementedError();
+}
 
 /// Builds a container wired to fakes, with the lifecycle pinned to [state].
 ({
@@ -20,6 +63,8 @@ _harness({
   AppLifecycleState? state = AppLifecycleState.resumed,
   String? role = AuthRoles.tenantKeeper,
   String? branchId = testBranchId,
+  List<TenantOrder> missedEvents = const [],
+  Exception? gapFillError,
 }) {
   final realtime = FakeTenantRealtimeService();
   final alerts = FakeNewOrderAlerts();
@@ -30,6 +75,9 @@ _harness({
       tenantRealtimeServiceProvider.overrideWithValue(realtime),
       newOrderAlertsProvider.overrideWithValue(alerts),
       appLifecycleProvider.overrideWithValue(() => state),
+      tenantOrderRepositoryProvider.overrideWithValue(
+        _StubReplayRepository(missed: missedEvents, error: gapFillError),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -37,12 +85,19 @@ _harness({
   return (container: container, realtime: realtime, alerts: alerts);
 }
 
-Map<String, dynamic> _payload({String id = 'order-1'}) => tenantOrderJson(
-  id: id,
-  status: 'PENDING',
-  tableNumber: 'A-12',
-  grandTotal: 45000,
-);
+Map<String, dynamic> _payload({String id = 'order-1', int? broadcastEventId}) =>
+    tenantOrderJson(
+      id: id,
+      status: 'PENDING',
+      tableNumber: 'A-12',
+      grandTotal: 45000,
+      broadcastEventId: broadcastEventId,
+    );
+
+/// A [TenantOrder] as `fetchMissedEvents` would hand back — built off the
+/// same flat JSON shape [_payload] uses.
+TenantOrder _order({String id = 'order-1', int? broadcastEventId}) =>
+    TenantOrder.fromJson(_payload(id: id, broadcastEventId: broadcastEventId));
 
 /// Lets the stream listener run.
 Future<void> _settle() => Future<void>.delayed(Duration.zero);
@@ -242,6 +297,66 @@ void main() {
       await _settle();
 
       expect(h.container.read(newOrderAlertBannerProvider), isNotNull);
+    });
+  });
+
+  group('reconnect gap-fill', () {
+    test('alerts an order that arrived while disconnected', () async {
+      final h = _harness(missedEvents: [_order(id: 'order-2')]);
+      h.container.read(newOrderAlertBannerProvider);
+
+      // Seeds `_lastBroadcastEventId` — without a prior live order there is
+      // no cursor to replay from (mirrors `TenantOrderBoard`'s own guard).
+      h.realtime.emitOrderCreated(_payload(broadcastEventId: 1));
+      await _settle();
+
+      h.realtime.emitReconnected();
+      await _settle();
+
+      expect(h.alerts.chimeCallCount, 2);
+      expect(h.container.read(newOrderAlertBannerProvider)?.orderId, 'order-2');
+    });
+
+    test('does not re-alert an order the live stream already delivered',
+        () async {
+      final h = _harness(missedEvents: [_order()]);
+      h.container.read(newOrderAlertBannerProvider);
+
+      h.realtime.emitOrderCreated(_payload(broadcastEventId: 1));
+      await _settle();
+      expect(h.alerts.chimeCallCount, 1);
+
+      h.realtime.emitReconnected();
+      await _settle();
+
+      expect(h.alerts.chimeCallCount, 1);
+    });
+
+    test('a reconnect before any live order ever arrived is a no-op',
+        () async {
+      final h = _harness();
+      h.container.read(newOrderAlertBannerProvider);
+
+      h.realtime.emitReconnected();
+      await _settle();
+
+      expect(h.alerts.chimeCallCount, 0);
+      expect(h.alerts.notified, isEmpty);
+    });
+
+    test('a gap-fill failure does not take the listener down with it',
+        () async {
+      final h = _harness(gapFillError: Exception('replay unreachable'));
+      h.container.read(newOrderAlertBannerProvider);
+
+      h.realtime.emitOrderCreated(_payload(broadcastEventId: 1));
+      await _settle();
+      h.realtime.emitReconnected();
+      await _settle();
+
+      h.realtime.emitOrderCreated(_payload(id: 'order-2'));
+      await _settle();
+      expect(h.container.read(newOrderAlertBannerProvider)?.orderId, 'order-2');
     });
   });
 

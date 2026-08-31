@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dtw_app/core/realtime/reverb_config.dart';
 import 'package:flutter/foundation.dart';
@@ -72,6 +73,17 @@ class ReverbTenantRealtimeService implements TenantRealtimeService {
       useTls: ReverbConfig.useTls,
       authEndpoint: ReverbConfig.authEndpoint,
       authHeaders: () async => {'Authorization': 'Bearer $token'},
+      // `laravel_reverb` defaults to tearing the socket down the instant the
+      // app is backgrounded and reconnecting on resume — sensible on its
+      // own, but it defeats `TenantForegroundService`: that keeps the
+      // Android process alive specifically so a backgrounded tenant still
+      // gets live order alerts, and this would disconnect the one thing
+      // that needs to stay up regardless. Android now manages the socket's
+      // own lifecycle instead (the foreground service IS that management —
+      // see its doc). Left on for every other platform, where nothing keeps
+      // the process alive in the background to make staying connected worth
+      // it.
+      handleAppLifecycle: !Platform.isAndroid,
       // `connect()`'s Future completes normally on both success AND a fatal
       // give-up (e.g. a rejected auth handshake) — every failure, including
       // a rejected private-channel subscription, only ever surfaces through

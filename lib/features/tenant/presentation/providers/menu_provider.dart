@@ -22,30 +22,19 @@ Future<List<ProductCategory>> productCategories(Ref ref) async {
       .fetchCategories(brandId: branch.brandId);
 }
 
-/// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products` with
-/// per-branch availability (`GET /v1/tenant-branches/{id}/product-availability`)
-/// merged in for the active/inactive toggle.
+/// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products`.
+/// The active/inactive toggle is the product's own `is_active` — the
+/// per-branch availability endpoint documented in the spec (`GET/PATCH
+/// /v1/tenant-branches/{id}/product-availability...`) does not exist live.
 @riverpod
 class MenuList extends _$MenuList {
   @override
   Future<List<MenuItemData>> build() async {
     final branch = await ref.watch(currentTenantBranchProvider.future);
-    final repository = ref.watch(productRepositoryProvider);
-    final products = await repository.fetchProducts(brandId: branch.brandId);
-
-    // Best-effort: availability is a secondary fetch — if it fails, show the
-    // menu as available rather than fail the whole list over a toggle state.
-    Map<String, bool> availability;
-    try {
-      availability = await repository.fetchAvailability(branchId: branch.id);
-    } on Object {
-      availability = const {};
-    }
-
-    return [
-      for (final product in products)
-        product.toMenuItemData(isAvailable: availability[product.id] ?? true),
-    ];
+    final products = await ref
+        .watch(productRepositoryProvider)
+        .fetchProducts(brandId: branch.brandId);
+    return [for (final product in products) product.toMenuItemData()];
   }
 
   /// Creates a product (`POST /v1/products`) and appends it to the list.
@@ -99,20 +88,19 @@ class MenuList extends _$MenuList {
           description: description,
         );
     final current = state.value ?? const <MenuItemData>[];
-    // The row's `active` is per-branch availability, which this call does not
-    // touch — so it is carried over from the row being replaced rather than
-    // taken from the response.
     state = AsyncData([
       for (final menu in current)
-        if (menu.id == productId)
-          product.toMenuItemData(isAvailable: menu.active)
-        else
-          menu,
+        if (menu.id == productId) product.toMenuItemData() else menu,
     ]);
   }
 
-  /// Flips the branch-scoped availability of the menu at [index] (the row
-  /// toggle), optimistically, reverting if the API call fails.
+  /// Flips the menu at [index] active/inactive (the row toggle),
+  /// optimistically, reverting if the API call fails.
+  ///
+  /// There is no per-branch availability endpoint on the live API, so this
+  /// re-fetches the full product and PUTs it back with `is_active` flipped —
+  /// the same `PUT /v1/products/{id}` [updateProduct] uses, just sourcing
+  /// every other field from the product itself instead of a form.
   Future<void> setActive(int index, {required bool active}) async {
     final current = state.value;
     if (current == null) {
@@ -132,12 +120,16 @@ class MenuList extends _$MenuList {
     ]);
 
     try {
-      final branch = await ref.read(currentTenantBranchProvider.future);
-      await ref.read(productRepositoryProvider).updateAvailability(
-            target.id,
-            branchId: branch.id,
-            isAvailable: active,
-          );
+      final repository = ref.read(productRepositoryProvider);
+      final product = await repository.fetchProduct(target.id);
+      await repository.updateProduct(
+        target.id,
+        categoryId: product.categoryId!,
+        name: product.name,
+        price: product.totalPrice,
+        isActive: active,
+        description: product.description,
+      );
     } on Object catch (_) {
       state = AsyncData(current);
       rethrow;

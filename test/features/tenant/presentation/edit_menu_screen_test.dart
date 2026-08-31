@@ -66,10 +66,6 @@ Future<RoutedAdapter> _pumpForm(
       200,
       tenantEnvelope(_editableProduct(isActive: isActive)),
     ),
-    '/v1/tenant-branches/$testBranchId/product-availability': (
-      200,
-      tenantEnvelope(<dynamic>[]),
-    ),
     '/v1/product-categories': (
       200,
       tenantEnvelope([

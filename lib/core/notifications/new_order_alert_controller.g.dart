@@ -32,7 +32,7 @@ final appLifecycleProvider = Provider<AppLifecycleState? Function()>.internal(
 // ignore: unused_element
 typedef AppLifecycleRef = ProviderRef<AppLifecycleState? Function()>;
 String _$newOrderAlertBannerHash() =>
-    r'59187b3dea4af201b666553767db33bee65a1db4';
+    r'c98d658e996fc3dbad52ad40d77bf1d6a647c4bf';
 
 /// The alert currently shown as an in-app banner, or null for none.
 ///

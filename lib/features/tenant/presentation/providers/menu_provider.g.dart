@@ -28,11 +28,12 @@ final productCategoriesProvider =
 // ignore: unused_element
 typedef ProductCategoriesRef =
     AutoDisposeFutureProviderRef<List<ProductCategory>>;
-String _$menuListHash() => r'e377bddf492bc127a418f7ec8904b76685a83a18';
+String _$menuListHash() => r'bc90670056bbec1bdad745eec2929a3f83fde7d4';
 
-/// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products` with
-/// per-branch availability (`GET /v1/tenant-branches/{id}/product-availability`)
-/// merged in for the active/inactive toggle.
+/// The tenant's menu list (`menu-saya`), fetched from `GET /v1/products`.
+/// The active/inactive toggle is the product's own `is_active` — the
+/// per-branch availability endpoint documented in the spec (`GET/PATCH
+/// /v1/tenant-branches/{id}/product-availability...`) does not exist live.
 ///
 /// Copied from [MenuList].
 @ProviderFor(MenuList)

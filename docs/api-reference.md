@@ -156,12 +156,15 @@ when in doubt.
 ### Menu Availability
 
 Per-branch overrides of product/modifier-option availability (not the same
-as a product/option's own `is_active`).
+as a product/option's own `is_active`), documented in the OpenAPI spec
+(`api.json`) but **not live** — confirmed 2026-08-31 the product-availability
+route 404s on the real server. The tenant Menu Saya toggle uses
+`is_active` via `PUT /v1/products/{id}` instead (see Products above).
 
-- `GET /v1/tenant-branches/{branch}/product-availability` — list.
-- `PATCH /v1/tenant-branches/{branch}/product-availability/{product}` — toggle. Request: `is_available`.
-- `GET /v1/tenant-branches/{branch}/modifier-option-availability` — list.
-- `PATCH /v1/tenant-branches/{branch}/modifier-option-availability/{option}` — toggle. Request: `is_available`.
+- `GET /v1/tenant-branches/{branch}/product-availability` — list. Spec-only, not live.
+- `PATCH /v1/tenant-branches/{branch}/product-availability/{product}` — toggle. Request: `is_available`. Spec-only, not live.
+- `GET /v1/tenant-branches/{branch}/modifier-option-availability` — list. Not confirmed live.
+- `PATCH /v1/tenant-branches/{branch}/modifier-option-availability/{option}` — toggle. Request: `is_available`. Not confirmed live.
 
 ### Auth
 

@@ -141,11 +141,15 @@ Map<String, dynamic> productCategoryJson({
   'updated_at': '2026-08-07 09:16:59',
 };
 
-/// One `GET /v1/products` list item (and the `POST /v1/products` response).
+/// One `GET /v1/products` list item (and the `POST`/`PUT`/`GET /{id}`
+/// response) — [isActive] is what the Menu Saya toggle round-trips through
+/// `PUT /v1/products/{id}` now that there is no per-branch availability
+/// endpoint.
 Map<String, dynamic> productJson({
   required String id,
   required String name,
   int totalPrice = 19900,
+  bool isActive = true,
 }) => {
   'id': id,
   'brand_id': 'brand-1',
@@ -165,7 +169,7 @@ Map<String, dynamic> productJson({
   'pb1_price': totalPrice - totalPrice / 1.11,
   'total_price': totalPrice,
   'image_url': null,
-  'is_active': true,
+  'is_active': isActive,
   'created_at': '2026-08-07 09:16:59',
   'updated_at': '2026-08-07 09:16:59',
 };
@@ -182,8 +186,10 @@ TenantBranch tenantBranchFixture() => TenantBranch(
 );
 
 /// Overrides for the tenant menu screens and the add-menu form: a seeded
-/// branch plus a routed `ProductRepository` covering the product list,
-/// per-branch availability, the category list and the create POST.
+/// branch plus a routed `ProductRepository` covering the product list, a
+/// per-product `GET`/`PUT /v1/products/{id}` (what `MenuList.setActive`
+/// round-trips through — there is no per-branch availability endpoint), the
+/// category list and the create POST.
 ///
 /// The add-menu form watches `productCategoriesProvider`, so any test that
 /// pumps `TambahMenuScreen` needs this — otherwise the category fetch hangs on
@@ -195,7 +201,6 @@ TenantBranch tenantBranchFixture() => TenantBranch(
 List<Override> tenantMenuOverrides({
   List<Map<String, dynamic>> products = const [],
   List<Map<String, dynamic>> categories = const [],
-  Map<String, bool> availability = const {},
   Map<String, dynamic>? created,
   int syncStatus = 200,
 }) {
@@ -203,17 +208,14 @@ List<Override> tenantMenuOverrides({
   final dio = routedDio({
     // More specific keys first — RoutedAdapter matches the first key that is
     // a prefix of "METHOD path".
+    for (final product in products)
+      'GET /v1/products/${product['id']}': (200, tenantEnvelope(product)),
+    for (final product in products)
+      'PUT /v1/products/${product['id']}': (200, tenantEnvelope(product)),
     'POST /v1/products/': (syncStatus, tenantEnvelope(null)),
     'POST /v1/products': (
       201,
       tenantEnvelope(created ?? productJson(id: 'new-1', name: 'Menu Baru')),
-    ),
-    '/v1/tenant-branches/$testBranchId/product-availability': (
-      200,
-      tenantEnvelope([
-        for (final entry in availability.entries)
-          {'id': entry.key, 'is_available': entry.value},
-      ]),
     ),
     '/v1/product-categories': (200, tenantEnvelope(categories)),
     '/v1/products': (200, tenantEnvelope(products)),

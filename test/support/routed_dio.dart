@@ -51,7 +51,7 @@ class RoutedAdapter implements HttpClientAdapter {
 }
 
 /// A [Dio] wired to a fresh [RoutedAdapter] — keyed by path prefix, e.g.
-/// `{'/v1/products': (200, ...), '/v1/tenant-branches/.../product-availability': (200, ...)}`.
+/// `{'/v1/products': (200, ...), 'GET /v1/products/p1': (200, ...)}`.
 Dio routedDio(
   Map<String, (int, Object?)> responses, {
   String baseUrl = 'https://dtw-cms.gadingemerald.com/api',

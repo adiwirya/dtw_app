@@ -12,7 +12,12 @@ import '../../../support/tenant_board.dart';
 List<Map<String, dynamic>> _products() => [
   productJson(id: 'p1', name: 'Sahabat Latte'),
   productJson(id: 'p2', name: 'Sahabat Hazelnut', totalPrice: 21000),
-  productJson(id: 'p3', name: 'Kopi Susu', totalPrice: 18000),
+  productJson(
+    id: 'p3',
+    name: 'Kopi Susu',
+    totalPrice: 18000,
+    isActive: false,
+  ),
 ];
 
 Future<void> _pump(WidgetTester tester) async {
@@ -22,10 +27,7 @@ Future<void> _pump(WidgetTester tester) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: tenantMenuOverrides(
-        products: _products(),
-        availability: const {'p1': true, 'p2': true, 'p3': false},
-      ),
+      overrides: tenantMenuOverrides(products: _products()),
       child: const MaterialApp(home: MenuSayaScreen()),
     ),
   );

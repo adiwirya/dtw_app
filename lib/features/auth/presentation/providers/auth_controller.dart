@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
@@ -58,6 +59,14 @@ class AuthController extends _$AuthController {
               .connect(token: response.accessToken, branchId: branchId)
               .catchError((_) {}),
         );
+        // Keeps the process alive in the background for this same tenant
+        // session — see `TenantForegroundService`. Best-effort for the same
+        // reason as the realtime connect above: a denied notification
+        // permission or a device without the capability must not block
+        // login.
+        unawaited(
+          ref.read(tenantForegroundServiceProvider).start().catchError((_) {}),
+        );
       }
       // Same fire-and-forget contract for the busboy zone board.
       final zoneId = response.zoneId;
@@ -85,6 +94,11 @@ class AuthController extends _$AuthController {
     }
     try {
       await ref.read(busboyRealtimeServiceProvider).disconnect();
+    } on Object catch (_) {
+      // Swallowed intentionally — see comment above.
+    }
+    try {
+      await ref.read(tenantForegroundServiceProvider).stop();
     } on Object catch (_) {
       // Swallowed intentionally — see comment above.
     }

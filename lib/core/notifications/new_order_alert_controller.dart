@@ -7,6 +7,7 @@ import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,11 +33,22 @@ AppLifecycleState? Function() appLifecycle(Ref ref) =>
 @Riverpod(keepAlive: true)
 class NewOrderAlertBanner extends _$NewOrderAlertBanner {
   StreamSubscription<Map<String, dynamic>>? _subscription;
+  StreamSubscription<void>? _reconnectedSubscription;
   Timer? _autoDismiss;
 
   /// How long the banner sits before dismissing itself. Long enough to read
   /// over a busy counter, short enough not to cover the order it announces.
   static const visibleFor = Duration(seconds: 6);
+
+  /// Highest `broadcast_event_id` seen so far, for the reconnect gap-fill.
+  /// Tracked independently of `TenantOrderBoard`'s own copy — this is a
+  /// separate listener on the same stream, not a shared cursor.
+  int? _lastBroadcastEventId;
+
+  /// Order ids already alerted this session. The live stream and a
+  /// reconnect gap-fill cover overlapping windows by design, so without
+  /// this an order delivered both ways would chime/notify twice.
+  final Set<String> _alertedOrderIds = {};
 
   @override
   NewOrderAlert? build() {
@@ -55,34 +67,44 @@ class NewOrderAlertBanner extends _$NewOrderAlertBanner {
 
     final alerts = ref.watch(newOrderAlertsProvider);
     final lifecycle = ref.watch(appLifecycleProvider);
+    final realtime = ref.watch(tenantRealtimeServiceProvider);
 
     // Channels/permission are set up once, up front, rather than on the first
     // order — asking for notification permission at the moment an order lands
     // would put a system dialog over the thing the tenant needs to act on.
     unawaited(_guard(alerts.initialize, 'initialize'));
 
-    _subscription = ref
-        .watch(tenantRealtimeServiceProvider)
-        .orderCreated
-        .listen((payload) => _announce(payload, alerts, lifecycle));
+    _subscription = realtime.orderCreated.listen(
+      (payload) => _announcePayload(payload, alerts, lifecycle),
+    );
+
+    // Mirrors `TenantOrderBoard._onReconnected`: without this, an order
+    // that lands while the socket is down (app backgrounded, a dropped wifi
+    // handoff) shows up fine on the board once reconnected via the same
+    // gap-fill, but this listener — hearing only live `order.created`
+    // events — never gets it, so the tenant sees the order with no chime,
+    // banner or tray notification ever having fired for it.
+    _reconnectedSubscription = realtime.reconnected.listen(
+      (_) => _onReconnected(alerts, lifecycle),
+    );
 
     ref.onDispose(() {
       _autoDismiss?.cancel();
       unawaited(_subscription?.cancel() ?? Future<void>.value());
+      unawaited(_reconnectedSubscription?.cancel() ?? Future<void>.value());
     });
 
     return null;
   }
 
-  void _announce(
+  void _announcePayload(
     Map<String, dynamic> payload,
     NewOrderAlerts alerts,
     AppLifecycleState? Function() lifecycle,
   ) {
-    final NewOrderAlert alert;
+    final TenantOrder order;
     try {
-      final order = TenantOrder.fromBroadcastPayload(payload);
-      alert = NewOrderAlert.fromOrder(order);
+      order = TenantOrder.fromBroadcastPayload(payload);
     } on Object catch (error) {
       // A payload this can't parse is the board's problem to report, not the
       // alert's — and throwing from a stream listener would surface as an
@@ -90,6 +112,57 @@ class NewOrderAlertBanner extends _$NewOrderAlertBanner {
       debugPrint('NewOrderAlertBanner: unparseable order.created — $error');
       return;
     }
+    _announceOrder(order, alerts, lifecycle);
+  }
+
+  /// Fetches whatever `order.created` events landed while disconnected
+  /// (`GET /v1/broadcast/replay`, confirmed to only ever carry that event —
+  /// see `docs/api-reference.md`) and announces each one that hasn't
+  /// already been alerted.
+  Future<void> _onReconnected(
+    NewOrderAlerts alerts,
+    AppLifecycleState? Function() lifecycle,
+  ) async {
+    final afterId = _lastBroadcastEventId;
+    // Nothing seen yet this session (e.g. the very first reconnect before
+    // any live order ever arrived) — no cursor to replay from, same guard
+    // as `TenantOrderBoard`.
+    if (afterId == null) return;
+    final branchId = ref.read(sessionBranchIdProvider);
+    if (branchId == null) return;
+
+    final List<TenantOrder> missed;
+    try {
+      missed = await ref
+          .read(tenantOrderRepositoryProvider)
+          .fetchMissedEvents(branchId: branchId, afterId: afterId);
+    } on Object catch (error) {
+      // Best-effort, same as the board's own gap-fill: a failure here costs
+      // a possible missed alert, not a broken session.
+      debugPrint('NewOrderAlertBanner: gap-fill failed — $error');
+      return;
+    }
+    for (final order in missed) {
+      _announceOrder(order, alerts, lifecycle);
+    }
+  }
+
+  void _announceOrder(
+    TenantOrder order,
+    NewOrderAlerts alerts,
+    AppLifecycleState? Function() lifecycle,
+  ) {
+    if (order.broadcastEventId case final id?) {
+      if (_lastBroadcastEventId == null || id > _lastBroadcastEventId!) {
+        _lastBroadcastEventId = id;
+      }
+    }
+    // Already alerted — a live delivery this same order already arrived
+    // through, or an overlapping gap-fill window. Firing again would
+    // chime/notify twice for one order.
+    if (!_alertedOrderIds.add(order.id)) return;
+
+    final alert = NewOrderAlert.fromOrder(order);
 
     // Foreground and background are deliberately exclusive. Posting a tray
     // notification while the tenant is already looking at the order screen

@@ -70,10 +70,6 @@ Future<RoutedAdapter> _pump(
                   totalPrice: 32000),
             ),
     ),
-    '/v1/tenant-branches/$testBranchId/product-availability': (
-      200,
-      tenantEnvelope(<dynamic>[]),
-    ),
     '/v1/product-categories': (
       200,
       tenantEnvelope([productCategoryJson(id: _categoryId, name: 'Nasi')]),
