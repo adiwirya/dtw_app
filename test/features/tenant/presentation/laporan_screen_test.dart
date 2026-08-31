@@ -1,9 +1,14 @@
+import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/laporan_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/laporan_charts.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/laporan_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/routed_dio.dart';
+import '../../../support/tenant_board.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester) async {
@@ -57,5 +62,56 @@ void main() {
     expect(find.text('Selasa, 13 Mei 2026'), findsOneWidget);
     expect(find.byType(MenuPerformanceChart), findsOneWidget);
     expect(find.byType(LineChartView), findsNWidgets(2));
+  });
+
+  testWidgets('pulling down refetches the tenant branch', (tester) async {
+    // A normal phone-sized viewport, not the 3402px one the tests above use
+    // to fit the whole report without scrolling — that leaves no scroll
+    // room at all, and this test needs genuine overflow for the drag below
+    // to register as a pull rather than land on it.
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final dio = routedDio({
+      '/v1/tenant-branches/$testBranchId': (
+        200,
+        tenantEnvelope({
+          'id': testBranchId,
+          'brand_id': 'brand-1',
+          'brand_name': 'Janji Jiwa',
+          'branch_name': 'Janji Jiwa',
+          'area_name': 'Downtown',
+          'is_active': true,
+          'created_at': '2026-08-07 09:16:37',
+        }),
+      ),
+    });
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localStorageProvider.overrideWithValue(branchScopedStorage()),
+          tenantBranchRepositoryProvider.overrideWithValue(
+            TenantBranchRepository(dio: dio),
+          ),
+        ],
+        child: const MaterialApp(home: LaporanScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final adapter = dio.httpClientAdapter as RoutedAdapter;
+    final before = adapter.requests.length;
+
+    await tester.fling(
+      find.byType(SingleChildScrollView),
+      const Offset(0, 300),
+      1000,
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final after = adapter.requests.length;
+    expect(after, greaterThan(before));
   });
 }

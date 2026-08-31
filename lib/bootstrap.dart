@@ -19,12 +19,19 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // whether a tenant session ends up starting the service this run.
   if (Platform.isAndroid) FlutterForegroundTask.initCommunicationPort();
 
+  // Five independent keys — reading them in parallel rather than one
+  // `await` at a time matters here specifically: this whole function runs
+  // before `runApp()`, so this is on the critical path to the first frame,
+  // and a secure-storage read's first cold hit into the Android Keystore
+  // can be slow.
   const storage = SecureLocalStorage();
-  final token = await storage.read(authTokenStorageKey);
-  final branchId = await storage.read(tenantBranchIdStorageKey);
-  final zoneId = await storage.read(busboyZoneIdStorageKey);
-  final username = await storage.read(sessionUsernameStorageKey);
-  final role = await storage.read(sessionRoleStorageKey);
+  final [token, branchId, zoneId, username, role] = await Future.wait([
+    storage.read(authTokenStorageKey),
+    storage.read(tenantBranchIdStorageKey),
+    storage.read(busboyZoneIdStorageKey),
+    storage.read(sessionUsernameStorageKey),
+    storage.read(sessionRoleStorageKey),
+  ]);
 
   final container = ProviderContainer(
     overrides: [

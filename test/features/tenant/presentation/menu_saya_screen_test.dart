@@ -1,10 +1,13 @@
 import 'package:dtw_app/core/widgets/app_toggle.dart';
+import 'package:dtw_app/features/tenant/data/repositories/product_repository.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/menu_saya_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_item_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../support/routed_dio.dart';
 import '../../../support/tenant_board.dart';
 
 /// Two active menus and one inactive one, so every status pill has a distinct
@@ -133,5 +136,49 @@ void main() {
     expect(find.byType(MenuItemCard), findsNWidgets(3));
     expect(find.text('Aktif (3)'), findsOneWidget);
     expect(find.text('Nonaktif (0)'), findsOneWidget);
+  });
+
+  testWidgets('pulling down refetches the menu list', (tester) async {
+    tester.view.physicalSize = const Size(390, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final branch = tenantBranchFixture();
+    final dio = routedDio({
+      '/v1/tenant-branches/$testBranchId/product-availability': (
+        200,
+        tenantEnvelope(<dynamic>[]),
+      ),
+      '/v1/product-categories': (200, tenantEnvelope(<dynamic>[])),
+      '/v1/products': (200, tenantEnvelope(_products())),
+    });
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentTenantBranchProvider.overrideWith((ref) async => branch),
+          productRepositoryProvider.overrideWithValue(
+            ProductRepository(dio: dio),
+          ),
+        ],
+        child: const MaterialApp(home: MenuSayaScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final adapter = dio.httpClientAdapter as RoutedAdapter;
+    final before =
+        adapter.requests.where((r) => r.path == '/v1/products').length;
+
+    await tester.fling(
+      find.byType(RefreshIndicator),
+      const Offset(0, 300),
+      1000,
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final after =
+        adapter.requests.where((r) => r.path == '/v1/products').length;
+    expect(after, greaterThan(before));
   });
 }

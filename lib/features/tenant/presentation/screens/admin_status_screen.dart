@@ -53,23 +53,27 @@ class AdminStatusScreen extends ConsumerWidget {
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             clipBehavior: Clip.antiAlias,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              children: [
-                if (hasOperationalHours) ...[
-                  _JamOperasionalCard(
-                    hours: info.operationalHours!,
-                    days: info.operationalDays!,
-                  ),
+            child: RefreshIndicator(
+              onRefresh: () => ref.refresh(tenantAdminInfoProvider.future),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                children: [
+                  if (hasOperationalHours) ...[
+                    _JamOperasionalCard(
+                      hours: info.operationalHours!,
+                      days: info.operationalDays!,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _InformasiTenantCard(info: info),
                   const SizedBox(height: 16),
+                  _AkunCard(
+                    onLogout: () =>
+                        ref.read(authControllerProvider.notifier).logout(),
+                  ),
                 ],
-                _InformasiTenantCard(info: info),
-                const SizedBox(height: 16),
-                _AkunCard(
-                  onLogout: () =>
-                      ref.read(authControllerProvider.notifier).logout(),
-                ),
-              ],
+              ),
             ),
           ),
         ),

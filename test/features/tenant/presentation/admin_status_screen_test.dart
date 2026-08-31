@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/canned_dio.dart';
+import '../../../support/routed_dio.dart';
 import '../../../support/tenant_board.dart';
 
 Widget _host({required Dio dio}) => ProviderScope(
@@ -77,6 +78,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Terjadi kesalahan. Coba lagi.'), findsOneWidget);
+    });
+
+    testWidgets('pulling down refetches the tenant info', (tester) async {
+      final dio = routedDio({
+        '/v1/tenant-branches/$testBranchId': (
+          200,
+          tenantEnvelope({
+            'id': testBranchId,
+            'brand_id': 'brand-1',
+            'brand_name': 'Janji Jiwa',
+            'branch_name': 'Janji Jiwa',
+            'area_name': 'Downtown',
+            'is_active': false,
+            'created_at': '2026-08-07 09:16:37',
+          }),
+        ),
+      });
+      await tester.pumpWidget(_host(dio: dio));
+      await tester.pumpAndSettle();
+
+      final adapter = dio.httpClientAdapter as RoutedAdapter;
+      final before = adapter.requests.length;
+
+      await tester.fling(
+        find.byType(RefreshIndicator),
+        const Offset(0, 300),
+        1000,
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final after = adapter.requests.length;
+      expect(after, greaterThan(before));
     });
   });
 }

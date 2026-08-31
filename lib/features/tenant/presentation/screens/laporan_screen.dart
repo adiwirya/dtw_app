@@ -27,109 +27,121 @@ class LaporanScreen extends ConsumerWidget {
       body: SafeArea(
         top: false,
         bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LaporanHeader(
-                // The report body below is still all mock data (see
-                // `laporan_provider.dart`), but tenant identity is real —
-                // same fix as the Order/Menu headers.
-                tenantName: branch?.branchName ?? report.tenantName,
-                tableLabel: branch?.areaName ?? report.tableLabel,
-                filters: report.filters,
-                activeFilter: report.activeFilter,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ReportSummaryCard(summary: report.summary),
-                    const SizedBox(height: 16),
-                    LaporanMetricGrid(metrics: report.metrics),
-                    const SizedBox(height: 16),
-                    _salesChartCard(report.salesChart),
-                    const SizedBox(height: 16),
-                    _busyHoursCard(report.busyHours),
-                    const SizedBox(height: 16),
-                    SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const LaporanSectionHeader(title: 'Menu Terlaris'),
-                          const SizedBox(height: 16),
-                          TopItemsList(items: report.topItems),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const LaporanSectionHeader(title: 'Stok Menipis'),
-                          const SizedBox(height: 16),
-                          LowStockList(items: report.lowStock),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const LaporanSectionHeader(title: 'Performa Menu'),
-                          const SizedBox(height: 16),
-                          MenuPerformanceChart(
-                            performance: report.menuPerformance,
-                          ),
-                          const SizedBox(height: 16),
-                          ReportCalloutCard(
-                            callout: report.menuPerformance.insight,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const LaporanSectionHeader(title: 'Jam Ramai'),
-                          const SizedBox(height: 16),
-                          PeakHoursList(bars: report.peakHours.bars),
-                          const SizedBox(height: 16),
-                          ReportCalloutCard(callout: report.peakHours.tip),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _salesTrendCard(report.salesTrend),
-                    const SizedBox(height: 16),
-                    SectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const LaporanSectionHeader(title: 'Insight Otomatis'),
-                          const SizedBox(height: 16),
-                          AutoInsightsList(insights: report.autoInsights),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      report.dateLabel,
-                      style: const TextStyle(
-                        color: AppColors.neutral500,
-                        fontSize: 13,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
+        child: RefreshIndicator(
+          onRefresh: () {
+            // `laporanReportProvider` is still mock (see the file), so this
+            // just re-derives it; `currentTenantBranchProvider` is the one
+            // real fetch the header depends on.
+            ref.invalidate(laporanReportProvider);
+            return ref.refresh(currentTenantBranchProvider.future);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LaporanHeader(
+                  // The report body below is still all mock data (see
+                  // `laporan_provider.dart`), but tenant identity is real —
+                  // same fix as the Order/Menu headers.
+                  tenantName: branch?.branchName ?? report.tenantName,
+                  tableLabel: branch?.areaName ?? report.tableLabel,
+                  filters: report.filters,
+                  activeFilter: report.activeFilter,
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ReportSummaryCard(summary: report.summary),
+                      const SizedBox(height: 16),
+                      LaporanMetricGrid(metrics: report.metrics),
+                      const SizedBox(height: 16),
+                      _salesChartCard(report.salesChart),
+                      const SizedBox(height: 16),
+                      _busyHoursCard(report.busyHours),
+                      const SizedBox(height: 16),
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const LaporanSectionHeader(title: 'Menu Terlaris'),
+                            const SizedBox(height: 16),
+                            TopItemsList(items: report.topItems),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const LaporanSectionHeader(title: 'Stok Menipis'),
+                            const SizedBox(height: 16),
+                            LowStockList(items: report.lowStock),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const LaporanSectionHeader(title: 'Performa Menu'),
+                            const SizedBox(height: 16),
+                            MenuPerformanceChart(
+                              performance: report.menuPerformance,
+                            ),
+                            const SizedBox(height: 16),
+                            ReportCalloutCard(
+                              callout: report.menuPerformance.insight,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const LaporanSectionHeader(title: 'Jam Ramai'),
+                            const SizedBox(height: 16),
+                            PeakHoursList(bars: report.peakHours.bars),
+                            const SizedBox(height: 16),
+                            ReportCalloutCard(callout: report.peakHours.tip),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _salesTrendCard(report.salesTrend),
+                      const SizedBox(height: 16),
+                      SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const LaporanSectionHeader(
+                              title: 'Insight Otomatis',
+                            ),
+                            const SizedBox(height: 16),
+                            AutoInsightsList(insights: report.autoInsights),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        report.dateLabel,
+                        style: const TextStyle(
+                          color: AppColors.neutral500,
+                          fontSize: 13,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

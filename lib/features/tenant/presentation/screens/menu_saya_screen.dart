@@ -73,8 +73,9 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   MenuSayaHeader(
-                    actionLabel:
-                        widget.recentlyAdded ? 'Tambah Menu' : 'Kelola Menu',
+                    actionLabel: widget.recentlyAdded
+                        ? 'Tambah Menu'
+                        : 'Kelola Menu',
                     actionIcon: widget.recentlyAdded
                         ? ObraIcons.add
                         : ObraIcons.sliders,
@@ -122,13 +123,23 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
     // is gone — `recentlyAdded` only swaps the header action.
     final rows = _visible(all);
 
-    // Only reachable through the search field or a status pill, so this screen
-    // owns the state. An unfiltered empty list keeps its blank rendering.
-    if (rows.isEmpty && all.isNotEmpty) {
-      return const _NoSearchResult();
-    }
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(menuListProvider.future),
+      // Only reachable through the search field or a status pill, so this
+      // screen owns the state. An unfiltered empty list keeps its blank
+      // rendering.
+      child: rows.isEmpty && all.isNotEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [_NoSearchResult()],
+            )
+          : _buildRows(rows, all),
+    );
+  }
 
+  Widget _buildRows(List<MenuItemData> rows, List<MenuItemData> all) {
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       itemCount: rows.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),
@@ -151,9 +162,9 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
           onTap: providerIndex == -1
               ? null
               : () => context.goNamed(
-                    TenantRoutes.menuDiisi,
-                    pathParameters: {'productId': menu.id},
-                  ),
+                  TenantRoutes.menuDiisi,
+                  pathParameters: {'productId': menu.id},
+                ),
         );
       },
     );
