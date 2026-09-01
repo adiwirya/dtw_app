@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/busboy_foreground_service.dart';
 import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
@@ -76,6 +77,14 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       container
           .read(busboyRealtimeServiceProvider)
           .connect(token: token, zoneId: zoneId)
+          .catchError((_) {}),
+    );
+    // Same restoration as the tenant realtime connect above — see
+    // `BusboyForegroundService` and `AuthController.login`.
+    unawaited(
+      container
+          .read(busboyForegroundServiceProvider)
+          .start()
           .catchError((_) {}),
     );
   }

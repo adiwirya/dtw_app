@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _baru = OrderCardData(
   orderId: '92842',
+  displayNumber: '92842',
   time: '10:31 WIB',
   tenantName: 'KFC Fried Chicken',
   tableName: 'Meja A-12',
@@ -15,6 +16,7 @@ const _baru = OrderCardData(
 
 const _antar = OrderCardData(
   orderId: '92842',
+  displayNumber: '92842',
   time: '10:31 WIB',
   tenantName: 'Solaria',
   tableName: 'Meja A-12',
@@ -26,6 +28,7 @@ const _antar = OrderCardData(
 
 const _selesai = OrderCardData(
   orderId: '92842',
+  displayNumber: '92842',
   time: '10:31 WIB',
   tenantName: 'KFC Fried Chicken',
   tableName: 'Meja A-12',

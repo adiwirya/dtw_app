@@ -55,6 +55,7 @@ class OrderLineItem {
 class OrderDetail {
   const OrderDetail({
     required this.orderId,
+    required this.displayNumber,
     required this.time,
     required this.tenantName,
     required this.tableName,
@@ -66,8 +67,13 @@ class OrderDetail {
     required this.note,
   });
 
-  /// Order number without the leading `#`. Rendered as `#<orderId>`.
+  /// The real order id — what the "Ambil Pesanan" claim action targets.
+  /// Never shown to the busboy directly.
   final String orderId;
+
+  /// Human-friendly order reference shown as `#<displayNumber>` (the receipt
+  /// number — not [orderId]).
+  final String displayNumber;
 
   /// Created/quoted time, e.g. `10:31 WIB`.
   final String time;

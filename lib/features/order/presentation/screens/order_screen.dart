@@ -161,15 +161,21 @@ class OrderScreen extends ConsumerWidget {
           ],
         ),
         Expanded(
-          child: orders.isEmpty
-              ? OrderEmptyState(status: status)
-              : _OrderList(
-                  orders: orders,
-                  onDetail: (orderId) => _openDetail(context, orderId),
-                  onSelesaiDetail: (orderId) =>
-                      _openSelesaiDetail(context, orderId),
-                  onDeliver: (data) => _deliver(context, ref, data),
-                ),
+          child: RefreshIndicator(
+            onRefresh: () => ref.refresh(orderBoardNotifierProvider.future),
+            child: orders.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [OrderEmptyState(status: status)],
+                  )
+                : _OrderList(
+                    orders: orders,
+                    onDetail: (orderId) => _openDetail(context, orderId),
+                    onSelesaiDetail: (orderId) =>
+                        _openSelesaiDetail(context, orderId),
+                    onDeliver: (data) => _deliver(context, ref, data),
+                  ),
+          ),
         ),
       ],
     );
@@ -192,6 +198,7 @@ class _OrderList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: orders.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),

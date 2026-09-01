@@ -9,6 +9,7 @@ Map<String, dynamic> _deliveryJson({
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': 'delivery-1',
+  'receipt_number': 'RCP-delivery-1',
   'status': status,
   'table_number': 'A12',
   'customer_name': 'John',
@@ -41,6 +42,7 @@ void main() {
         () {
       final delivery = Delivery.fromJson(const {
         'id': 'delivery-1',
+        'receipt_number': 'RCP-delivery-1',
         'status': 'PENDING_PICKUP',
         'table_number': 'A12',
         'customer_name': null,
@@ -59,6 +61,7 @@ void main() {
       });
 
       expect(delivery.id, 'delivery-1');
+      expect(delivery.receiptNumber, 'RCP-delivery-1');
       expect(delivery.status, DeliveryStatus.pendingPickup);
       expect(delivery.tableNumber, 'A12');
       expect(delivery.customerName, isNull);
@@ -70,6 +73,22 @@ void main() {
       expect(delivery.orders.single.items.single.productName, 'Es Kopi');
       expect(delivery.orders.single.items.single.quantity, 2);
       expect(delivery.orders.single.items.single.notes, isNull);
+    });
+
+    test('falls back to receipt_number for id when the API omits it', () {
+      final delivery = Delivery.fromJson(const {
+        'receipt_number': 'RCP-delivery-1',
+        'status': 'PENDING_PICKUP',
+        'table_number': 'A12',
+        'customer_name': null,
+        'claimed_at': null,
+        'delivered_at': null,
+        'created_at': '2026-08-27 10:31:00',
+        'orders': <Map<String, dynamic>>[],
+      });
+
+      expect(delivery.id, 'RCP-delivery-1');
+      expect(delivery.receiptNumber, 'RCP-delivery-1');
     });
 
     test('parses claimed_at/delivered_at when present', () {
@@ -124,6 +143,7 @@ void main() {
 
       expect(updated.status, DeliveryStatus.claimed);
       expect(updated.id, delivery.id);
+      expect(updated.receiptNumber, delivery.receiptNumber);
       expect(updated.tableNumber, delivery.tableNumber);
     });
   });
@@ -148,6 +168,7 @@ void main() {
       final data = delivery.toOrderCardData();
 
       expect(data.orderId, 'delivery-1');
+      expect(data.displayNumber, 'RCP-delivery-1');
       expect(data.tenantName, 'Janji Jiwa');
       expect(data.tableName, 'Meja A12');
       expect(data.customerName, 'John');
@@ -229,6 +250,8 @@ void main() {
 
       final detail = delivery.toOrderDetail();
 
+      expect(detail.orderId, 'delivery-1');
+      expect(detail.displayNumber, 'RCP-delivery-1');
       expect(detail.items, hasLength(2));
       expect(detail.items[0].name, 'Es Kopi');
       expect(detail.items[0].qty, 2);
@@ -271,6 +294,8 @@ void main() {
 
       final detail = delivery.toCompletedOrderDetail();
 
+      expect(detail.orderId, 'delivery-1');
+      expect(detail.displayNumber, 'RCP-delivery-1');
       expect(detail.waktuAntar, '18 Menit');
       expect(detail.diselesaikan, '27 Agustus 2026, 10:45');
       expect(detail.flowSteps, hasLength(2));

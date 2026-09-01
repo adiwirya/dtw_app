@@ -12,9 +12,13 @@ import 'fake_local_storage.dart';
 const String testZoneId = 'zone-1';
 
 /// One item in the busboy `GET /api/v1/busboy/deliveries` item shape.
+/// [id] backs both the wire `id` (real identifier — claim/complete target)
+/// and `receipt_number` (display-only) — most tests don't care that they're
+/// the same wire value; use [receiptNumber] to give it a distinct one.
 Map<String, dynamic> deliveryJson({
   required String id,
   required String status,
+  String? receiptNumber,
   String tableNumber = 'A12',
   String? customerName = 'Budi Santoso',
   String? claimedAt,
@@ -23,6 +27,7 @@ Map<String, dynamic> deliveryJson({
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': id,
+  'receipt_number': receiptNumber ?? id,
   'status': status,
   'table_number': tableNumber,
   'customer_name': customerName,

@@ -11,6 +11,7 @@ class CannedAdapter implements HttpClientAdapter {
   final int statusCode;
   final Object? body;
   RequestOptions? lastRequest;
+  int callCount = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -19,6 +20,7 @@ class CannedAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     lastRequest = options;
+    callCount++;
     return ResponseBody.fromString(
       jsonEncode(body),
       statusCode,

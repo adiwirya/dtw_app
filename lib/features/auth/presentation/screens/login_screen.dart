@@ -43,7 +43,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     setState(() => _validationMessage = null);
 
-    await ref.read(authControllerProvider.notifier).login(
+    await ref
+        .read(authControllerProvider.notifier)
+        .login(
           username: username,
           password: password,
         );
@@ -146,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Aplikasi Tenan & Bosboy',
+                  'Pesan Cepat, Nikmati Sekarang',
                   style: TextStyle(
                     color: AppColors.neutral500,
                     fontSize: 14,
@@ -163,12 +165,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildForm(AuthState authState) {
     final error = authState.error;
-    final errorMessage = _validationMessage ??
+    final errorMessage =
+        _validationMessage ??
         (error == null
             ? null
             : (error is AuthException
-                ? error.message
-                : 'Terjadi kesalahan. Coba lagi.'));
+                  ? error.message
+                  : 'Terjadi kesalahan. Coba lagi.'));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

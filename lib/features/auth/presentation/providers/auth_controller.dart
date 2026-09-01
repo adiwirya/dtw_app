@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/busboy_foreground_service.dart';
 import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
@@ -77,6 +78,12 @@ class AuthController extends _$AuthController {
               .connect(token: response.accessToken, zoneId: zoneId)
               .catchError((_) {}),
         );
+        // Keeps the process alive in the background for this same busboy
+        // session — see `BusboyForegroundService`. Same best-effort contract
+        // as the tenant foreground service above.
+        unawaited(
+          ref.read(busboyForegroundServiceProvider).start().catchError((_) {}),
+        );
       }
     } catch (error) {
       state = AuthState(error: error);
@@ -99,6 +106,11 @@ class AuthController extends _$AuthController {
     }
     try {
       await ref.read(tenantForegroundServiceProvider).stop();
+    } on Object catch (_) {
+      // Swallowed intentionally — see comment above.
+    }
+    try {
+      await ref.read(busboyForegroundServiceProvider).stop();
     } on Object catch (_) {
       // Swallowed intentionally — see comment above.
     }

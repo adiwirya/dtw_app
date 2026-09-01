@@ -6,10 +6,10 @@
          the in-app banner and chime still fire. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Keeps the process out of Android's background/Doze kill path while a
-         tenant is logged in — see `TenantForegroundService`. `dataSync` is
-         the closest fit of the declared types: this is about keeping a
-         network (Reverb socket) connection alive, not sync-ing files or
-         relaying push messages. -->
+         tenant or busboy is logged in — see `TenantForegroundService` and
+         `BusboyForegroundService`. `dataSync` is the closest fit of the
+         declared types: this is about keeping a network (Reverb socket)
+         connection alive, not sync-ing files or relaying push messages. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <application

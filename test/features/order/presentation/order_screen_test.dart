@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/busboy_board.dart';
+import '../../../support/canned_dio.dart';
 
 /// The deliveries backing most tests: 2 pending pickup, 2 claimed, 1 already
 /// delivered — matches the old mock's Baru/Antar/Selesai split so the
@@ -131,6 +132,31 @@ void main() {
     // Selesai now has the original delivered order + the just-delivered one.
     expect(find.byType(OrderCard), findsNWidgets(2));
     expect(find.text('Diantar pada'), findsNWidgets(2));
+  });
+
+  testWidgets('pulling to refresh re-fetches the delivery list',
+      (tester) async {
+    final dio = cannedDeliveryListDio(_seedDeliveries());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: busboyBoardOverrides(dio: dio),
+        child: const MaterialApp(home: OrderScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final adapter = dio.httpClientAdapter as CannedAdapter;
+    final before = adapter.callCount;
+
+    await tester.fling(
+      find.byType(RefreshIndicator),
+      const Offset(0, 300),
+      1000,
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(adapter.callCount, greaterThan(before));
   });
 
   group('header greeting', () {

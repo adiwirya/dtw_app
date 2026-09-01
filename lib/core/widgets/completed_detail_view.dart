@@ -189,7 +189,7 @@ class _IdentityCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('#${detail.orderId}', style: _titleStyle),
+          Text('#${detail.displayNumber}', style: _titleStyle),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -72,6 +72,7 @@ class DeliveryOrder {
 class Delivery {
   const Delivery({
     required this.id,
+    required this.receiptNumber,
     required this.status,
     required this.tableNumber,
     required this.customerName,
@@ -81,24 +82,38 @@ class Delivery {
     this.deliveredAt,
   });
 
-  factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
-        id: json['id'] as String,
-        status: deliveryStatusFromWire(json['status'] as String),
-        tableNumber: json['table_number'] as String,
-        customerName: json['customer_name'] as String?,
-        claimedAt: _parseNullable(json['claimed_at']),
-        deliveredAt: _parseNullable(json['delivered_at']),
-        createdAt: DateTime.parse(
-          (json['created_at'] as String).replaceFirst(' ', 'T'),
-        ),
-        orders: [
-          for (final order
-              in (json['orders'] as List).cast<Map<String, dynamic>>())
-            DeliveryOrder.fromJson(order),
-        ],
-      );
+  // `id` is the real identifier — claim/complete
+  // (`/v1/busboy/deliveries/{id}/...`) and every board lookup key off it.
+  // `receipt_number` is display-only (`#<receiptNumber>` on the card/detail
+  // views) — never sent back to the API.
+  //
+  // `id` falls back to `receipt_number` when absent: the live payload has
+  // been observed without an `id` field at all (crashed every fetch with a
+  // null-cast error) — this keeps the board working either way instead of
+  // hard-failing on whichever shape the backend happens to send.
+  factory Delivery.fromJson(Map<String, dynamic> json) {
+    final receiptNumber = json['receipt_number'] as String;
+    return Delivery(
+      id: (json['id'] as String?) ?? receiptNumber,
+      receiptNumber: receiptNumber,
+      status: deliveryStatusFromWire(json['status'] as String),
+      tableNumber: json['table_number'] as String,
+      customerName: json['customer_name'] as String?,
+      claimedAt: _parseNullable(json['claimed_at']),
+      deliveredAt: _parseNullable(json['delivered_at']),
+      createdAt: DateTime.parse(
+        (json['created_at'] as String).replaceFirst(' ', 'T'),
+      ),
+      orders: [
+        for (final order
+            in (json['orders'] as List).cast<Map<String, dynamic>>())
+          DeliveryOrder.fromJson(order),
+      ],
+    );
+  }
 
   final String id;
+  final String receiptNumber;
   final DeliveryStatus status;
   final String tableNumber;
   final String? customerName;
@@ -121,6 +136,7 @@ class Delivery {
 
   Delivery copyWith({DeliveryStatus? status}) => Delivery(
         id: id,
+        receiptNumber: receiptNumber,
         status: status ?? this.status,
         tableNumber: tableNumber,
         customerName: customerName,
@@ -138,6 +154,7 @@ class Delivery {
 
   OrderCardData toOrderCardData() => OrderCardData(
         orderId: id,
+        displayNumber: receiptNumber,
         time: _formatTime(createdAt),
         tenantName: brandNames,
         tableName: 'Meja $tableNumber',
@@ -159,6 +176,7 @@ class Delivery {
     ];
     return OrderDetail(
       orderId: id,
+      displayNumber: receiptNumber,
       time: _formatTime(createdAt),
       tenantName: brandNames,
       tableName: 'Meja $tableNumber',
@@ -193,6 +211,7 @@ class Delivery {
 
     return CompletedOrderDetail(
       orderId: id,
+      displayNumber: receiptNumber,
       tenantName: brandNames,
       // No real per-brand logo (a delivery can span brands) — the view
       // falls back to a plain placeholder tile.

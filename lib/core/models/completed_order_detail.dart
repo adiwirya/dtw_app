@@ -66,6 +66,7 @@ class DetailLineItem {
 class CompletedOrderDetail {
   const CompletedOrderDetail({
     required this.orderId,
+    required this.displayNumber,
     required this.tenantName,
     required this.tableName,
     required this.location,
@@ -78,8 +79,12 @@ class CompletedOrderDetail {
     this.brandLogoAsset,
   });
 
-  /// Order number without the leading `#`. Rendered as `#<orderId>`.
+  /// The real order id. Never shown to the busboy directly.
   final String orderId;
+
+  /// Human-friendly order reference shown as `#<displayNumber>` (the receipt
+  /// number — not [orderId]).
+  final String displayNumber;
 
   /// Source tenant/merchant name, e.g. `KFC Fried Chicken` (card title).
   final String tenantName;

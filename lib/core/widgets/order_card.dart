@@ -25,6 +25,7 @@ enum OrderStatus { baru, antar, selesai }
 class OrderCardData {
   const OrderCardData({
     required this.orderId,
+    required this.displayNumber,
     required this.time,
     required this.tenantName,
     required this.tableName,
@@ -36,8 +37,14 @@ class OrderCardData {
     this.deliveredTime,
   });
 
-  /// Order number without the leading '#'. Rendered as `#<orderId>`.
+  /// The real order id — what claim/deliver and the detail route target.
+  /// Never shown to the busboy directly; it is a raw id, not a
+  /// human-friendly reference.
   final String orderId;
+
+  /// Human-friendly order reference shown as `#<displayNumber>` (the receipt
+  /// number — not [orderId]).
+  final String displayNumber;
 
   /// Created/quoted time, e.g. `10:31 WIB`. Rendered verbatim beside the clock.
   final String time;
@@ -220,7 +227,7 @@ class OrderCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('#${data.orderId}', style: _idStyle),
+        Text('#${data.displayNumber}', style: _idStyle),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
