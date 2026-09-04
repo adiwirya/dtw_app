@@ -53,7 +53,7 @@ class _IdentityRow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Hi, ${account.name}',
+                account.name == null ? 'Hi' : 'Hi, ${account.name}',
                 style: const TextStyle(
                   color: AppColors.neutral900,
                   fontSize: 16,

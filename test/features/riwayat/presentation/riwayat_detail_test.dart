@@ -12,6 +12,7 @@ import '../../../support/busboy_board.dart';
 import '../../../support/canned_dio.dart';
 
 const _entryId = 'delivery-1';
+const _receiptNumber = 'RCP-20260827-A12ABC';
 
 /// Minimal router exercising the Riwayat → history-entry detail flow so
 /// navigation targets can be asserted without the full app shell.
@@ -53,6 +54,7 @@ Future<CannedAdapter> _pump(
       orders: [
         deliveryOrderJson(
           orderId: 'order-1',
+          receiptNumber: _receiptNumber,
           items: [
             deliveryItemJson(productName: 'Paket Super Besar'),
             deliveryItemJson(productName: 'Es Lemon Tea'),
@@ -90,7 +92,7 @@ void main() {
     await _pump(tester);
 
     expect(find.text('Detail Pesanan'), findsOneWidget);
-    expect(find.text('#$_entryId'), findsOneWidget);
+    expect(find.text('#$_receiptNumber'), findsOneWidget);
     expect(find.text('Alur Tugas'), findsOneWidget);
     expect(find.text('Informasi Pesanan'), findsOneWidget);
     expect(find.text('Rincian item'), findsOneWidget);
@@ -98,7 +100,7 @@ void main() {
     expect(find.text('Sampai Dimeja'), findsOneWidget);
     // 10:45 - 10:27 = 18 minutes.
     expect(find.text('18 Menit'), findsOneWidget);
-    // No price data on the busboy API — shown as a placeholder, not
+    // No zone name on the busboy API — shown as a placeholder, not
     // fabricated.
     expect(find.text('-'), findsWidgets);
     // The tenant name appears both as the card title and the "Tenan" row.
@@ -155,6 +157,9 @@ void main() {
         // real DateTime.now() — a fixed past date would fall off it.
         deliveredAt: '${now.year}-${now.month.toString().padLeft(2, '0')}-'
             '${now.day.toString().padLeft(2, '0')} 10:45:00',
+        orders: [
+          deliveryOrderJson(orderId: 'order-1', receiptNumber: _receiptNumber),
+        ],
       ),
     ]);
     await tester.pumpWidget(
@@ -170,6 +175,6 @@ void main() {
 
     expect(find.byType(RiwayatDetailScreen), findsOneWidget);
     expect(find.byType(CompletedDetailView), findsOneWidget);
-    expect(find.text('#$_entryId'), findsOneWidget);
+    expect(find.text('#$_receiptNumber'), findsOneWidget);
   });
 }

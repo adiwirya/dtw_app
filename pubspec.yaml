@@ -73,10 +73,12 @@ flutter:
   # auto-selects the 2.0x/3.0x variants.
   assets:
     - assets/images/
-    # The new-order chime. The same file also lives at
-    # android/app/src/main/res/raw/new_order.wav, which is what the
-    # notification channel plays when the app is backgrounded — Android can
-    # only take a channel sound from res/raw, not from a Flutter asset.
+    # The tenant (tenant_order.wav) and busboy (new_order.wav) new-order
+    # chimes. Each also lives at android/app/src/main/res/raw/, which is
+    # what its notification channel plays when the app is backgrounded —
+    # Android can only take a channel sound from res/raw, not from a Flutter
+    # asset. See `PluginNewOrderAlerts` in
+    # lib/core/notifications/new_order_alerts.dart.
     - assets/sounds/
 
   # Bundled rather than fetched at runtime: `google_fonts` needs the network,

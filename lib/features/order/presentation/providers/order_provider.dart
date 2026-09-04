@@ -13,9 +13,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'order_provider.g.dart';
 
 // The Order board (list + claim + complete) and the completed-order detail
-// below are real, backed by `BusboyDeliveryRepository`. `orderHeaderStats`
-// (the 3 summary stats on the Order home) has no backing endpoint yet and
-// stays mock.
+// below are real, backed by `BusboyDeliveryRepository`.
 
 /// Derives the three Menu Order sub-tab lists from the raw fetched
 /// deliveries — pure mapping, kept out of the notifier so it's trivially
@@ -34,25 +32,42 @@ OrderBoard orderBoardFrom(List<Delivery> deliveries) {
   );
 }
 
+/// Counts today's delivered deliveries out of [deliveries] — pure mapping,
+/// kept out of the provider so it's trivially testable on its own.
+int completedTodayCount(List<Delivery> deliveries, DateTime today) {
+  final day = DateTime(today.year, today.month, today.day);
+  return deliveries
+      .where((d) => d.status == DeliveryStatus.delivered && d.riwayatDay == day)
+      .length;
+}
+
 /// The three header summary stats on the Order home (`menu-order-baru`).
+/// Only "Pesanan Selesai" has real backing data (today's delivered count off
+/// the same board this screen already renders) — the busboy API has no
+/// on-time-rate or customer-rating endpoint, so those two stay `-` rather
+/// than a fabricated number.
 @riverpod
 List<OrderHeaderStat> orderHeaderStats(Ref ref) {
-  return const [
-    OrderHeaderStat(
-      value: '95%',
+  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  final completedToday = deliveries == null
+      ? null
+      : completedTodayCount(deliveries, DateTime.now());
+
+  return [
+    const OrderHeaderStat(
+      value: '-',
       label: 'Ketepatan Waktu',
       color: 0xFF10A760, // AppColors.successGreen
     ),
     OrderHeaderStat(
-      value: '12',
+      value: completedToday == null ? '-' : '$completedToday',
       label: 'Pesanan Selesai',
       color: 0xFF3B82F6, // AppColors.accentBlue
     ),
-    OrderHeaderStat(
-      value: '4.9',
+    const OrderHeaderStat(
+      value: '-',
       label: 'Rating Pelanggan',
       color: 0xFFE9A23B, // AppColors.accentAmber
-      showStar: true,
     ),
   ];
 }

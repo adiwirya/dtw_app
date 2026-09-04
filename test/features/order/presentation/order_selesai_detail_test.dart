@@ -12,6 +12,7 @@ import '../../../support/busboy_board.dart';
 import '../../../support/canned_dio.dart';
 
 const _deliveryId = '1';
+const _receiptNumber = 'RCP-20260827-A12ABC';
 
 /// Minimal router exercising the Order → Selesai → completed-order detail flow
 /// so navigation targets can be asserted without the full app shell.
@@ -60,6 +61,7 @@ Future<CannedAdapter> _pump(
       orders: [
         deliveryOrderJson(
           orderId: 'order-1',
+          receiptNumber: _receiptNumber,
           items: [
             deliveryItemJson(productName: 'Paket Super Besar'),
             deliveryItemJson(productName: 'Es Lemon Tea'),
@@ -98,7 +100,7 @@ void main() {
     await _pump(tester);
 
     expect(find.text('Detail Pesanan'), findsOneWidget);
-    expect(find.text('#$_deliveryId'), findsOneWidget);
+    expect(find.text('#$_receiptNumber'), findsOneWidget);
     expect(find.text('Alur Tugas'), findsOneWidget);
     expect(find.text('Informasi Pesanan'), findsOneWidget);
     expect(find.text('Rincian item'), findsOneWidget);
@@ -109,7 +111,7 @@ void main() {
     expect(find.text('Sampai Dimeja'), findsOneWidget);
     // 10:45 - 10:27 = 18 minutes.
     expect(find.text('18 Menit'), findsOneWidget);
-    // No price data on the busboy API — shown as a placeholder.
+    // No zone name on the busboy API — shown as a placeholder.
     expect(find.text('-'), findsWidgets);
     // detail-selesai shows the tenant name both as the card title and as the
     // "Tenan" info-row value.
@@ -167,7 +169,16 @@ void main() {
       ProviderScope(
         overrides: busboyBoardOverrides(
           dio: cannedDeliveryListDio([
-            deliveryJson(id: _deliveryId, status: 'DELIVERED'),
+            deliveryJson(
+              id: _deliveryId,
+              status: 'DELIVERED',
+              orders: [
+                deliveryOrderJson(
+                  orderId: 'order-1',
+                  receiptNumber: _receiptNumber,
+                ),
+              ],
+            ),
           ]),
         ),
         child: MaterialApp.router(routerConfig: _router()),
@@ -185,6 +196,6 @@ void main() {
 
     expect(find.byType(OrderSelesaiDetailScreen), findsOneWidget);
     expect(find.byType(CompletedDetailView), findsOneWidget);
-    expect(find.text('#$_deliveryId'), findsOneWidget);
+    expect(find.text('#$_receiptNumber'), findsOneWidget);
   });
 }

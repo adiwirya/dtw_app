@@ -65,6 +65,7 @@ class OrderDetail {
     required this.items,
     required this.total,
     required this.note,
+    required this.status,
   });
 
   /// The real order id — what the "Ambil Pesanan" claim action targets.
@@ -101,6 +102,10 @@ class OrderDetail {
 
   /// Free-text customer note; `-` when empty (matches the reference).
   final String note;
+
+  /// The underlying delivery's board status — e.g. hides the "Ambil Pesanan"
+  /// CTA once it's no longer [OrderStatus.baru] (already claimed elsewhere).
+  final OrderStatus status;
 }
 
 /// The three Menu Order sub-tab lists, keyed by [OrderStatus].

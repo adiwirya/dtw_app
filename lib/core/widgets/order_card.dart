@@ -227,7 +227,14 @@ class OrderCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('#${data.displayNumber}', style: _idStyle),
+        Flexible(
+          child: Text(
+            '#${data.displayNumber}',
+            style: _idStyle,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [

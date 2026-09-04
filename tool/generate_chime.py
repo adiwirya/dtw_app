@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the new-order chime.
+"""Generates the busboy "new delivery" chime (`new_order.wav`).
 
 The alert sound is checked in as a WAV rather than downloaded, so there is no
 licence to track — but a committed binary nobody can regenerate is its own
@@ -13,9 +13,12 @@ Writes both copies the app needs:
                                            Android can only take one from
                                            res/raw, not a Flutter asset
 
-Retuning it means bumping `PluginNewOrderAlerts.channelId`: an Android
-notification channel's sound is fixed when the channel is created, so
-existing installs keep playing the old one until the id changes.
+Retuning it means bumping `PluginNewOrderAlerts.busboy`'s `channelId`: an
+Android notification channel's sound is fixed when the channel is created,
+so existing installs keep playing the old one until the id changes.
+
+Tenant's chime (`tenant_order.wav`, `PluginNewOrderAlerts.tenant`) is a
+separately-sourced asset — this script does not generate or manage it.
 """
 
 import math

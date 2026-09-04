@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/features/akun/data/models/akun_account.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,39 +8,39 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'akun_provider.g.dart';
 
 // TODO(open-question): the account data source is unresolved (Open Question 1).
-// This provider returns hard-coded, in-memory mock data harvested from the
-// `akun` Figma reference. When the real source (auth/profile service) lands,
-// replace this synchronous provider with an async repository fetch
-// (`Future<AkunAccount>` backed by dio, per knowledge/riverpod-patterns.md) and
-// have the screen consume the resulting AsyncValue.
+// `name` is the real session username; every other identity/stat field below
+// is `-` because the busboy API has no profile/performance endpoint yet.
+// When one lands, replace this synchronous provider with an async repository
+// fetch (`Future<AkunAccount>` backed by dio, per
+// knowledge/riverpod-patterns.md) and have the screen consume the resulting
+// AsyncValue.
 
-/// Mock backing data for the `akun` account screen.
+/// Backing data for the `akun` account screen.
 @riverpod
 AkunAccount akunAccount(Ref ref) {
-  return const AkunAccount(
-    name: 'Adi Wiryadi',
-    busboyId: 'BBY-0123',
-    joinedLabel: '12 Januari 2024',
-    stats: [
+  final username = ref.watch(sessionUsernameProvider);
+  return AkunAccount(
+    name: username,
+    busboyId: '-',
+    joinedLabel: '-',
+    stats: const [
       AccountStat(
-        value: '542',
+        value: '-',
         label: 'Tugas Selesai',
         color: 0xFF10A760, // AppColors.successGreen
       ),
       AccountStat(
-        value: '6',
-        unit: 'Menit',
+        value: '-',
         label: 'Rata-rata waktu antar',
         color: 0xFF3B82F6, // AppColors.statBlue
       ),
       AccountStat(
-        value: '4.9',
+        value: '-',
         label: 'Rating Pelanggan',
         color: 0xFFF5B301, // AppColors.starAmber
-        showStar: true,
       ),
     ],
-    menuItems: [
+    menuItems: const [
       AccountMenuItem(
         icon: ObraIcons.user,
         title: 'Profil Saya',
@@ -70,7 +71,7 @@ AkunAccount akunAccount(Ref ref) {
       ),
     ],
     // The tap is wired to the real `AuthController.logout` by `AkunScreen`.
-    logoutItem: AccountMenuItem(
+    logoutItem: const AccountMenuItem(
       icon: ObraIcons.log_out,
       title: 'Keluar',
       subtitle: 'Keluar dari akun',

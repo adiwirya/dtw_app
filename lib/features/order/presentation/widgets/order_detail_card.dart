@@ -81,7 +81,14 @@ class OrderDetailCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('#${detail.displayNumber}', style: _idStyle),
+        Flexible(
+          child: Text(
+            '#${detail.displayNumber}',
+            style: _idStyle,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [

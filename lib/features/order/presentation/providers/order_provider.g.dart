@@ -6,9 +6,13 @@ part of 'order_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$orderHeaderStatsHash() => r'65254db3161d8f16f4d7c963dd82b07a29d47989';
+String _$orderHeaderStatsHash() => r'611a42f9732bed2b6a81624aa04f3f5110342c4d';
 
 /// The three header summary stats on the Order home (`menu-order-baru`).
+/// Only "Pesanan Selesai" has real backing data (today's delivered count off
+/// the same board this screen already renders) — the busboy API has no
+/// on-time-rate or customer-rating endpoint, so those two stay `-` rather
+/// than a fabricated number.
 ///
 /// Copied from [orderHeaderStats].
 @ProviderFor(orderHeaderStats)

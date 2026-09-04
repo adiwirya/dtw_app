@@ -1,9 +1,13 @@
 import 'package:dtw_app/core/utils/currency.dart';
+import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:flutter/foundation.dart';
 
-/// What the tenant is told when one new order arrives — the same copy feeds
-/// the in-app banner and the Android notification, so the two can't drift.
+/// What a session is told when one new order/delivery arrives — the same
+/// copy feeds the in-app banner (tenant) or tray notification (both flavors)
+/// and the chime, so they can't drift. [NewOrderAlert.fromOrder] builds it
+/// for a tenant's new `TenantOrder`; [NewOrderAlert.fromDelivery] for a
+/// busboy's new [Delivery] to pick up.
 @immutable
 class NewOrderAlert {
   const NewOrderAlert({
@@ -30,8 +34,28 @@ class NewOrderAlert {
     );
   }
 
-  /// The order this announces — also the notification id, so two events for
-  /// the same order replace rather than stack.
+  /// Builds the alert for a newly-created busboy [delivery].
+  ///
+  /// The body is `Meja A12 · 3 item`, dropping the item count when the
+  /// `delivery.created` payload carries none — same "don't fabricate a
+  /// zero" rule as [NewOrderAlert.fromOrder]. A delivery has no total of
+  /// its own (see
+  /// `Delivery.toOrderDetail`), so unlike a tenant order there is no price
+  /// part to show.
+  factory NewOrderAlert.fromDelivery(Delivery delivery) {
+    final parts = [
+      'Meja ${delivery.tableNumber}',
+      if (delivery.itemCount > 0) '${delivery.itemCount} item',
+    ];
+    return NewOrderAlert(
+      orderId: delivery.id,
+      title: 'Order Baru Masuk',
+      body: parts.join(' · '),
+    );
+  }
+
+  /// The order/delivery this announces — also the notification id, so two
+  /// events for the same one replace rather than stack.
   final String orderId;
 
   /// Headline, e.g. `Orderan Baru Masuk`.

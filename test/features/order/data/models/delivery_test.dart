@@ -9,7 +9,6 @@ Map<String, dynamic> _deliveryJson({
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': 'delivery-1',
-  'receipt_number': 'RCP-delivery-1',
   'status': status,
   'table_number': 'A12',
   'customer_name': 'John',
@@ -42,7 +41,6 @@ void main() {
         () {
       final delivery = Delivery.fromJson(const {
         'id': 'delivery-1',
-        'receipt_number': 'RCP-delivery-1',
         'status': 'PENDING_PICKUP',
         'table_number': 'A12',
         'customer_name': null,
@@ -53,15 +51,21 @@ void main() {
           {
             'order_id': 'order-1',
             'brand_name': 'Janji Jiwa',
+            'receipt_number': 'RCP-order-1',
             'items': [
-              {'product_name': 'Es Kopi', 'quantity': 2, 'notes': null},
+              {
+                'product_name': 'Es Kopi',
+                'quantity': 2,
+                'subtotal': 20000,
+                'notes': null,
+              },
             ],
           },
         ],
       });
 
       expect(delivery.id, 'delivery-1');
-      expect(delivery.receiptNumber, 'RCP-delivery-1');
+      expect(delivery.receiptNumber, 'RCP-order-1');
       expect(delivery.status, DeliveryStatus.pendingPickup);
       expect(delivery.tableNumber, 'A12');
       expect(delivery.customerName, isNull);
@@ -70,25 +74,10 @@ void main() {
       expect(delivery.orders, hasLength(1));
       expect(delivery.orders.single.orderId, 'order-1');
       expect(delivery.orders.single.brandName, 'Janji Jiwa');
+      expect(delivery.orders.single.receiptNumber, 'RCP-order-1');
       expect(delivery.orders.single.items.single.productName, 'Es Kopi');
       expect(delivery.orders.single.items.single.quantity, 2);
       expect(delivery.orders.single.items.single.notes, isNull);
-    });
-
-    test('falls back to receipt_number for id when the API omits it', () {
-      final delivery = Delivery.fromJson(const {
-        'receipt_number': 'RCP-delivery-1',
-        'status': 'PENDING_PICKUP',
-        'table_number': 'A12',
-        'customer_name': null,
-        'claimed_at': null,
-        'delivered_at': null,
-        'created_at': '2026-08-27 10:31:00',
-        'orders': <Map<String, dynamic>>[],
-      });
-
-      expect(delivery.id, 'RCP-delivery-1');
-      expect(delivery.receiptNumber, 'RCP-delivery-1');
     });
 
     test('parses claimed_at/delivered_at when present', () {
@@ -112,16 +101,33 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': [
-                {'product_name': 'Es Kopi', 'quantity': 2, 'notes': null},
+                {
+                'product_name': 'Es Kopi',
+                'quantity': 2,
+                'subtotal': 20000,
+                'notes': null,
+              },
               ],
             },
             {
               'order_id': 'order-2',
               'brand_name': 'Solaria',
+              'receipt_number': 'RCP-order-2',
               'items': [
-                {'product_name': 'Nasi Goreng', 'quantity': 1, 'notes': null},
-                {'product_name': 'Es Teh', 'quantity': 1, 'notes': null},
+                {
+                  'product_name': 'Nasi Goreng',
+                  'quantity': 1,
+                  'subtotal': 15000,
+                  'notes': null,
+                },
+                {
+                  'product_name': 'Es Teh',
+                  'quantity': 1,
+                  'subtotal': 8000,
+                  'notes': null,
+                },
               ],
             },
           ],
@@ -130,6 +136,7 @@ void main() {
 
       expect(delivery.itemCount, 3);
       expect(delivery.brandNames, 'Janji Jiwa, Solaria');
+      expect(delivery.receiptNumber, 'RCP-order-1, RCP-order-2');
     });
   });
 
@@ -143,7 +150,6 @@ void main() {
 
       expect(updated.status, DeliveryStatus.claimed);
       expect(updated.id, delivery.id);
-      expect(updated.receiptNumber, delivery.receiptNumber);
       expect(updated.tableNumber, delivery.tableNumber);
     });
   });
@@ -157,8 +163,14 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': [
-                {'product_name': 'Es Kopi', 'quantity': 2, 'notes': null},
+                {
+                'product_name': 'Es Kopi',
+                'quantity': 2,
+                'subtotal': 20000,
+                'notes': null,
+              },
               ],
             },
           ],
@@ -168,7 +180,7 @@ void main() {
       final data = delivery.toOrderCardData();
 
       expect(data.orderId, 'delivery-1');
-      expect(data.displayNumber, 'RCP-delivery-1');
+      expect(data.displayNumber, 'RCP-order-1');
       expect(data.tenantName, 'Janji Jiwa');
       expect(data.tableName, 'Meja A12');
       expect(data.customerName, 'John');
@@ -185,11 +197,13 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': <Map<String, dynamic>>[],
             },
             {
               'order_id': 'order-2',
               'brand_name': 'Solaria',
+              'receipt_number': 'RCP-order-2',
               'items': <Map<String, dynamic>>[],
             },
           ],
@@ -233,15 +247,27 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': [
-                {'product_name': 'Es Kopi', 'quantity': 2, 'notes': 'Less ice'},
+                {
+                  'product_name': 'Es Kopi',
+                  'quantity': 2,
+                  'subtotal': 20000,
+                  'notes': 'Less ice',
+                },
               ],
             },
             {
               'order_id': 'order-2',
               'brand_name': 'Solaria',
+              'receipt_number': 'RCP-order-2',
               'items': [
-                {'product_name': 'Nasi Goreng', 'quantity': 1, 'notes': null},
+                {
+                  'product_name': 'Nasi Goreng',
+                  'quantity': 1,
+                  'subtotal': 15000,
+                  'notes': null,
+                },
               ],
             },
           ],
@@ -251,15 +277,22 @@ void main() {
       final detail = delivery.toOrderDetail();
 
       expect(detail.orderId, 'delivery-1');
-      expect(detail.displayNumber, 'RCP-delivery-1');
+      expect(detail.displayNumber, 'RCP-order-1, RCP-order-2');
       expect(detail.items, hasLength(2));
       expect(detail.items[0].name, 'Es Kopi');
       expect(detail.items[0].qty, 2);
       expect(detail.items[1].name, 'Nasi Goreng');
-      // The API has no price data for busboy deliveries.
-      expect(detail.items[0].price, '-');
-      expect(detail.total, '-');
+      expect(detail.items[0].price, 'Rp20.000');
+      expect(detail.items[1].price, 'Rp15.000');
+      expect(detail.total, 'Rp35.000');
       expect(detail.note, 'Less ice');
+      expect(detail.status, OrderStatus.baru);
+    });
+
+    test('status reflects CLAIMED so the detail screen hides its CTA', () {
+      final delivery = Delivery.fromJson(_deliveryJson(status: 'CLAIMED'));
+
+      expect(delivery.toOrderDetail().status, OrderStatus.antar);
     });
 
     test('note falls back to a placeholder when no item has one', () {
@@ -270,8 +303,14 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': [
-                {'product_name': 'Es Kopi', 'quantity': 1, 'notes': null},
+                {
+                  'product_name': 'Es Kopi',
+                  'quantity': 1,
+                  'subtotal': 10000,
+                  'notes': null,
+                },
               ],
             },
           ],
@@ -289,13 +328,21 @@ void main() {
           status: 'DELIVERED',
           claimedAt: '2026-08-27 10:27:00',
           deliveredAt: '2026-08-27 10:45:00',
+          orders: [
+            {
+              'order_id': 'order-1',
+              'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
+              'items': <Map<String, dynamic>>[],
+            },
+          ],
         ),
       );
 
       final detail = delivery.toCompletedOrderDetail();
 
       expect(detail.orderId, 'delivery-1');
-      expect(detail.displayNumber, 'RCP-delivery-1');
+      expect(detail.displayNumber, 'RCP-order-1');
       expect(detail.waktuAntar, '18 Menit');
       expect(detail.diselesaikan, '27 Agustus 2026, 10:45');
       expect(detail.flowSteps, hasLength(2));
@@ -305,8 +352,8 @@ void main() {
       expect(detail.flowSteps[1].timestamp, '27 Agustus 2026, 10:45');
       // No real per-brand logo on a delivery.
       expect(detail.brandLogoAsset, isNull);
-      // The API has no price/total data.
-      expect(detail.total, '-');
+      // This delivery's order has no items, so nothing to sum.
+      expect(detail.total, 'Rp0');
     });
 
     test('omits flow steps and shows a placeholder duration when the '
@@ -328,8 +375,14 @@ void main() {
             {
               'order_id': 'order-1',
               'brand_name': 'Janji Jiwa',
+              'receipt_number': 'RCP-order-1',
               'items': [
-                {'product_name': 'Es Kopi', 'quantity': 2, 'notes': null},
+                {
+                'product_name': 'Es Kopi',
+                'quantity': 2,
+                'subtotal': 20000,
+                'notes': null,
+              },
               ],
             },
           ],

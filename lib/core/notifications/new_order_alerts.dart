@@ -3,11 +3,66 @@ import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dtw_app/core/notifications/new_order_alert.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'new_order_alerts.g.dart';
+
+/// Per-flavor sound + Android notification-channel configuration for
+/// [PluginNewOrderAlerts]. Kept as a plain value type, separate from the
+/// plugin class itself, so a test can inspect the asset path/channel id
+/// without constructing a real `AudioPlayer`/notifications plugin (which
+/// need a platform channel no plain `test()` has).
+@immutable
+class NewOrderAlertsConfig {
+  const NewOrderAlertsConfig({
+    required this.chimeAsset,
+    required this.channelId,
+    required this.channelName,
+    required this.channelDescription,
+    required this.channelSoundResource,
+  });
+
+  /// The tenant "new order" alert — `tenant_order.wav`.
+  static const tenant = NewOrderAlertsConfig(
+    chimeAsset: 'sounds/tenant_order.wav',
+    // v1 was `new_order_v1`/`new_order` before the tenant and busboy sounds
+    // split into separate files — bumped per [channelId]'s own rule since a
+    // channel's sound is immutable once created.
+    channelId: 'tenant_order_v1',
+    channelName: 'Orderan Baru',
+    channelDescription: 'Bunyi saat ada orderan baru masuk.',
+    channelSoundResource: 'tenant_order',
+  );
+
+  /// The busboy "new delivery" alert — `new_order.wav` (the original shared
+  /// chime file, now busboy-only since the tenant moved to its own sound).
+  static const busboy = NewOrderAlertsConfig(
+    chimeAsset: 'sounds/new_order.wav',
+    channelId: 'busboy_new_order_v1',
+    channelName: 'Order Baru',
+    channelDescription: 'Bunyi saat ada order baru untuk diambil.',
+    channelSoundResource: 'new_order',
+  );
+
+  /// Both the bundled asset (played by `chime()`) and the `res/raw` resource
+  /// backing the notification channel are the same file, so a session hears
+  /// the same sound whichever path fires.
+  final String chimeAsset;
+
+  /// Android notification channel id. The channel's sound is fixed at
+  /// creation and immutable afterwards — changing [channelSoundResource]
+  /// means bumping this, or existing installs keep playing the old one
+  /// forever.
+  final String channelId;
+  final String channelName;
+  final String channelDescription;
+
+  /// Bare `res/raw` resource name (no extension) backing [channelId]'s sound.
+  final String channelSoundResource;
+}
 
 /// Sounds and shows the "new order" alert. Abstracted behind an interface for
 /// the same reason `TenantRealtimeService` is: the real implementation talks
@@ -33,6 +88,13 @@ abstract class NewOrderAlerts {
 /// [NewOrderAlerts] backed by `audioplayers` and
 /// `flutter_local_notifications`.
 ///
+/// Tenant and busboy each get their own [NewOrderAlertsConfig] (sound +
+/// Android notification channel), rather than sharing one instance — a
+/// busboy session must never be asked for notification permission (or hear
+/// a chime) for a tenant order it doesn't have, and a channel's sound can't
+/// be swapped after creation, so the two need separate channel ids
+/// regardless.
+///
 /// **Android only, by decision.** The socket that triggers these alerts only
 /// lives while the app process does, and iOS suspends a backgrounded socket
 /// within seconds — so on iOS a tray notification would fire for a few
@@ -41,7 +103,8 @@ abstract class NewOrderAlerts {
 /// backend, not this class. [notify] is a no-op off Android; [chime] is not,
 /// since in-app audio works everywhere.
 class PluginNewOrderAlerts implements NewOrderAlerts {
-  PluginNewOrderAlerts({
+  PluginNewOrderAlerts(
+    this.config, {
     AudioPlayer? player,
     FlutterLocalNotificationsPlugin? notifications,
     bool? isAndroid,
@@ -49,16 +112,7 @@ class PluginNewOrderAlerts implements NewOrderAlerts {
        _notifications = notifications ?? FlutterLocalNotificationsPlugin(),
        _isAndroid = isAndroid ?? Platform.isAndroid;
 
-  /// Both the bundled asset (played by [chime]) and the `res/raw` resource
-  /// backing the notification channel are this one file, so the tenant hears
-  /// the same sound whichever path fires.
-  static const chimeAsset = 'sounds/new_order.wav';
-
-  /// Android notification channel. The channel's sound is fixed at creation
-  /// and immutable afterwards — changing the chime means bumping this id,
-  /// or existing installs keep playing the old one forever.
-  static const channelId = 'new_order_v1';
-  static const channelName = 'Orderan Baru';
+  final NewOrderAlertsConfig config;
 
   final AudioPlayer _player;
   final FlutterLocalNotificationsPlugin _notifications;
@@ -78,12 +132,14 @@ class PluginNewOrderAlerts implements NewOrderAlerts {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await android?.createNotificationChannel(
-      const AndroidNotificationChannel(
-        channelId,
-        channelName,
-        description: 'Bunyi saat ada orderan baru masuk.',
+      AndroidNotificationChannel(
+        config.channelId,
+        config.channelName,
+        description: config.channelDescription,
         importance: Importance.high,
-        sound: RawResourceAndroidNotificationSound('new_order'),
+        sound: RawResourceAndroidNotificationSound(
+          config.channelSoundResource,
+        ),
       ),
     );
     // Android 13+ won't post anything until the user grants this. Declining
@@ -100,7 +156,7 @@ class PluginNewOrderAlerts implements NewOrderAlerts {
     // is meant to mark.
     await _player.setReleaseMode(ReleaseMode.stop);
     await _player.stop();
-    await _player.play(AssetSource(chimeAsset));
+    await _player.play(AssetSource(config.chimeAsset));
   }
 
   @override
@@ -115,10 +171,10 @@ class PluginNewOrderAlerts implements NewOrderAlerts {
       id: alert.orderId.hashCode & 0x7fffffff,
       title: alert.title,
       body: alert.body,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          channelId,
-          channelName,
+          config.channelId,
+          config.channelName,
           importance: Importance.high,
           priority: Priority.high,
           category: AndroidNotificationCategory.event,
@@ -134,7 +190,14 @@ class PluginNewOrderAlerts implements NewOrderAlerts {
 
 @Riverpod(keepAlive: true)
 NewOrderAlerts newOrderAlerts(Ref ref) {
-  final alerts = PluginNewOrderAlerts();
+  final alerts = PluginNewOrderAlerts(NewOrderAlertsConfig.tenant);
+  ref.onDispose(() => unawaited(alerts.dispose()));
+  return alerts;
+}
+
+@Riverpod(keepAlive: true)
+NewOrderAlerts busboyNewOrderAlerts(Ref ref) {
+  final alerts = PluginNewOrderAlerts(NewOrderAlertsConfig.busboy);
   ref.onDispose(() => unawaited(alerts.dispose()));
   return alerts;
 }

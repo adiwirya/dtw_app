@@ -86,7 +86,7 @@ class OrderDetailScreen extends ConsumerWidget {
               child: _buildBody(boardAsync, detail),
             ),
           ),
-          if (detail != null)
+          if (detail != null && detail.status == OrderStatus.baru)
             _BottomAction(onPressed: () => _take(context, ref, detail)),
         ],
       ),

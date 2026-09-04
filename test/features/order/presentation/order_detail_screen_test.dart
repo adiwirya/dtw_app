@@ -11,6 +11,7 @@ import '../../../support/busboy_board.dart';
 import '../../../support/canned_dio.dart';
 
 const _deliveryId = '1';
+const _receiptNumber = 'RCP-20260827-B07XYZ';
 
 /// Finds [text] only inside the success modal, so an assertion can't be
 /// satisfied by the detail screen still sitting behind the dialog.
@@ -19,9 +20,14 @@ Finder _inModal(String text) => find.descendant(
       matching: find.text(text),
     );
 
-/// Pumps the detail screen for a single PENDING_PICKUP delivery whose fields
-/// are deliberately nothing like `SuccessModal`'s hardcoded frame sample.
-Future<CannedAdapter> _pump(WidgetTester tester) async {
+/// Pumps the detail screen for a single delivery whose fields are
+/// deliberately nothing like `SuccessModal`'s hardcoded frame sample.
+/// [status] defaults to PENDING_PICKUP; pass 'CLAIMED' to exercise an
+/// already-taken delivery.
+Future<CannedAdapter> _pump(
+  WidgetTester tester, {
+  String status = 'PENDING_PICKUP',
+}) async {
   tester.view.physicalSize = const Size(390, 950);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -29,13 +35,14 @@ Future<CannedAdapter> _pump(WidgetTester tester) async {
   final dio = cannedDeliveryListDio([
     deliveryJson(
       id: _deliveryId,
-      status: 'PENDING_PICKUP',
+      status: status,
       tableNumber: 'B-07',
       customerName: 'Siti Aminah',
       orders: [
         deliveryOrderJson(
           orderId: 'order-1',
           brandName: 'Solaria',
+          receiptNumber: _receiptNumber,
           items: [deliveryItemJson(productName: 'Nasi Goreng', quantity: 2)],
         ),
       ],
@@ -78,10 +85,18 @@ void main() {
     await _pump(tester);
 
     expect(find.text('Detail Pesanan'), findsOneWidget);
-    expect(find.text('#$_deliveryId'), findsOneWidget);
+    expect(find.text('#$_receiptNumber'), findsOneWidget);
     expect(find.text('Solaria'), findsOneWidget);
     expect(find.text('Siti Aminah'), findsOneWidget);
     expect(find.text('Ambil Pesanan'), findsOneWidget);
+  });
+
+  testWidgets(
+      'hides Ambil Pesanan once the delivery is already claimed',
+      (tester) async {
+    await _pump(tester, status: 'CLAIMED');
+
+    expect(find.text('Ambil Pesanan'), findsNothing);
   });
 
   testWidgets('Ambil Pesanan claims the real delivery', (tester) async {

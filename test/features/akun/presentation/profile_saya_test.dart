@@ -1,3 +1,4 @@
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/features/akun/presentation/screens/akun_screen.dart';
 import 'package:dtw_app/features/akun/presentation/screens/profile_saya_screen.dart';
@@ -40,15 +41,16 @@ Future<void> _pumpScreen(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
-    const ProviderScope(
-      child: MaterialApp(home: ProfileSayaScreen()),
+    ProviderScope(
+      overrides: [sessionUsernameProvider.overrideWith((ref) => 'busboy1')],
+      child: const MaterialApp(home: ProfileSayaScreen()),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('renders the profile fields from the mock provider',
+  testWidgets('renders the profile fields, real username + placeholders',
       (tester) async {
     await _pumpScreen(tester);
 
@@ -71,13 +73,12 @@ void main() {
       expect(find.text(label), findsOneWidget, reason: 'missing label: $label');
     }
 
-    // Mock values seeded into the fields.
-    expect(find.text('BBY-0123'), findsOneWidget);
-    expect(find.text('Budi Susanto'), findsOneWidget);
-    expect(find.text('0814253526323'), findsOneWidget);
-    expect(find.text('budisantoso@dtw.co.id'), findsOneWidget);
-    expect(find.text('DTW Foodcourt'), findsOneWidget);
-    expect(find.text('Pagi (07:00-15:00)'), findsOneWidget);
+    // The real session username fills Nama Lengkap; every other field has no
+    // backing endpoint yet, so it shows a placeholder rather than a
+    // fabricated value.
+    expect(find.text('busboy1'), findsOneWidget);
+    // Busboy ID, No. Telepon, Email, Outlet / Lokasi, Shift.
+    expect(find.text('-'), findsNWidgets(5));
 
     // The CTA.
     expect(find.text('Simpan'), findsOneWidget);

@@ -12,13 +12,12 @@ import 'fake_local_storage.dart';
 const String testZoneId = 'zone-1';
 
 /// One item in the busboy `GET /api/v1/busboy/deliveries` item shape.
-/// [id] backs both the wire `id` (real identifier — claim/complete target)
-/// and `receipt_number` (display-only) — most tests don't care that they're
-/// the same wire value; use [receiptNumber] to give it a distinct one.
+/// [id] is the delivery's real identifier — claim/complete target and board
+/// lookup key. There is no `receipt_number` at this level (confirmed live):
+/// it lives per-order instead — see [deliveryOrderJson].
 Map<String, dynamic> deliveryJson({
   required String id,
   required String status,
-  String? receiptNumber,
   String tableNumber = 'A12',
   String? customerName = 'Budi Santoso',
   String? claimedAt,
@@ -27,7 +26,6 @@ Map<String, dynamic> deliveryJson({
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': id,
-  'receipt_number': receiptNumber ?? id,
   'status': status,
   'table_number': tableNumber,
   'customer_name': customerName,
@@ -37,19 +35,33 @@ Map<String, dynamic> deliveryJson({
   'orders': orders,
 };
 
-/// One order within a [deliveryJson]'s `orders` list.
+/// One order within a [deliveryJson]'s `orders` list. [receiptNumber]
+/// defaults off [orderId] — give it explicitly in a test that cares about
+/// the receipt number's actual value.
 Map<String, dynamic> deliveryOrderJson({
   required String orderId,
   String brandName = 'Janji Jiwa',
+  String? receiptNumber,
   List<Map<String, dynamic>> items = const [],
-}) => {'order_id': orderId, 'brand_name': brandName, 'items': items};
+}) => {
+  'order_id': orderId,
+  'brand_name': brandName,
+  'receipt_number': receiptNumber ?? 'RCP-$orderId',
+  'items': items,
+};
 
 /// One item within a [deliveryOrderJson]'s `items` list.
 Map<String, dynamic> deliveryItemJson({
   required String productName,
   int quantity = 1,
+  int subtotal = 15000,
   String? notes,
-}) => {'product_name': productName, 'quantity': quantity, 'notes': notes};
+}) => {
+  'product_name': productName,
+  'quantity': quantity,
+  'subtotal': subtotal,
+  'notes': notes,
+};
 
 /// Wraps [data] in the CMS success envelope every endpoint returns.
 Map<String, dynamic> busboyEnvelope(Object? data) => {

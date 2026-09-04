@@ -1,4 +1,5 @@
 import 'package:dtw_app/core/models/completed_order_detail.dart';
+import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/riwayat/data/models/riwayat_models.dart';
@@ -27,17 +28,22 @@ class DeliveryItem {
   const DeliveryItem({
     required this.productName,
     required this.quantity,
+    required this.subtotal,
     this.notes,
   });
 
   factory DeliveryItem.fromJson(Map<String, dynamic> json) => DeliveryItem(
         productName: json['product_name'] as String,
         quantity: (json['quantity'] as num).toInt(),
+        subtotal: (json['subtotal'] as num).toInt(),
         notes: json['notes'] as String?,
       );
 
   final String productName;
   final int quantity;
+
+  /// This item's line total (`unit_price * quantity`) in rupiah.
+  final int subtotal;
   final String? notes;
 }
 
@@ -48,12 +54,14 @@ class DeliveryOrder {
   const DeliveryOrder({
     required this.orderId,
     required this.brandName,
+    required this.receiptNumber,
     required this.items,
   });
 
   factory DeliveryOrder.fromJson(Map<String, dynamic> json) => DeliveryOrder(
         orderId: json['order_id'] as String,
         brandName: json['brand_name'] as String,
+        receiptNumber: json['receipt_number'] as String,
         items: [
           for (final item
               in (json['items'] as List).cast<Map<String, dynamic>>())
@@ -63,6 +71,11 @@ class DeliveryOrder {
 
   final String orderId;
   final String brandName;
+
+  /// This order's own receipt number, e.g. `RCP-20260901-3V6HQP` — lives
+  /// per-order, not on the delivery: a delivery can bundle orders from
+  /// several brands, each with its own receipt.
+  final String receiptNumber;
   final List<DeliveryItem> items;
 }
 
@@ -72,7 +85,6 @@ class DeliveryOrder {
 class Delivery {
   const Delivery({
     required this.id,
-    required this.receiptNumber,
     required this.status,
     required this.tableNumber,
     required this.customerName,
@@ -84,36 +96,27 @@ class Delivery {
 
   // `id` is the real identifier — claim/complete
   // (`/v1/busboy/deliveries/{id}/...`) and every board lookup key off it.
-  // `receipt_number` is display-only (`#<receiptNumber>` on the card/detail
-  // views) — never sent back to the API.
-  //
-  // `id` falls back to `receipt_number` when absent: the live payload has
-  // been observed without an `id` field at all (crashed every fetch with a
-  // null-cast error) — this keeps the board working either way instead of
-  // hard-failing on whichever shape the backend happens to send.
-  factory Delivery.fromJson(Map<String, dynamic> json) {
-    final receiptNumber = json['receipt_number'] as String;
-    return Delivery(
-      id: (json['id'] as String?) ?? receiptNumber,
-      receiptNumber: receiptNumber,
-      status: deliveryStatusFromWire(json['status'] as String),
-      tableNumber: json['table_number'] as String,
-      customerName: json['customer_name'] as String?,
-      claimedAt: _parseNullable(json['claimed_at']),
-      deliveredAt: _parseNullable(json['delivered_at']),
-      createdAt: DateTime.parse(
-        (json['created_at'] as String).replaceFirst(' ', 'T'),
-      ),
-      orders: [
-        for (final order
-            in (json['orders'] as List).cast<Map<String, dynamic>>())
-          DeliveryOrder.fromJson(order),
-      ],
-    );
-  }
+  // There is no `receipt_number` at this level: confirmed live, it lives on
+  // each bundled order instead (`orders[i].receipt_number`) — see
+  // [DeliveryOrder] and [receiptNumber] below.
+  factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
+        id: json['id'] as String,
+        status: deliveryStatusFromWire(json['status'] as String),
+        tableNumber: json['table_number'] as String,
+        customerName: json['customer_name'] as String?,
+        claimedAt: _parseNullable(json['claimed_at']),
+        deliveredAt: _parseNullable(json['delivered_at']),
+        createdAt: DateTime.parse(
+          (json['created_at'] as String).replaceFirst(' ', 'T'),
+        ),
+        orders: [
+          for (final order
+              in (json['orders'] as List).cast<Map<String, dynamic>>())
+            DeliveryOrder.fromJson(order),
+        ],
+      );
 
   final String id;
-  final String receiptNumber;
   final DeliveryStatus status;
   final String tableNumber;
   final String? customerName;
@@ -130,13 +133,24 @@ class Delivery {
   int get itemCount =>
       orders.fold(0, (sum, order) => sum + order.items.length);
 
+  /// Sum of every bundled item's [DeliveryItem.subtotal].
+  int get grandTotal => orders.fold(
+        0,
+        (sum, order) =>
+            sum + order.items.fold(0, (s, item) => s + item.subtotal),
+      );
+
   /// The brand names across every bundled order, comma-joined — the API has
   /// no single "tenant" field on a delivery since it can span brands.
   String get brandNames => orders.map((o) => o.brandName).join(', ');
 
+  /// The bundled orders' receipt numbers, comma-joined — mirrors
+  /// [brandNames]: the delivery itself has no receipt number, only its
+  /// orders do (one delivery can span several brands/orders).
+  String get receiptNumber => orders.map((o) => o.receiptNumber).join(', ');
+
   Delivery copyWith({DeliveryStatus? status}) => Delivery(
         id: id,
-        receiptNumber: receiptNumber,
         status: status ?? this.status,
         tableNumber: tableNumber,
         customerName: customerName,
@@ -189,13 +203,12 @@ class Delivery {
             OrderLineItem(
               qty: item.quantity,
               name: item.productName,
-              // The API has no per-item/order price on a delivery.
-              price: '-',
+              price: formatRupiah(item.subtotal),
             ),
       ],
-      // The API has no order total on a delivery.
-      total: '-',
+      total: formatRupiah(grandTotal),
       note: notes.isEmpty ? '-' : notes.join(', '),
+      status: _orderStatusFor(status),
     );
   }
 
@@ -254,12 +267,10 @@ class Delivery {
             DetailLineItem(
               qty: item.quantity,
               name: item.productName,
-              // The API has no per-item/order price on a delivery.
-              price: '-',
+              price: formatRupiah(item.subtotal),
             ),
       ],
-      // The API has no order total on a delivery.
-      total: '-',
+      total: formatRupiah(grandTotal),
     );
   }
 

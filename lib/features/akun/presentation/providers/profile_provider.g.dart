@@ -6,9 +6,9 @@ part of 'profile_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$busboyProfileHash() => r'cf3357439163587ec870d650086515a5c923208d';
+String _$busboyProfileHash() => r'7796fad9f03e39cf3ebcdb3681dac56cb5d6e412';
 
-/// Mock backing data for the `profile-saya` screen.
+/// Backing data for the `profile-saya` screen.
 ///
 /// Copied from [busboyProfile].
 @ProviderFor(busboyProfile)

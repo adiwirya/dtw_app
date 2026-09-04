@@ -1,7 +1,9 @@
 import 'package:dtw_app/core/notifications/new_order_alert.dart';
+import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/busboy_board.dart';
 import '../../support/tenant_board.dart';
 
 TenantOrder _order({
@@ -62,5 +64,52 @@ void main() {
       NewOrderAlert.fromOrder(_order()),
       NewOrderAlert.fromOrder(_order()),
     );
+  });
+
+  group('fromDelivery', () {
+    Delivery delivery({
+      String tableNumber = 'A12',
+      List<Map<String, dynamic>> orders = const [],
+    }) => Delivery.fromJson(
+      deliveryJson(
+        id: 'delivery-1',
+        status: 'PENDING_PICKUP',
+        tableNumber: tableNumber,
+        orders: orders,
+      ),
+    );
+
+    test('reads as table and item count, with no price part', () {
+      final alert = NewOrderAlert.fromDelivery(
+        delivery(
+          orders: [
+            deliveryOrderJson(
+              orderId: 'order-1',
+              items: [
+                deliveryItemJson(productName: 'Es Kopi'),
+                deliveryItemJson(productName: 'Nasi Goreng'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      expect(alert.title, 'Order Baru Masuk');
+      expect(alert.body, 'Meja A12 · 2 item');
+      expect(alert.orderId, 'delivery-1');
+    });
+
+    // The `delivery.created` payload doesn't always carry items — saying
+    // "0 item" would be worse than saying nothing.
+    test('drops the item count when the payload carries no items', () {
+      expect(NewOrderAlert.fromDelivery(delivery()).body, 'Meja A12');
+    });
+
+    test('two alerts for the same delivery are equal', () {
+      expect(
+        NewOrderAlert.fromDelivery(delivery()),
+        NewOrderAlert.fromDelivery(delivery()),
+      );
+    });
   });
 }

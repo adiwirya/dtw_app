@@ -16,7 +16,7 @@ const _baseUrl = 'https://dtw-cms.gadingemerald.com/api';
 @riverpod
 Dio dio(Ref ref) {
   final dio = Dio(BaseOptions(baseUrl: _baseUrl))
-    ..interceptors.add(LogInterceptor());
+    ..interceptors.add(LogInterceptor(responseBody: true));
 
   dio.interceptors.add(
     InterceptorsWrapper(

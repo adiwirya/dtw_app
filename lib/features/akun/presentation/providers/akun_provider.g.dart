@@ -6,9 +6,9 @@ part of 'akun_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$akunAccountHash() => r'76fa4c67a35c7d2ed39a2d10c237d1b487e0d0be';
+String _$akunAccountHash() => r'9f7d2cd07da75a4e4c18c87fdb084f25efc6edcc';
 
-/// Mock backing data for the `akun` account screen.
+/// Backing data for the `akun` account screen.
 ///
 /// Copied from [akunAccount].
 @ProviderFor(akunAccount)

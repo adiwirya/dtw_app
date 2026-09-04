@@ -58,8 +58,8 @@ class AccountMenuItem {
   final bool destructive;
 }
 
-/// Aggregate mock model backing the `akun` frame: the busboy's identity, the
-/// three-up performance stats, the account menu, and the logout row.
+/// Model backing the `akun` frame: the busboy's identity, the three-up
+/// performance stats, the account menu, and the logout row.
 @immutable
 class AkunAccount {
   const AkunAccount({
@@ -71,13 +71,16 @@ class AkunAccount {
     required this.logoutItem,
   });
 
-  /// Display name, e.g. `Adi Wiryadi` (rendered as `Hi, <name>`).
-  final String name;
+  /// The session login handle (`sessionUsernameProvider`), not a display
+  /// name: the API has no display-name field. Rendered as `Hi, <name>`;
+  /// null (unknown) drops the name from the greeting instead of substituting
+  /// a fabricated one — mirrors `OrderHomeHeader`.
+  final String? name;
 
-  /// Busboy identifier, e.g. `BBY-0123`.
+  /// Busboy identifier — `-` (the API has no busboy-profile endpoint yet).
   final String busboyId;
 
-  /// Join date caption, e.g. `12 Januari 2024` (rendered as `Bergabung ...`).
+  /// Join date caption — `-` (the API has no busboy-profile endpoint yet).
   final String joinedLabel;
 
   /// The three profile stats shown in the bordered stats box.

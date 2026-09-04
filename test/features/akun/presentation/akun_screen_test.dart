@@ -31,12 +31,19 @@ GoRouter _testRouter() => GoRouter(
       ],
     );
 
-Future<void> _pump(WidgetTester tester, GoRouter router) async {
+Future<void> _pump(
+  WidgetTester tester,
+  GoRouter router, {
+  String? username = 'busboy1',
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
-    ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    ProviderScope(
+      overrides: [sessionUsernameProvider.overrideWith((ref) => username)],
+      child: MaterialApp.router(routerConfig: router),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -45,12 +52,14 @@ void main() {
   testWidgets('renders the identity, stats and every menu row', (tester) async {
     await _pump(tester, _testRouter());
 
-    expect(find.text('Hi, Adi Wiryadi'), findsOneWidget);
-    expect(find.text('Busboy ID : BBY-0123'), findsOneWidget);
-    expect(find.text('Bergabung 12 Januari 2024'), findsOneWidget);
+    // The greeting is the real session username — not a fabricated name.
+    expect(find.text('Hi, busboy1'), findsOneWidget);
+    // No busboy-profile endpoint yet, so identity/stats show a placeholder
+    // rather than a fabricated ID/date/number.
+    expect(find.text('Busboy ID : -'), findsOneWidget);
+    expect(find.text('Bergabung -'), findsOneWidget);
 
     // Stats box.
-    expect(find.text('542'), findsOneWidget);
     expect(find.text('Tugas Selesai'), findsOneWidget);
     expect(find.text('Rating Pelanggan'), findsOneWidget);
 
@@ -65,6 +74,14 @@ void main() {
     ]) {
       expect(find.text(title), findsOneWidget, reason: 'missing row: $title');
     }
+  });
+
+  testWidgets('omits the name from the greeting when the username is unknown',
+      (tester) async {
+    await _pump(tester, _testRouter(), username: null);
+
+    expect(find.text('Hi'), findsOneWidget);
+    expect(find.textContaining('Hi,'), findsNothing);
   });
 
   testWidgets('tapping Profil Saya navigates to the akunProfile route',
