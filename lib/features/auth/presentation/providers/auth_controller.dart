@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/busboy_fcm_service.dart';
 import 'package:dtw_app/core/notifications/busboy_foreground_service.dart';
 import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
@@ -84,6 +85,10 @@ class AuthController extends _$AuthController {
         // as the tenant foreground service above.
         unawaited(
           ref.read(busboyForegroundServiceProvider).start().catchError((_) {}),
+        );
+        // Same fire-and-forget contract — see `BusboyFcmService`.
+        unawaited(
+          ref.read(busboyFcmServiceProvider).initialize().catchError((_) {}),
         );
       }
     } catch (error) {

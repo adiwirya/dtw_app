@@ -33,6 +33,11 @@ dependencies:
   audioplayers: ^6.8.1
   cupertino_icons: ^1.0.8
   dio: ^5.10.0
+  firebase_analytics: ^12.5.0
+  firebase_core: ^4.14.0
+  firebase_crashlytics: ^5.3.0
+  firebase_messaging: ^16.6.0
+  firebase_performance: ^0.11.5
   flutter:
     sdk: flutter
   flutter_foreground_task: ^11.0.1
@@ -43,6 +48,7 @@ dependencies:
   laravel_reverb: ^0.6.0
   obra_icons: ^1.0.0
   riverpod_annotation: ^2.6.1
+  sentry_flutter: ^9.29.0
 
 dev_dependencies:
   build_runner: ^2.5.4

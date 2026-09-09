@@ -6,7 +6,7 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appRouterHash() => r'aea5b33900b9dfe23e9e329b94ab5d005bcd1223';
+String _$appRouterHash() => r'eaf2db5b307dfc392896acc98b185cfd6730fa2a';
 
 /// The single `GoRouter` for the whole app — one login route, and the
 /// busboy and tenant bottom-nav shells mounted side by side (busboy at

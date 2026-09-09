@@ -526,6 +526,10 @@ class _FailingRepository implements BusboyDeliveryRepository {
 
   @override
   Future<void> complete(String deliveryId) => _delegate.complete(deliveryId);
+
+  @override
+  Future<void> registerFcmToken(String fcmToken) =>
+      _delegate.registerFcmToken(fcmToken);
 }
 
 /// A repository whose [fetchDeliveries] only resolves once [fetchGate]
@@ -550,4 +554,8 @@ class _DelayedFetchRepository implements BusboyDeliveryRepository {
 
   @override
   Future<void> complete(String deliveryId) => _delegate.complete(deliveryId);
+
+  @override
+  Future<void> registerFcmToken(String fcmToken) =>
+      _delegate.registerFcmToken(fcmToken);
 }

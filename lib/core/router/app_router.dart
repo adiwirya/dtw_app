@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/analytics/analytics_provider.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/widgets/app_shell.dart';
@@ -287,6 +288,7 @@ GoRouter appRouter(Ref ref) {
       if (loggedIn && onLogin) return homePath;
       return null;
     },
+    observers: ref.watch(analyticsObserversProvider),
     routes: [
       // Login sits OUTSIDE both shells (root navigator, no bottom nav).
       GoRoute(

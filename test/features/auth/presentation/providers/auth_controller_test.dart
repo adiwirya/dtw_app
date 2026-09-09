@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/notifications/busboy_fcm_service.dart';
 import 'package:dtw_app/core/notifications/busboy_foreground_service.dart';
 import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../support/canned_dio.dart';
+import '../../../../support/fake_busboy_fcm_service.dart';
 import '../../../../support/fake_busboy_foreground_service.dart';
 import '../../../../support/fake_busboy_realtime_service.dart';
 import '../../../../support/fake_local_storage.dart';
@@ -293,6 +295,76 @@ void main() {
         .login(username: 'busboy1', password: 'secret');
 
     expect(foregroundService.startCallCount, 1);
+  });
+
+  test(
+      'login initializes the busboy FCM service for a zone-scoped response',
+      () async {
+    final storage = FakeLocalStorage();
+    final fcmService = FakeBusboyFcmService();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'busboy1'},
+              'abilities': <dynamic>[],
+              'scopes': [
+                {'type': 'zone', 'zone_id': 'zone-1'},
+              ],
+            },
+          }, storage),
+        ),
+        busboyFcmServiceProvider.overrideWithValue(fcmService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'busboy1', password: 'secret');
+
+    expect(fcmService.initializeCallCount, 1);
+  });
+
+  test(
+      'login does not initialize the busboy FCM service for a scope-less '
+      'response', () async {
+    final storage = FakeLocalStorage();
+    final fcmService = FakeBusboyFcmService();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'budi'},
+            },
+          }, storage),
+        ),
+        busboyFcmServiceProvider.overrideWithValue(fcmService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'budi', password: 'secret');
+
+    expect(fcmService.initializeCallCount, 0);
   });
 
   test(

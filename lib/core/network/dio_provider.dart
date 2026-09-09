@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/network/firebase_performance_dio_interceptor.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
@@ -61,6 +62,13 @@ Dio dio(Ref ref) {
   // it ever reaches the 401 handler or `mapDioError`'s "Tidak bisa
   // terhubung ke server" message.
   dio.interceptors.add(_RetryOnConnectionFailureInterceptor(dio));
+
+  // Added last of all: `onRequest` runs last (right before the real HTTP
+  // call) and `onResponse`/`onError` run first (right after it returns), so
+  // each physical attempt — including a retried one, which re-enters this
+  // whole chain via `_dio.fetch` above — gets its own accurately-timed
+  // metric.
+  dio.interceptors.add(FirebasePerformanceDioInterceptor());
 
   return dio;
 }

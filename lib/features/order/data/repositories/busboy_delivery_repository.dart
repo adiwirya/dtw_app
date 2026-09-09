@@ -45,6 +45,19 @@ class BusboyDeliveryRepository {
     }
   }
 
+  /// Registers this device's FCM push token for the logged-in busboy —
+  /// `POST /v1/busboy/fcm-token`.
+  Future<void> registerFcmToken(String fcmToken) async {
+    try {
+      await _dio.post<void>(
+        '/v1/busboy/fcm-token',
+        data: {'fcm_token': fcmToken},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
   String _statusToWire(DeliveryStatus status) => switch (status) {
         DeliveryStatus.pendingPickup => 'PENDING_PICKUP',
         DeliveryStatus.claimed => 'CLAIMED',

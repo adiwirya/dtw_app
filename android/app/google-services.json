@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1069276707133",
+    "project_id": "dtw-order",
+    "storage_bucket": "dtw-order.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069276707133:android:89f401d1e545ddbd12ad54",
+        "android_client_info": {
+          "package_name": "com.summarecon.dtw_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3ro7lTJcFPNdw1msasOOvFvK54DKVDK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
