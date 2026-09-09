@@ -43,6 +43,16 @@ final sessionBranchIdProvider = StateProvider<String?>((ref) => null);
 /// it is null.
 final sessionUsernameProvider = StateProvider<String?>((ref) => null);
 
+/// The logged-in user's id, or null when unknown — set from
+/// `LoginResponse.user.id` by `AuthController.login`, cleared on
+/// logout/401.
+///
+/// Lets the app tell this device's own busboy claims apart from other
+/// busboys' in the same zone (`Delivery.busboyUserId`) — the busboy
+/// deliveries board otherwise shows every busboy's claims, not just this
+/// session's. See `OrderBoardNotifier.claim`'s max-active-deliveries limit.
+final sessionUserIdProvider = StateProvider<String?>((ref) => null);
+
 /// The logged-in session's busboy zone id, or null for a non-busboy
 /// (tenant/no-scope) session — set from `LoginResponse.zoneId` by
 /// `AuthController.login`, cleared on logout/401. Mirrors

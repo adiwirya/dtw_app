@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
@@ -23,6 +24,7 @@ Map<String, dynamic> deliveryJson({
   String? claimedAt,
   String? deliveredAt,
   String createdAt = '2026-08-27 10:31:00',
+  String? busboyUserId,
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': id,
@@ -32,6 +34,7 @@ Map<String, dynamic> deliveryJson({
   'claimed_at': claimedAt,
   'delivered_at': deliveredAt,
   'created_at': createdAt,
+  'busboy_user_id': busboyUserId,
   'orders': orders,
 };
 
@@ -86,11 +89,14 @@ FakeLocalStorage zoneScopedStorage() =>
 /// Provider overrides standing up a real `OrderBoardNotifier` over [dio]: a
 /// zone-scoped local storage, a real repository, and a fake realtime service
 /// (a widget test has no socket, and an un-faked one hangs the board's
-/// initial fetch on an unmocked platform channel).
+/// initial fetch on an unmocked platform channel). [sessionUserId] seeds
+/// "this device's own busboy id" (`OrderBoardNotifier.claim`'s
+/// max-active-deliveries check) — defaults to null, as most tests don't care.
 List<Override> busboyBoardOverrides({
   required Dio dio,
   FakeLocalStorage? storage,
   BusboyRealtimeService? realtime,
+  String? sessionUserId,
 }) => [
   localStorageProvider.overrideWithValue(storage ?? zoneScopedStorage()),
   busboyDeliveryRepositoryProvider.overrideWithValue(
@@ -99,4 +105,5 @@ List<Override> busboyBoardOverrides({
   busboyRealtimeServiceProvider.overrideWithValue(
     realtime ?? FakeBusboyRealtimeService(),
   ),
+  sessionUserIdProvider.overrideWith((ref) => sessionUserId),
 ];

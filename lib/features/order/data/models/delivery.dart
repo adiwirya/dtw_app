@@ -92,6 +92,7 @@ class Delivery {
     required this.orders,
     this.claimedAt,
     this.deliveredAt,
+    this.busboyUserId,
   });
 
   // `id` is the real identifier — claim/complete
@@ -109,6 +110,7 @@ class Delivery {
         createdAt: DateTime.parse(
           (json['created_at'] as String).replaceFirst(' ', 'T'),
         ),
+        busboyUserId: json['busboy_user_id'] as String?,
         orders: [
           for (final order
               in (json['orders'] as List).cast<Map<String, dynamic>>())
@@ -123,6 +125,13 @@ class Delivery {
   final DateTime? claimedAt;
   final DateTime? deliveredAt;
   final DateTime createdAt;
+
+  /// The busboy who claimed this delivery — null until claimed. Confirmed
+  /// live on `GET /api/v1/busboy/deliveries`. Lets the app tell this
+  /// device's own claims apart from other busboys' in the same zone (the
+  /// board otherwise shows every busboy's deliveries) — e.g. the
+  /// max-active-deliveries claim limit in `OrderBoardNotifier.claim`.
+  final String? busboyUserId;
   final List<DeliveryOrder> orders;
 
   static DateTime? _parseNullable(Object? value) {
@@ -149,7 +158,8 @@ class Delivery {
   /// orders do (one delivery can span several brands/orders).
   String get receiptNumber => orders.map((o) => o.receiptNumber).join(', ');
 
-  Delivery copyWith({DeliveryStatus? status}) => Delivery(
+  Delivery copyWith({DeliveryStatus? status, String? busboyUserId}) =>
+      Delivery(
         id: id,
         status: status ?? this.status,
         tableNumber: tableNumber,
@@ -158,6 +168,7 @@ class Delivery {
         deliveredAt: deliveredAt,
         createdAt: createdAt,
         orders: orders,
+        busboyUserId: busboyUserId ?? this.busboyUserId,
       );
 
   static String _formatTime(DateTime at) {

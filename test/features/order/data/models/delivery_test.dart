@@ -6,6 +6,7 @@ Map<String, dynamic> _deliveryJson({
   required String status,
   String? claimedAt,
   String? deliveredAt,
+  String? busboyUserId,
   List<Map<String, dynamic>> orders = const [],
 }) => {
   'id': 'delivery-1',
@@ -15,6 +16,7 @@ Map<String, dynamic> _deliveryJson({
   'claimed_at': claimedAt,
   'delivered_at': deliveredAt,
   'created_at': '2026-08-27 10:31:00',
+  'busboy_user_id': busboyUserId,
   'orders': orders,
 };
 
@@ -93,6 +95,19 @@ void main() {
       expect(delivery.deliveredAt, DateTime(2026, 8, 27, 10, 40));
     });
 
+    test('busboyUserId is null until claimed, then carries the claimer',
+        () {
+      final unclaimed = Delivery.fromJson(
+        _deliveryJson(status: 'PENDING_PICKUP'),
+      );
+      expect(unclaimed.busboyUserId, isNull);
+
+      final claimed = Delivery.fromJson(
+        _deliveryJson(status: 'CLAIMED', busboyUserId: 'busboy-1'),
+      );
+      expect(claimed.busboyUserId, 'busboy-1');
+    });
+
     test('itemCount sums items across every bundled order', () {
       final delivery = Delivery.fromJson(
         _deliveryJson(
@@ -151,6 +166,30 @@ void main() {
       expect(updated.status, DeliveryStatus.claimed);
       expect(updated.id, delivery.id);
       expect(updated.tableNumber, delivery.tableNumber);
+    });
+
+    test('overrides busboyUserId alongside status', () {
+      final delivery = Delivery.fromJson(
+        _deliveryJson(status: 'PENDING_PICKUP'),
+      );
+
+      final claimed = delivery.copyWith(
+        status: DeliveryStatus.claimed,
+        busboyUserId: 'busboy-1',
+      );
+
+      expect(claimed.status, DeliveryStatus.claimed);
+      expect(claimed.busboyUserId, 'busboy-1');
+    });
+
+    test('keeps busboyUserId when not explicitly overridden', () {
+      final delivery = Delivery.fromJson(
+        _deliveryJson(status: 'CLAIMED', busboyUserId: 'busboy-1'),
+      );
+
+      final updated = delivery.copyWith(status: DeliveryStatus.delivered);
+
+      expect(updated.busboyUserId, 'busboy-1');
     });
   });
 

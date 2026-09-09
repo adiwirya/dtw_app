@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/models/completed_order_detail.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
@@ -91,14 +93,17 @@ class OrderTab extends _$OrderTab {
 
 /// The busboy's raw delivery list, fetched once from
 /// `GET /api/v1/busboy/deliveries` and kept live via
-/// `BusboyRealtimeService.deliveryCreated` (`private-zone.<zoneId>`,
-/// `delivery.created`) — no polling. The Order screen's three sub-tabs are
-/// [orderBoardFrom] projections of this same list, and [orderDetailProvider]
-/// looks a single delivery up out of it, so `claim`/`deliver` only need to
-/// mutate this one list for every dependent view to update together.
+/// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
+/// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
+/// screen's three sub-tabs are [orderBoardFrom] projections of this same
+/// list, and [orderDetailProvider] looks a single delivery up out of it, so
+/// `claim`/`deliver` only need to mutate this one list for every dependent
+/// view to update together.
 @riverpod
 class OrderBoardNotifier extends _$OrderBoardNotifier {
   StreamSubscription<Map<String, dynamic>>? _deliveryCreatedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _deliveryClaimedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _deliveryCompletedSubscription;
 
   @override
   Future<List<Delivery>> build() async {
@@ -113,13 +118,17 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
 
     ref.onDispose(() {
       unawaited(_deliveryCreatedSubscription?.cancel() ?? Future.value());
+      unawaited(_deliveryClaimedSubscription?.cancel() ?? Future.value());
+      unawaited(_deliveryCompletedSubscription?.cancel() ?? Future.value());
     });
 
     // Mirrors `TenantOrderBoard`: `state.value` is null until the initial
     // fetch resolves, so events that arrive during that window are buffered
     // here (keyed by id, to collapse a same-delivery redelivery) and folded
     // into the fetched list once it's ready — see that class for the fuller
-    // rationale.
+    // rationale. Only `delivery.created` needs this: a claimed/completed
+    // delivery already existed before this window opened, so the fetch below
+    // returns its current status regardless — see `_onDeliveryUpdated`.
     final pendingDuringFetch = <String, Delivery>{};
     var initialFetchSettled = false;
     _deliveryCreatedSubscription = realtime.deliveryCreated.listen((payload) {
@@ -130,6 +139,12 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
         _onDeliveryCreated(delivery);
       }
     });
+    _deliveryClaimedSubscription = realtime.deliveryClaimed.listen(
+      (payload) => _onDeliveryUpdated(Delivery.fromJson(payload)),
+    );
+    _deliveryCompletedSubscription = realtime.deliveryCompleted.listen(
+      (payload) => _onDeliveryUpdated(Delivery.fromJson(payload)),
+    );
 
     final List<Delivery> deliveries;
     try {
@@ -153,13 +168,64 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
     state = AsyncData([delivery, ...current]);
   }
 
+  /// Replaces a delivery already on the board with [delivery] — the
+  /// `delivery.claimed`/`delivery.completed` handler. Covers another
+  /// busboy's claim/complete (this device would otherwise never learn about
+  /// it — see `docs/busboy-missing-endpoints.md` item 3) as well as this same
+  /// device's own action, which [_transition] already applied optimistically;
+  /// replacing it again with the server's copy is a no-op in that case.
+  void _onDeliveryUpdated(Delivery delivery) {
+    final current = state.value;
+    if (current == null) return;
+    final index = current.indexWhere((d) => d.id == delivery.id);
+    if (index == -1) return;
+    state = AsyncData([
+      for (final d in current) if (d.id == delivery.id) delivery else d,
+    ]);
+  }
+
+  /// How many deliveries this busboy may have CLAIMED (not yet delivered) at
+  /// once — enforced client-side in [claim], rejected before the API call.
+  /// Purely a client-side courtesy for now: a modified/bypassed client could
+  /// still claim past this, so the server should eventually enforce it too.
+  static const maxActiveDeliveries = 2;
+
   /// Claims a PENDING_PICKUP delivery (the detail screen's "Ambil Pesanan"
-  /// action) — `POST /deliveries/{id}/claim`.
-  Future<void> claim(String deliveryId) => _transition(
-        deliveryId,
-        DeliveryStatus.claimed,
-        (repository) => repository.claim(deliveryId),
-      );
+  /// action) — `POST /deliveries/{id}/claim`. Rejects locally, without
+  /// calling the API, once this busboy already has [maxActiveDeliveries]
+  /// deliveries claimed and not yet delivered.
+  Future<void> claim(String deliveryId) async {
+    final current = state.value;
+    final myUserId = ref.read(sessionUserIdProvider);
+    if (current != null) {
+      final activeCount = current
+          .where(
+            (d) =>
+                d.status == DeliveryStatus.claimed &&
+                d.busboyUserId == myUserId,
+          )
+          .length;
+      if (activeCount >= maxActiveDeliveries) {
+        throw ApiException(
+          message: 'Kamu sudah punya $maxActiveDeliveries order yang sedang '
+              'diantar. Selesaikan salah satu dulu sebelum ambil order baru.',
+        );
+      }
+    }
+    return _transition(
+      deliveryId,
+      DeliveryStatus.claimed,
+      (repository) => repository.claim(deliveryId),
+      // Stamps this busboy's own id on the optimistic update too, so a
+      // second `claim` right after (before the server confirms or the
+      // `delivery.claimed` broadcast echoes back) counts this one correctly
+      // against the limit above.
+      applyOptimistic: (previous) => previous.copyWith(
+        status: DeliveryStatus.claimed,
+        busboyUserId: myUserId,
+      ),
+    );
+  }
 
   /// Completes a CLAIMED delivery (the "Sampai dimeja" action) —
   /// `POST /deliveries/{id}/complete`.
@@ -172,8 +238,9 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
   Future<void> _transition(
     String deliveryId,
     DeliveryStatus target,
-    Future<void> Function(BusboyDeliveryRepository repository) call,
-  ) async {
+    Future<void> Function(BusboyDeliveryRepository repository) call, {
+    Delivery Function(Delivery previous)? applyOptimistic,
+  }) async {
     final current = state.value;
     if (current == null) {
       throw StateError(
@@ -189,9 +256,10 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
       );
     }
     final previous = current[index];
+    final updated =
+        (applyOptimistic ?? (d) => d.copyWith(status: target))(previous);
     state = AsyncData([
-      for (final d in current)
-        if (d.id == deliveryId) previous.copyWith(status: target) else d,
+      for (final d in current) if (d.id == deliveryId) updated else d,
     ]);
 
     try {

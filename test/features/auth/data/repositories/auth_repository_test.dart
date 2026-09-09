@@ -30,6 +30,7 @@ void main() {
     await repository.loginWithPassword(username: 'budi', password: 'secret');
 
     expect(storage.values[authTokenStorageKey], 'tok_123');
+    expect(storage.values[sessionUserIdStorageKey], 'u1');
     expect(storage.values.containsKey(tenantBranchIdStorageKey), isFalse);
   });
 
@@ -186,7 +187,9 @@ void main() {
   });
 
   test('logout clears the local session even if the API call fails', () async {
-    final storage = FakeLocalStorage()..values[authTokenStorageKey] = 'tok_123';
+    final storage = FakeLocalStorage()
+      ..values[authTokenStorageKey] = 'tok_123'
+      ..values[sessionUserIdStorageKey] = 'u1';
     final repository = AuthRepository(
       dio: cannedDio(500, {
         'meta': {
@@ -203,5 +206,6 @@ void main() {
 
     expect(storage.values.containsKey(authTokenStorageKey), isFalse);
     expect(storage.values.containsKey(busboyZoneIdStorageKey), isFalse);
+    expect(storage.values.containsKey(sessionUserIdStorageKey), isFalse);
   });
 }

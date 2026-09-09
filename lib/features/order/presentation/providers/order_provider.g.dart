@@ -359,15 +359,16 @@ final orderTabProvider = AutoDisposeNotifierProvider<OrderTab, int>.internal(
 
 typedef _$OrderTab = AutoDisposeNotifier<int>;
 String _$orderBoardNotifierHash() =>
-    r'c83e38a6da04a10a0285b6ae2c5f1f9b8ba604d3';
+    r'0e000ff18ababc5b2c59c43979aa586b6d98d7b7';
 
 /// The busboy's raw delivery list, fetched once from
 /// `GET /api/v1/busboy/deliveries` and kept live via
-/// `BusboyRealtimeService.deliveryCreated` (`private-zone.<zoneId>`,
-/// `delivery.created`) — no polling. The Order screen's three sub-tabs are
-/// [orderBoardFrom] projections of this same list, and [orderDetailProvider]
-/// looks a single delivery up out of it, so `claim`/`deliver` only need to
-/// mutate this one list for every dependent view to update together.
+/// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
+/// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
+/// screen's three sub-tabs are [orderBoardFrom] projections of this same
+/// list, and [orderDetailProvider] looks a single delivery up out of it, so
+/// `claim`/`deliver` only need to mutate this one list for every dependent
+/// view to update together.
 ///
 /// Copied from [OrderBoardNotifier].
 @ProviderFor(OrderBoardNotifier)

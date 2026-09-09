@@ -14,12 +14,24 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
 
   final _deliveryCreatedController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _deliveryClaimedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _deliveryCompletedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectedController = StreamController<void>.broadcast();
   final _statusController = StreamController<String>.broadcast();
 
   @override
   Stream<Map<String, dynamic>> get deliveryCreated =>
       _deliveryCreatedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get deliveryClaimed =>
+      _deliveryClaimedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get deliveryCompleted =>
+      _deliveryCompletedController.stream;
 
   @override
   Stream<void> get reconnected => _reconnectedController.stream;
@@ -48,12 +60,22 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
     _deliveryCreatedController.add(payload);
   }
 
+  void emitDeliveryClaimed(Map<String, dynamic> payload) {
+    _deliveryClaimedController.add(payload);
+  }
+
+  void emitDeliveryCompleted(Map<String, dynamic> payload) {
+    _deliveryCompletedController.add(payload);
+  }
+
   void emitReconnected() {
     _reconnectedController.add(null);
   }
 
   Future<void> close() async {
     await _deliveryCreatedController.close();
+    await _deliveryClaimedController.close();
+    await _deliveryCompletedController.close();
     await _reconnectedController.close();
     await _statusController.close();
   }

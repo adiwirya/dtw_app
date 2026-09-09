@@ -25,6 +25,11 @@ const tenantBranchIdStorageKey = 'tenant_branch_id';
 /// Restored on relaunch so a resumed session can still greet the user.
 const sessionUsernameStorageKey = 'session_username';
 
+/// Key the logged-in user's id is stored under (`data.user.id`). Restored
+/// on relaunch so a resumed busboy session can still tell its own claims
+/// apart from other busboys' — see `sessionUserIdProvider`.
+const sessionUserIdStorageKey = 'session_user_id';
+
 /// Key the busboy zone id is stored under (only present for a
 /// zone-scoped/busboy session) — read by `BusboyOrderBoard` to know which
 /// `zone_id` to fetch/subscribe with.

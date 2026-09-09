@@ -31,6 +31,7 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data!);
       await _localStorage.write(authTokenStorageKey, loginResponse.accessToken);
+      await _localStorage.write(sessionUserIdStorageKey, loginResponse.user.id);
       final role = loginResponse.user.role;
       if (role != null) {
         await _localStorage.write(sessionRoleStorageKey, role);
@@ -77,6 +78,7 @@ class AuthRepository {
       // Best-effort: still clear the local session even if the server call fails.
     } finally {
       await _localStorage.delete(authTokenStorageKey);
+      await _localStorage.delete(sessionUserIdStorageKey);
       await _localStorage.delete(sessionUsernameStorageKey);
       await _localStorage.delete(sessionRoleStorageKey);
       await _localStorage.delete(tenantBranchIdStorageKey);

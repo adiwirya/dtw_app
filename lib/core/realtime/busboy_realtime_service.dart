@@ -27,6 +27,16 @@ abstract class BusboyRealtimeService {
   /// /api/v1/busboy/deliveries` list item.
   Stream<Map<String, dynamic>> get deliveryCreated;
 
+  /// Emits the decoded payload of every `delivery.claimed` event — another
+  /// busboy's (or this device's own) claim of a PENDING_PICKUP delivery.
+  /// Same payload shape as [deliveryCreated]: the full, now-CLAIMED delivery.
+  Stream<Map<String, dynamic>> get deliveryClaimed;
+
+  /// Emits the decoded payload of every `delivery.completed` event — a
+  /// CLAIMED delivery marked delivered. Same payload shape as
+  /// [deliveryCreated]: the full, now-DELIVERED delivery.
+  Stream<Map<String, dynamic>> get deliveryCompleted;
+
   /// Emits once each time the underlying connection re-establishes after a
   /// drop (not on the very first connect). There is no gap-fill/replay
   /// endpoint on the busboy API (unlike the tenant side's
@@ -44,12 +54,24 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
   Reverb? _reverb;
   final _deliveryCreatedController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _deliveryClaimedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _deliveryCompletedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectedController = StreamController<void>.broadcast();
   final _statusController = StreamController<String>.broadcast();
 
   @override
   Stream<Map<String, dynamic>> get deliveryCreated =>
       _deliveryCreatedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get deliveryClaimed =>
+      _deliveryClaimedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get deliveryCompleted =>
+      _deliveryCompletedController.stream;
 
   @override
   Stream<void> get reconnected => _reconnectedController.stream;
@@ -93,9 +115,10 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
     // broadcast name (`delivery.created`) rather than namespace-qualifying
     // it — see `ReverbTenantRealtimeService`'s `order.created` subscription
     // for the full explanation; the same package quirk applies here.
-    reverb
-        .private('zone.$zoneId')
-        .listen('.delivery.created', _deliveryCreatedController.add);
+    reverb.private('zone.$zoneId')
+      ..listen('.delivery.created', _deliveryCreatedController.add)
+      ..listen('.delivery.claimed', _deliveryClaimedController.add)
+      ..listen('.delivery.completed', _deliveryCompletedController.add);
   }
 
   @override

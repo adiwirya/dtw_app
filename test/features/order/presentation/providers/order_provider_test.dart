@@ -107,24 +107,25 @@ void main() {
       expect(deliveries.map((d) => d.id), containsAll(['1', '2']));
     });
 
-    test('a duplicate delivery id from the stream does not double the list',
-        () async {
-      container = buildRealtimeContainer([
-        deliveryJson(id: '1', status: 'PENDING_PICKUP'),
-      ]);
-      await container.read(orderBoardNotifierProvider.future);
-
-      realtime.emitDeliveryCreated(
-        deliveryJson(id: '1', status: 'PENDING_PICKUP'),
-      );
-      await Future<void>.delayed(Duration.zero);
-
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
-      expect(deliveries, hasLength(1));
-    });
-
     test(
-        'a delivery.created event during the initial fetch is merged, '
+      'a duplicate delivery id from the stream does not double the list',
+      () async {
+        container = buildRealtimeContainer([
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+        ]);
+        await container.read(orderBoardNotifierProvider.future);
+
+        realtime.emitDeliveryCreated(
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        expect(deliveries, hasLength(1));
+      },
+    );
+
+    test('a delivery.created event during the initial fetch is merged, '
         'not dropped', () async {
       storage = zoneScopedStorage();
       realtime = FakeBusboyRealtimeService();
@@ -165,6 +166,104 @@ void main() {
     });
   });
 
+  group('realtime delivery updates (another busboy claims/completes)', () {
+    late FakeBusboyRealtimeService realtime;
+
+    ProviderContainer buildRealtimeContainer(
+      List<Map<String, dynamic>> deliveries,
+    ) {
+      storage = zoneScopedStorage();
+      realtime = FakeBusboyRealtimeService();
+      addTearDown(realtime.close);
+      final c = ProviderContainer(
+        overrides: busboyBoardOverrides(
+          dio: cannedDeliveryListDio(deliveries),
+          storage: storage,
+          realtime: realtime,
+        ),
+      );
+      addTearDown(c.dispose);
+      c.listen(orderBoardNotifierProvider, (_, _) {});
+      return c;
+    }
+
+    test(
+      'a delivery.claimed event moves it to Antar on this device too',
+      () async {
+        container = buildRealtimeContainer([
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+        ]);
+        await container.read(orderBoardNotifierProvider.future);
+
+        realtime.emitDeliveryClaimed(deliveryJson(id: '1', status: 'CLAIMED'));
+        await Future<void>.delayed(Duration.zero);
+
+        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        expect(deliveries.single.status, DeliveryStatus.claimed);
+      },
+    );
+
+    test(
+      'a delivery.completed event moves it to Selesai on this device too',
+      () async {
+        container = buildRealtimeContainer([
+          deliveryJson(id: '1', status: 'CLAIMED'),
+        ]);
+        await container.read(orderBoardNotifierProvider.future);
+
+        realtime.emitDeliveryCompleted(
+          deliveryJson(id: '1', status: 'DELIVERED'),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        expect(deliveries.single.status, DeliveryStatus.delivered);
+      },
+    );
+
+    test('an update for a delivery not on the board is ignored', () async {
+      container = buildRealtimeContainer([
+        deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+      ]);
+      await container.read(orderBoardNotifierProvider.future);
+
+      realtime.emitDeliveryClaimed(deliveryJson(id: 'nope', status: 'CLAIMED'));
+      await Future<void>.delayed(Duration.zero);
+
+      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      expect(deliveries.map((d) => d.id), ['1']);
+    });
+
+    test(
+      'an update before the board has loaded is dropped, not crashed',
+      () async {
+        storage = zoneScopedStorage();
+        realtime = FakeBusboyRealtimeService();
+        addTearDown(realtime.close);
+        final container = ProviderContainer(
+          overrides: busboyBoardOverrides(
+            dio: cannedDeliveryListDio([
+              deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+            ]),
+            storage: storage,
+            realtime: realtime,
+          ),
+        );
+        addTearDown(container.dispose);
+        container.listen(orderBoardNotifierProvider, (_, _) {});
+
+        // Deliberately not awaiting the initial fetch yet.
+        realtime.emitDeliveryClaimed(deliveryJson(id: '1', status: 'CLAIMED'));
+        await Future<void>.delayed(Duration.zero);
+
+        final deliveries = await container.read(
+          orderBoardNotifierProvider.future,
+        );
+        expect(deliveries.single.status, DeliveryStatus.pendingPickup);
+      },
+    );
+  });
+
   group('orderBoardFrom', () {
     test('buckets deliveries into baru/antar/selesai by status', () {
       final deliveries = [
@@ -182,18 +281,20 @@ void main() {
   });
 
   group('claim / deliver', () {
-    test('claim optimistically moves a delivery to claimed then confirms',
-        () async {
-      container = buildContainer([
-        deliveryJson(id: '1', status: 'PENDING_PICKUP'),
-      ]);
-      await container.read(orderBoardNotifierProvider.future);
+    test(
+      'claim optimistically moves a delivery to claimed then confirms',
+      () async {
+        container = buildContainer([
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+        ]);
+        await container.read(orderBoardNotifierProvider.future);
 
-      await container.read(orderBoardNotifierProvider.notifier).claim('1');
+        await container.read(orderBoardNotifierProvider.notifier).claim('1');
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
-      expect(deliveries.single.status, DeliveryStatus.claimed);
-    });
+        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        expect(deliveries.single.status, DeliveryStatus.claimed);
+      },
+    );
 
     test('deliver moves a claimed delivery to delivered', () async {
       container = buildContainer([deliveryJson(id: '1', status: 'CLAIMED')]);
@@ -230,18 +331,20 @@ void main() {
       expect(deliveries.single.status, DeliveryStatus.pendingPickup);
     });
 
-    test('claim on an unknown delivery id throws instead of no-oping',
-        () async {
-      container = buildContainer([
-        deliveryJson(id: '1', status: 'PENDING_PICKUP'),
-      ]);
-      await container.read(orderBoardNotifierProvider.future);
+    test(
+      'claim on an unknown delivery id throws instead of no-oping',
+      () async {
+        container = buildContainer([
+          deliveryJson(id: '1', status: 'PENDING_PICKUP'),
+        ]);
+        await container.read(orderBoardNotifierProvider.future);
 
-      await expectLater(
-        container.read(orderBoardNotifierProvider.notifier).claim('nope'),
-        throwsA(isA<StateError>()),
-      );
-    });
+        await expectLater(
+          container.read(orderBoardNotifierProvider.notifier).claim('nope'),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
 
     test('deliver before the board has loaded throws', () async {
       storage = zoneScopedStorage();
@@ -259,6 +362,115 @@ void main() {
       await expectLater(
         container.read(orderBoardNotifierProvider.notifier).deliver('1'),
         throwsA(isA<StateError>()),
+      );
+    });
+  });
+
+  group('claim limit (max active deliveries per busboy)', () {
+    test('rejects a 3rd claim once this busboy already has 2 active',
+        () async {
+      container = ProviderContainer(
+        overrides: busboyBoardOverrides(
+          dio: cannedDeliveryListDio([
+            deliveryJson(id: '1', status: 'CLAIMED', busboyUserId: 'me'),
+            deliveryJson(id: '2', status: 'CLAIMED', busboyUserId: 'me'),
+            deliveryJson(id: '3', status: 'PENDING_PICKUP'),
+          ]),
+          sessionUserId: 'me',
+        ),
+      );
+      addTearDown(container.dispose);
+      container.listen(orderBoardNotifierProvider, (_, _) {});
+      await container.read(orderBoardNotifierProvider.future);
+
+      await expectLater(
+        container.read(orderBoardNotifierProvider.notifier).claim('3'),
+        throwsA(isA<ApiException>()),
+      );
+
+      // Rejected before the API call: no optimistic update stuck around.
+      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      expect(
+        deliveries.firstWhere((d) => d.id == '3').status,
+        DeliveryStatus.pendingPickup,
+      );
+    });
+
+    test('allows claiming while under the limit', () async {
+      container = ProviderContainer(
+        overrides: busboyBoardOverrides(
+          dio: cannedDeliveryListDio([
+            deliveryJson(id: '1', status: 'CLAIMED', busboyUserId: 'me'),
+            deliveryJson(id: '2', status: 'PENDING_PICKUP'),
+          ]),
+          sessionUserId: 'me',
+        ),
+      );
+      addTearDown(container.dispose);
+      container.listen(orderBoardNotifierProvider, (_, _) {});
+      await container.read(orderBoardNotifierProvider.future);
+
+      await container.read(orderBoardNotifierProvider.notifier).claim('2');
+
+      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      expect(
+        deliveries.firstWhere((d) => d.id == '2').status,
+        DeliveryStatus.claimed,
+      );
+    });
+
+    test(
+        "another busboy's active claims don't count against this device's "
+        'limit', () async {
+      container = ProviderContainer(
+        overrides: busboyBoardOverrides(
+          dio: cannedDeliveryListDio([
+            deliveryJson(id: '1', status: 'CLAIMED', busboyUserId: 'other-1'),
+            deliveryJson(id: '2', status: 'CLAIMED', busboyUserId: 'other-2'),
+            deliveryJson(id: '3', status: 'PENDING_PICKUP'),
+          ]),
+          sessionUserId: 'me',
+        ),
+      );
+      addTearDown(container.dispose);
+      container.listen(orderBoardNotifierProvider, (_, _) {});
+      await container.read(orderBoardNotifierProvider.future);
+
+      await container.read(orderBoardNotifierProvider.notifier).claim('3');
+
+      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      expect(
+        deliveries.firstWhere((d) => d.id == '3').status,
+        DeliveryStatus.claimed,
+      );
+    });
+
+    test(
+        'stamps this busboy on the optimistic claim, so a rapid second claim '
+        'is rejected before the server confirms the first', () async {
+      container = ProviderContainer(
+        overrides: busboyBoardOverrides(
+          dio: cannedDeliveryListDio([
+            deliveryJson(id: '1', status: 'CLAIMED', busboyUserId: 'me'),
+            deliveryJson(id: '2', status: 'PENDING_PICKUP'),
+            deliveryJson(id: '3', status: 'PENDING_PICKUP'),
+          ]),
+          sessionUserId: 'me',
+        ),
+      );
+      addTearDown(container.dispose);
+      container.listen(orderBoardNotifierProvider, (_, _) {});
+      await container.read(orderBoardNotifierProvider.future);
+
+      // Not awaited: the optimistic update inside `claim` applies
+      // synchronously (before its first `await`), so `claim('3')` right
+      // after already sees delivery '2' as claimed-by-me, without needing
+      // the server to have confirmed it yet.
+      unawaited(container.read(orderBoardNotifierProvider.notifier).claim('2'));
+
+      await expectLater(
+        container.read(orderBoardNotifierProvider.notifier).claim('3'),
+        throwsA(isA<ApiException>()),
       );
     });
   });
@@ -300,7 +512,7 @@ void main() {
 /// tested in isolation.
 class _FailingRepository implements BusboyDeliveryRepository {
   _FailingRepository({required Dio dio})
-      : _delegate = BusboyDeliveryRepository(dio: dio);
+    : _delegate = BusboyDeliveryRepository(dio: dio);
 
   final BusboyDeliveryRepository _delegate;
 
@@ -322,7 +534,7 @@ class _FailingRepository implements BusboyDeliveryRepository {
 /// path.
 class _DelayedFetchRepository implements BusboyDeliveryRepository {
   _DelayedFetchRepository({required Dio dio, required this.fetchGate})
-      : _delegate = BusboyDeliveryRepository(dio: dio);
+    : _delegate = BusboyDeliveryRepository(dio: dio);
 
   final BusboyDeliveryRepository _delegate;
   final Future<void> fetchGate;
