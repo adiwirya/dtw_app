@@ -140,6 +140,12 @@ class AppColors {
   /// admin online/offline). Eyeballed light-grey from the references.
   // TODO(open-question): not a named token in tokens.json; confirm value.
   static const Color toggleTrackOff = Color(0xFFE4E7EC);
+
+  // --- Forgot password flow (login-forgot / -verifikasi / -password-baru) --
+
+  /// Border of an empty OTP digit box (`Rectangle 2317`) — measured
+  /// `#B9BCBF`, distinct from `neutral100`/`neutral300`.
+  static const Color otpBoxBorder = Color(0xFFB9BCBF);
 }
 
 class AppSpacing {

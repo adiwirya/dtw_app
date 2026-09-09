@@ -7,6 +7,9 @@ import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
 import 'package:dtw_app/features/akun/presentation/screens/akun_screen.dart';
 import 'package:dtw_app/features/akun/presentation/screens/profile_saya_screen.dart';
+import 'package:dtw_app/features/auth/presentation/screens/forgot_password_reset_screen.dart';
+import 'package:dtw_app/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:dtw_app/features/auth/presentation/screens/forgot_password_verify_screen.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
@@ -36,6 +39,11 @@ abstract class AppRoutes {
   // --- Auth (outside the bottom-nav shell; shared with the tenant shell — see
   // `appRouter` below) ---
   static const login = 'login'; // login-default
+  static const forgotPassword = 'forgotPassword'; // login-forgot
+  static const forgotPasswordVerify =
+      'forgotPasswordVerify'; // login-forgot-verifikasi
+  static const forgotPasswordReset =
+      'forgotPasswordReset'; // login-forgot-password-baru
 
   // --- Tab 0: Order (home = menu-order-baru) ---
   static const order = 'order'; // menu-order-baru
@@ -285,6 +293,30 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.loginPath,
         name: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+        routes: [
+          GoRoute(
+            path: 'forgot-password',
+            name: AppRoutes.forgotPassword,
+            builder: (context, state) => const ForgotPasswordScreen(),
+            routes: [
+              GoRoute(
+                path: 'verify',
+                name: AppRoutes.forgotPasswordVerify,
+                builder: (context, state) => ForgotPasswordVerifyScreen(
+                  email: state.extra as String? ?? '',
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'new-password',
+                    name: AppRoutes.forgotPasswordReset,
+                    builder: (context, state) =>
+                        const ForgotPasswordResetScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
 
       // Persistent 4-tab busboy bottom-nav shell.

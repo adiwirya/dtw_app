@@ -1,10 +1,12 @@
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// The login screen — the app's single shared entry point, hosted on `/login`.
 ///
@@ -245,8 +247,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(width: 8),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            // TODO(open-question): "Lupa Password?" has no destination yet.
-            onTap: () {},
+            onTap: () => context.pushNamed(AppRoutes.forgotPassword),
             child: const Text(
               'Lupa Password ?',
               style: TextStyle(
