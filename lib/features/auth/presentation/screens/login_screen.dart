@@ -153,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'Pesan Cepat, Nikmati Sekarang',
                   style: TextStyle(
                     color: AppColors.neutral500,
-                    fontSize: 14,
+                    fontSize: 12,
                     height: 1,
                   ),
                 ),
