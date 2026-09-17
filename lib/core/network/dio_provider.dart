@@ -16,8 +16,17 @@ const _baseUrl = 'https://dtw-cms.gadingemerald.com/api';
 
 @riverpod
 Dio dio(Ref ref) {
-  final dio = Dio(BaseOptions(baseUrl: _baseUrl))
-    ..interceptors.add(LogInterceptor(responseBody: true));
+  // Unset (Dio's default), a hung request — dead wifi, half-open TCP — waits
+  // forever: no `DioException` ever fires, so neither the retry interceptor
+  // below nor `mapDioError`'s `receiveTimeout` branch ever runs, and the
+  // screen watching it is stuck on its loading spinner permanently.
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
+    ),
+  )..interceptors.add(LogInterceptor(responseBody: true));
 
   dio.interceptors.add(
     InterceptorsWrapper(

@@ -53,6 +53,22 @@ class _FlakyThenOkAdapter implements HttpClientAdapter {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+      'sets connect/receive timeouts so a hung request throws instead of '
+      'awaiting forever', () {
+    final container = ProviderContainer(
+      overrides: [
+        localStorageProvider.overrideWithValue(FakeLocalStorage()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final dio = container.read(dioProvider);
+
+    expect(dio.options.connectTimeout, isNotNull);
+    expect(dio.options.receiveTimeout, isNotNull);
+  });
+
   group('retries a connection failure instead of surfacing it', () {
     test('succeeds after one transient connection error', () async {
       final storage = FakeLocalStorage();
