@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/printing/receipt_printer_service.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
@@ -8,6 +12,7 @@ import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_pro
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/tenant_order_header.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -58,6 +63,18 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.white,
+      // Debug-only: prints a dummy bon so the Sunmi layout/hardware can be
+      // checked without a real order to accept. Never built in release, and
+      // `flutter test` sets `FLUTTER_TEST` so it doesn't leak into golden
+      // screenshots either.
+      floatingActionButton: kDebugMode &&
+              Platform.environment['FLUTTER_TEST'] == null
+          ? FloatingActionButton.extended(
+              onPressed: () => _printDummyBon(context),
+              label: const Text('Test Print'),
+              icon: const Icon(Icons.print_outlined),
+            )
+          : null,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -80,6 +97,56 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
         ],
       ),
     );
+  }
+
+  /// Prints the Figma "Order Normal" sample bon against whatever
+  /// [ReceiptPrinterService] is wired (the real Sunmi printer on a device,
+  /// or nothing off Android) — see the class doc.
+  Future<void> _printDummyBon(BuildContext context) async {
+    final branch = ref.read(currentTenantBranchProvider).valueOrNull;
+    final order = TenantOrder(
+      id: 'dummy-order',
+      orderGroupId: 'dummy-group',
+      branchId: branch?.id ?? 'dummy-branch',
+      receiptNumber: 'PRN-6327',
+      tableNumber: '2',
+      grandTotal: 95000,
+      status: TenantOrderStatus.pending,
+      createdAt: DateTime.now(),
+      items: const [
+        OrderLineItem(
+          id: 'dummy-1',
+          name: 'Paket Super Besar',
+          price: 'Rp90.000',
+          subtotal: 90000,
+          qty: 2,
+        ),
+        OrderLineItem(
+          id: 'dummy-2',
+          name: 'Es Lemon Tea',
+          price: 'Rp5.000',
+          subtotal: 5000,
+        ),
+      ],
+    );
+
+    try {
+      await ref.read(receiptPrinterServiceProvider).printOrder(
+            order,
+            brandName: branch?.brandName ?? 'Ayam Betutu Khas Gilimanuk Bali',
+            areaName: branch?.areaName ?? 'Downtown',
+            locationCode: branch?.locationCode ?? 'SMB',
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Test print terkirim')));
+    } on Object catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Test print gagal: $error')));
+    }
   }
 
   Widget _buildBoard(
@@ -137,9 +204,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                     orders: orders,
                     onAccept: (order) => _runAction(
                       context,
-                      () => ref
-                          .read(tenantOrderBoardProvider.notifier)
-                          .accept(order.orderId),
+                      () => _accept(order.orderId, board),
                     ),
                     onPickupReady: (order) => _runAction(
                       context,
@@ -179,6 +244,38 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage(error))),
+      );
+    }
+  }
+
+  /// Accepts [orderId], then prints its bon — the "Terima" action's whole
+  /// point: the kitchen only learns about the order once the printer spits
+  /// out a physical ticket. Printing is fire-and-forget after a successful
+  /// accept: a busy/out-of-paper printer must never undo (or block the UI
+  /// on) an accept the backend already recorded.
+  Future<void> _accept(String orderId, List<TenantOrder> board) async {
+    TenantOrder? order;
+    for (final o in board) {
+      if (o.id == orderId) {
+        order = o;
+        break;
+      }
+    }
+
+    await ref.read(tenantOrderBoardProvider.notifier).accept(orderId);
+
+    final branch = ref.read(currentTenantBranchProvider).valueOrNull;
+    if (order != null && branch != null) {
+      unawaited(
+        ref
+            .read(receiptPrinterServiceProvider)
+            .printOrder(
+              order,
+              brandName: branch.brandName,
+              areaName: branch.areaName,
+              locationCode: branch.locationCode,
+            )
+            .catchError((_) {}),
       );
     }
   }

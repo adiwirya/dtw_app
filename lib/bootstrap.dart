@@ -19,6 +19,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:sunmi_utils/sunmi_utils.dart';
 
 /// Boots the app. [overrides] lets an entrypoint reconfigure the
 /// ProviderScope without changing `App`.
@@ -65,6 +66,12 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // Required once per process by `flutter_foreground_task`, regardless of
   // whether a tenant session ends up starting the service this run.
   if (Platform.isAndroid) FlutterForegroundTask.initCommunicationPort();
+
+  // Binds the built-in printer on Sunmi devices; throws `SERVICE_NOT_FOUND`
+  // on every other device, which the receipt printer doesn't need to work
+  // around since printing itself already no-ops off Android — swallowed
+  // here purely so a non-Sunmi device's cold start isn't slowed by it.
+  if (Platform.isAndroid) unawaited(SunmiPrinter.bind().catchError((_) {}));
 
   // Six independent keys — reading them in parallel rather than one
   // `await` at a time matters here specifically: this whole function runs

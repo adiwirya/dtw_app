@@ -68,6 +68,7 @@ List<Override> _kelolaVarianOverrides(List<Map<String, dynamic>> groups) {
     brandName: 'Janji Jiwa',
     branchName: 'Janji Jiwa',
     areaName: 'Downtown',
+    locationCode: 'SMB',
     isActive: true,
     createdAt: DateTime(2026, 8, 7),
   );

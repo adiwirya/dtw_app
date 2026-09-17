@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dtw_app/core/printing/receipt_printer_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_branch.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'canned_dio.dart';
 import 'fake_local_storage.dart';
+import 'fake_receipt_printer_service.dart';
 import 'fake_tenant_realtime_service.dart';
 import 'routed_dio.dart';
 
@@ -96,6 +98,7 @@ Dio tenantBranchDio({String branchName = 'KFC Fried Chicken'}) => cannedDio(
     'brand_name': 'Janji Jiwa',
     'branch_name': branchName,
     'area_name': 'Downtown',
+    'kd_lokasi': 'SMB',
     'is_active': true,
     'created_at': '2026-08-07 09:16:37',
   }),
@@ -111,6 +114,7 @@ List<Override> tenantBoardOverrides({
   TenantRealtimeService? realtime,
   FakeLocalStorage? storage,
   Dio? branchDio,
+  ReceiptPrinterService? printer,
 }) => [
   localStorageProvider.overrideWithValue(storage ?? branchScopedStorage()),
   tenantOrderRepositoryProvider.overrideWithValue(
@@ -121,6 +125,12 @@ List<Override> tenantBoardOverrides({
   ),
   tenantBranchRepositoryProvider.overrideWithValue(
     TenantBranchRepository(dio: branchDio ?? tenantBranchDio()),
+  ),
+  // A real SunmiReceiptPrinterService would hit an unmocked platform
+  // channel — every tenant-board test gets a no-op fake unless it cares
+  // about printing itself.
+  receiptPrinterServiceProvider.overrideWithValue(
+    printer ?? FakeReceiptPrinterService(),
   ),
 ];
 
@@ -181,6 +191,7 @@ TenantBranch tenantBranchFixture() => TenantBranch(
   brandName: 'Janji Jiwa',
   branchName: 'Janji Jiwa',
   areaName: 'Downtown',
+  locationCode: 'SMB',
   isActive: true,
   createdAt: DateTime(2026, 8, 7),
 );

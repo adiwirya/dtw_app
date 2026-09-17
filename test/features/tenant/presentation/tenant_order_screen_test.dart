@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../support/fake_receipt_printer_service.dart';
 import '../../../support/tenant_board.dart';
 
 /// Pumps [TenantOrderScreen] inside a minimal router, with the order board
@@ -17,9 +18,14 @@ import '../../../support/tenant_board.dart';
 Future<GoRouter> _pumpScreen(
   WidgetTester tester, {
   IncomingOrderStatus initialStatus = IncomingOrderStatus.baru,
+  FakeReceiptPrinterService? printer,
 }) async {
   final dio = cannedOrderListDio([
-    tenantOrderJson(id: '1', status: 'PENDING'),
+    tenantOrderJson(
+      id: '1',
+      status: 'PENDING',
+      items: [tenantOrderItemJson(id: 'item-1', productName: 'Nasi Goreng')],
+    ),
     tenantOrderJson(id: '2', status: 'PENDING'),
     tenantOrderJson(id: '3', status: 'PREPARING'),
     tenantOrderJson(id: '4', status: 'READY'),
@@ -45,7 +51,7 @@ Future<GoRouter> _pumpScreen(
   );
   await tester.pumpWidget(
     ProviderScope(
-      overrides: tenantBoardOverrides(dio: dio),
+      overrides: tenantBoardOverrides(dio: dio, printer: printer),
       child: MaterialApp.router(routerConfig: router),
     ),
   );
@@ -97,6 +103,24 @@ void main() {
 
       expect(find.text('Siap Diambil'), findsOneWidget);
       expect(find.text('Terima'), findsNothing);
+    });
+  });
+
+  group('Terima', () {
+    testWidgets('accepting an order prints its bon', (tester) async {
+      final printer = FakeReceiptPrinterService();
+      await _pumpScreen(tester, printer: printer);
+
+      await tester.tap(find.text('Terima').first);
+      await tester.pumpAndSettle();
+
+      expect(printer.printed, hasLength(1));
+      final receipt = printer.printed.single;
+      expect(receipt.order.id, '1');
+      expect(receipt.order.items.single.name, 'Nasi Goreng');
+      expect(receipt.brandName, 'Janji Jiwa');
+      expect(receipt.areaName, 'Downtown');
+      expect(receipt.locationCode, 'SMB');
     });
   });
 

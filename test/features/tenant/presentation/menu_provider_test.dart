@@ -14,6 +14,7 @@ TenantBranch _testBranch() => TenantBranch(
       brandName: 'Janji Jiwa',
       branchName: 'Janji Jiwa',
       areaName: 'Downtown',
+      locationCode: 'SMB',
       isActive: true,
       createdAt: DateTime(2026, 8, 7),
     );

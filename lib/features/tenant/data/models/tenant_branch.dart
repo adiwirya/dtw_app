@@ -20,6 +20,7 @@ class TenantBranch {
     required this.brandName,
     required this.branchName,
     required this.areaName,
+    required this.locationCode,
     required this.isActive,
     required this.createdAt,
   });
@@ -31,6 +32,7 @@ class TenantBranch {
       brandName: json['brand_name'] as String,
       branchName: json['branch_name'] as String,
       areaName: json['area_name'] as String,
+      locationCode: json['kd_lokasi'] as String,
       isActive: json['is_active'] as bool,
       createdAt:
           DateTime.parse((json['created_at'] as String).replaceFirst(' ', 'T')),
@@ -42,6 +44,10 @@ class TenantBranch {
   final String brandName;
   final String branchName;
   final String areaName;
+
+  /// Short branch location code, e.g. `SMB` — `GET /v1/tenant-branches/{id}`'s
+  /// `kd_lokasi`. Printed on the receipt as `<areaName> - <locationCode>`.
+  final String locationCode;
   final bool isActive;
   final DateTime createdAt;
 
