@@ -5,6 +5,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/printing/receipt_printer_service.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
@@ -89,7 +90,10 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
               clipBehavior: Clip.antiAlias,
               child: boardAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text(errorMessage(error))),
+                error: (error, _) => ErrorView(
+                  message: errorMessage(error),
+                  onRetry: () => ref.invalidate(tenantOrderBoardProvider),
+                ),
                 data: (board) => _buildBoard(context, board, status),
               ),
             ),

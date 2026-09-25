@@ -4,6 +4,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/menu_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/kelola_menu_sheet.dart';
@@ -41,6 +42,22 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  /// Awaits `MenuList.setActive` and surfaces a failure — the provider
+  /// already rolls its own state back, but nothing told the user why the
+  /// switch flipped back on its own without this.
+  Future<void> _setActive(int index, {required bool active}) async {
+    try {
+      await ref
+          .read(menuListProvider.notifier)
+          .setActive(index, active: active);
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage(error))),
+      );
+    }
   }
 
   /// Client-side status filter + name search over the fetched list —
@@ -106,7 +123,10 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
             Expanded(
               child: menusAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text(errorMessage(error))),
+                error: (error, _) => ErrorView(
+                  message: errorMessage(error),
+                  onRetry: () => ref.invalidate(menuListProvider),
+                ),
                 data: _buildList,
               ),
             ),
@@ -154,9 +174,7 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
           data: menu,
           onActiveChanged: providerIndex == -1
               ? null
-              : (active) => ref
-                    .read(menuListProvider.notifier)
-                    .setActive(providerIndex, active: active),
+              : (active) => _setActive(providerIndex, active: active),
           // The preview row on `menu-berhasil-ditambahkan` has no product to
           // edit, so only real rows are tappable.
           onTap: providerIndex == -1

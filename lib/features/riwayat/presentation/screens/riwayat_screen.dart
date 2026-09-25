@@ -1,6 +1,7 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/features/riwayat/data/models/riwayat_models.dart';
 import 'package:dtw_app/features/riwayat/presentation/providers/riwayat_provider.dart';
@@ -93,16 +94,22 @@ class _RiwayatScreenState extends ConsumerState<RiwayatScreen> {
                     child: boardAsync.when(
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (error, _) =>
-                          Center(child: Text(errorMessage(error))),
-                      data: (deliveries) => _HistoryList(
-                        days: riwayatDaysFrom(
-                          riwayatSearch(deliveries, _search.text),
-                          range,
-                          DateTime.now(),
+                      error: (error, _) => ErrorView(
+                        message: errorMessage(error),
+                        onRetry: () => ref.invalidate(riwayatBoardProvider),
+                      ),
+                      data: (deliveries) => RefreshIndicator(
+                        onRefresh: () =>
+                            ref.refresh(riwayatBoardProvider.future),
+                        child: _HistoryList(
+                          days: riwayatDaysFrom(
+                            riwayatSearch(deliveries, _search.text),
+                            range,
+                            DateTime.now(),
+                          ),
+                          searching: _search.text.trim().isNotEmpty,
+                          onDetail: (entryId) => _openDetail(context, entryId),
                         ),
-                        searching: _search.text.trim().isNotEmpty,
-                        onDetail: (entryId) => _openDetail(context, entryId),
                       ),
                     ),
                   ),

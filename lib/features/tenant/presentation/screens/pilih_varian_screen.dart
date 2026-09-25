@@ -2,6 +2,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/menu_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/variant_provider.dart';
@@ -130,7 +131,10 @@ class _PilihVarianScreenState extends ConsumerState<PilihVarianScreen> {
             Expanded(
               child: variantsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text(errorMessage(error))),
+                error: (error, _) => ErrorView(
+                  message: errorMessage(error),
+                  onRetry: () => ref.invalidate(variantListProvider),
+                ),
                 data: _buildList,
               ),
             ),

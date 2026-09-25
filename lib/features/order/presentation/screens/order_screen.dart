@@ -2,6 +2,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
@@ -104,7 +105,10 @@ class OrderScreen extends ConsumerWidget {
               clipBehavior: Clip.antiAlias,
               child: boardAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text(errorMessage(error))),
+                error: (error, _) => ErrorView(
+                  message: errorMessage(error),
+                  onRetry: () => ref.invalidate(orderBoardNotifierProvider),
+                ),
                 data: (deliveries) => _buildBody(
                   context,
                   ref,

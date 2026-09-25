@@ -2,6 +2,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/completed_detail_view.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/features/riwayat/presentation/providers/riwayat_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,24 +40,27 @@ class RiwayatDetailScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
-        child: Center(
-          child: boardAsync.isLoading
-              ? const CircularProgressIndicator()
-              : Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    boardAsync.hasError
-                        ? errorMessage(boardAsync.error!)
-                        : 'Riwayat tidak ditemukan.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.neutral500,
-                      fontSize: 14,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-        ),
+        child: boardAsync.hasError
+            ? ErrorView(
+                message: errorMessage(boardAsync.error!),
+                onRetry: () => ref.invalidate(riwayatBoardProvider),
+              )
+            : Center(
+                child: boardAsync.isLoading
+                    ? const CircularProgressIndicator()
+                    : const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Riwayat tidak ditemukan.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.neutral500,
+                            fontSize: 14,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+              ),
       ),
     );
   }

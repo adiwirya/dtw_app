@@ -1151,7 +1151,26 @@ class _CategoryDropdown extends ConsumerWidget {
         child: Text('Memuat kategori...', style: _hintStyle),
       ),
       error: (error, _) => _Box(
-        child: Text(errorMessage(error), style: _hintStyle),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                errorMessage(error),
+                style: _hintStyle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(productCategoriesProvider),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Coba lagi'),
+            ),
+          ],
+        ),
       ),
       data: (categories) {
         if (categories.isEmpty) {

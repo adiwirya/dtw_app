@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/features/akun/data/models/akun_account.dart';
 import 'package:dtw_app/features/akun/presentation/widgets/account_menu_tile.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
@@ -25,7 +26,10 @@ class AdminStatusScreen extends ConsumerWidget {
       backgroundColor: AppColors.white,
       body: infoAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(errorMessage(error))),
+        error: (error, _) => ErrorView(
+          message: errorMessage(error),
+          onRetry: () => ref.invalidate(tenantAdminInfoProvider),
+        ),
         data: (info) => _buildBody(context, ref, info),
       ),
     );

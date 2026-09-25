@@ -1,6 +1,7 @@
 import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
@@ -83,7 +84,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               clipBehavior: Clip.antiAlias,
-              child: _buildBody(boardAsync, detail),
+              child: _buildBody(ref, boardAsync, detail),
             ),
           ),
           if (detail != null && detail.status == OrderStatus.baru)
@@ -94,6 +95,7 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildBody(
+    WidgetRef ref,
     AsyncValue<List<Delivery>> boardAsync,
     OrderDetail? detail,
   ) {
@@ -116,7 +118,10 @@ class OrderDetailScreen extends ConsumerWidget {
       );
     }
     if (boardAsync.hasError) {
-      return Center(child: Text(errorMessage(boardAsync.error!)));
+      return ErrorView(
+        message: errorMessage(boardAsync.error!),
+        onRetry: () => ref.invalidate(orderBoardNotifierProvider),
+      );
     }
     if (boardAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());

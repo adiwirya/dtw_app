@@ -2,6 +2,7 @@ import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/tenant_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/utils/currency.dart';
+import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
@@ -226,19 +227,9 @@ class _TenantRejectOrderScreenState
   /// regardless of whether the order existed.
   Widget _placeholderFor(AsyncValue<List<TenantOrder>> board) {
     if (board.hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            errorMessage(board.error!),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.neutral500,
-              fontSize: 14,
-              height: 1.2,
-            ),
-          ),
-        ),
+      return ErrorView(
+        message: errorMessage(board.error!),
+        onRetry: () => ref.invalidate(tenantOrderBoardProvider),
       );
     }
     if (board.isLoading) {
