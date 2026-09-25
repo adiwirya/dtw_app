@@ -79,4 +79,52 @@ void main() {
     });
   });
 
+  group('fetchCategories', () {
+    test(
+      'parses the live response shape and passes brand_id as a query param',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': [
+            {'id': 'cat-1', 'name': 'Sahabat Series'},
+          ],
+        });
+        final repository = ProductRepository(dio: dio);
+
+        final categories = await repository.fetchCategories(
+          brandId: 'brand-1',
+        );
+
+        expect(categories, hasLength(1));
+        expect(categories.single.id, 'cat-1');
+        expect(categories.single.name, 'Sahabat Series');
+        expect(
+          (dio.httpClientAdapter as CannedAdapter).lastRequest!.queryParameters,
+          {'brand_id': 'brand-1'},
+        );
+      },
+    );
+
+    test('throws a mapped ApiException on failure', () async {
+      final dio = cannedDio(500, {
+        'meta': {
+          'success': false,
+          'message': 'Error',
+          'code': 500,
+          'trace_id': 'abc',
+        },
+      });
+      final repository = ProductRepository(dio: dio);
+
+      await expectLater(
+        repository.fetchCategories(brandId: 'brand-1'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
 }
