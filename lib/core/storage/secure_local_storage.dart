@@ -25,6 +25,11 @@ const tenantBranchIdStorageKey = 'tenant_branch_id';
 /// Restored on relaunch so a resumed session can still greet the user.
 const sessionUsernameStorageKey = 'session_username';
 
+/// Key the logged-in user's display name is stored under
+/// (`data.user.name`). Restored on relaunch so a resumed session can still
+/// greet the user with their real name instead of the login handle.
+const sessionNameStorageKey = 'session_name';
+
 /// Key the logged-in user's id is stored under (`data.user.id`). Restored
 /// on relaunch so a resumed busboy session can still tell its own claims
 /// apart from other busboys' — see `sessionUserIdProvider`.

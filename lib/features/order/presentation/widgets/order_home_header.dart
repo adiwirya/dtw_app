@@ -7,16 +7,15 @@ import 'package:flutter/material.dart';
 /// summary-stats card. The white tab/list panel drawn by the screen sits
 /// directly below this band.
 class OrderHomeHeader extends StatelessWidget {
-  const OrderHomeHeader({required this.stats, this.username, super.key});
+  const OrderHomeHeader({required this.stats, this.name, super.key});
 
   /// The three summary stats rendered in the floating card.
   final List<OrderHeaderStat> stats;
 
-  /// The logged-in user's username (`sessionUsernameProvider`). A login handle
-  /// rather than a display name — the API has no display-name field — so it is
-  /// shown as-is. Null (unknown) drops the name from the greeting instead of
-  /// substituting a placeholder one.
-  final String? username;
+  /// The logged-in user's real display name (`sessionNameProvider`,
+  /// `data.user.name`), shown as-is. Null (unknown) drops the name from the
+  /// greeting instead of substituting a placeholder one.
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +40,7 @@ class OrderHomeHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _GreetingRow(username: username),
+            child: _GreetingRow(name: name),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -56,9 +55,9 @@ class OrderHomeHeader extends StatelessWidget {
 }
 
 class _GreetingRow extends StatelessWidget {
-  const _GreetingRow({this.username});
+  const _GreetingRow({this.name});
 
-  final String? username;
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +85,7 @@ class _GreetingRow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                username == null ? 'Hi 👋' : 'Hi, $username 👋',
+                name == null ? 'Hi 👋' : 'Hi, $name 👋',
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 16,

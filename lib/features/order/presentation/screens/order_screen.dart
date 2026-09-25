@@ -92,7 +92,7 @@ class OrderScreen extends ConsumerWidget {
         children: [
           OrderHomeHeader(
             stats: stats,
-            username: ref.watch(sessionUsernameProvider),
+            name: ref.watch(sessionNameProvider),
           ),
           Expanded(
             child: Container(

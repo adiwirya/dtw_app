@@ -6,9 +6,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'profile_provider.g.dart';
 
 // TODO(open-question): the profile data source is unresolved (Open Question 1).
-// `namaLengkap` is the real session username; every other field below is `-`
-// because the busboy API has no profile endpoint yet. When one lands, replace
-// this synchronous provider with an async repository fetch
+// `namaLengkap` is the real session display name; every other field below is
+// `-` because the busboy API has no profile endpoint yet. When one lands,
+// replace this synchronous provider with an async repository fetch
 // (`Future<BusboyProfile>` backed by dio, per knowledge/riverpod-patterns.md)
 // and have the screen consume the resulting AsyncValue. Edit + Simpan are
 // UI-only stubs (Open Question 2) until the mutation endpoint is specified.
@@ -16,10 +16,10 @@ part 'profile_provider.g.dart';
 /// Backing data for the `profile-saya` screen.
 @riverpod
 BusboyProfile busboyProfile(Ref ref) {
-  final username = ref.watch(sessionUsernameProvider);
+  final name = ref.watch(sessionNameProvider);
   return BusboyProfile(
     busboyId: '-',
-    namaLengkap: username ?? '-',
+    namaLengkap: name ?? '-',
     noTelepon: '-',
     email: '-',
     outlet: '-',

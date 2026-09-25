@@ -1,10 +1,19 @@
 class AuthUser {
-  const AuthUser({required this.id, this.username, this.email, this.role});
+  const AuthUser({
+    required this.id,
+    this.username,
+    this.name,
+    this.phone,
+    this.email,
+    this.role,
+  });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
       id: json['id'] as String,
       username: json['username'] as String?,
+      name: json['name'] as String?,
+      phone: json['phone'] as String?,
       email: json['email'] as String?,
       role: json['role'] as String?,
     );
@@ -12,6 +21,15 @@ class AuthUser {
 
   final String id;
   final String? username;
+
+  /// The user's real display name (`data.user.name`) — added alongside
+  /// [phone]; unlike [username] (a login handle) this is meant to be shown
+  /// as-is in greetings.
+  final String? name;
+
+  /// The user's phone number (`data.user.phone`), `null` when the admin
+  /// hasn't set one for this account.
+  final String? phone;
   final String? email;
 
   /// The user's role (e.g. `tenant_keeper`, `busboy`) — confirmed live on

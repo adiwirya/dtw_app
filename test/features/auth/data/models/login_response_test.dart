@@ -27,6 +27,55 @@ void main() {
     expect(result.user.username, 'budi');
   });
 
+  test('LoginResponse.fromJson parses name/phone on data.user', () {
+    final json = {
+      'meta': {
+        'success': true,
+        'message': 'Success',
+        'code': 200,
+        'trace_id': 'abc',
+      },
+      'data': {
+        'access_token': 'tok_123',
+        'user': {
+          'id': 'u1',
+          'username': 'budi_tenant',
+          'name': 'Budi Santoso',
+          'phone': '081234567890',
+        },
+        'abilities': <dynamic>[],
+        'scopes': <dynamic>[],
+      },
+    };
+
+    final result = LoginResponse.fromJson(json);
+
+    expect(result.user.name, 'Budi Santoso');
+    expect(result.user.phone, '081234567890');
+  });
+
+  test('LoginResponse.fromJson leaves name/phone null when absent', () {
+    final json = {
+      'meta': {
+        'success': true,
+        'message': 'Success',
+        'code': 200,
+        'trace_id': 'abc',
+      },
+      'data': {
+        'access_token': 'tok_123',
+        'user': {'id': 'u1', 'username': 'budi'},
+        'abilities': <dynamic>[],
+        'scopes': <dynamic>[],
+      },
+    };
+
+    final result = LoginResponse.fromJson(json);
+
+    expect(result.user.name, isNull);
+    expect(result.user.phone, isNull);
+  });
+
   test('LoginResponse.fromJson parses email/role on data.user (confirmed '
       'live, not in the cached API reference)', () {
     final json = {

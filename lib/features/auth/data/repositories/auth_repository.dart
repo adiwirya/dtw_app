@@ -49,6 +49,12 @@ class AuthRepository {
         await _localStorage.delete(sessionUsernameStorageKey);
       await _localStorage.delete(sessionRoleStorageKey);
       }
+      final name = loginResponse.user.name;
+      if (name != null) {
+        await _localStorage.write(sessionNameStorageKey, name);
+      } else {
+        await _localStorage.delete(sessionNameStorageKey);
+      }
       if (loginResponse.branchId != null) {
         await _localStorage.write(
           tenantBranchIdStorageKey,
@@ -80,6 +86,7 @@ class AuthRepository {
       await _localStorage.delete(authTokenStorageKey);
       await _localStorage.delete(sessionUserIdStorageKey);
       await _localStorage.delete(sessionUsernameStorageKey);
+      await _localStorage.delete(sessionNameStorageKey);
       await _localStorage.delete(sessionRoleStorageKey);
       await _localStorage.delete(tenantBranchIdStorageKey);
       await _localStorage.delete(busboyZoneIdStorageKey);

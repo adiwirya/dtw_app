@@ -550,6 +550,37 @@ void main() {
     expect(storage.values[sessionUsernameStorageKey], 'busboy1');
   });
 
+  test('login sets sessionNameProvider from data.user.name', () async {
+    final storage = FakeLocalStorage();
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {
+              'access_token': 'tok_123',
+              'user': {'id': 'u1', 'username': 'busboy1', 'name': 'Budi'},
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(authControllerProvider.notifier)
+        .login(username: 'busboy1', password: 'secret');
+
+    expect(container.read(sessionNameProvider), 'Budi');
+    // Persisted so a relaunched session can still greet the user.
+    expect(storage.values[sessionNameStorageKey], 'Budi');
+  });
+
   test('login sets and persists sessionUserIdProvider from data.user.id',
       () async {
     final storage = FakeLocalStorage();
@@ -674,6 +705,33 @@ void main() {
 
     expect(container.read(sessionUsernameProvider), isNull);
     expect(storage.values.containsKey(sessionUsernameStorageKey), isFalse);
+  });
+
+  test('logout clears sessionNameProvider and its stored value', () async {
+    final storage = FakeLocalStorage()
+      ..values[authTokenStorageKey] = 'tok_123'
+      ..values[sessionNameStorageKey] = 'Budi';
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          _repositoryReturning(200, {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+          }, storage),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(sessionNameProvider.notifier).state = 'Budi';
+
+    await container.read(authControllerProvider.notifier).logout();
+
+    expect(container.read(sessionNameProvider), isNull);
+    expect(storage.values.containsKey(sessionNameStorageKey), isFalse);
   });
 
   test('logout clears sessionUserIdProvider and its stored value', () async {

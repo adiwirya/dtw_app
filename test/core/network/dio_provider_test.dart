@@ -136,6 +136,7 @@ void main() {
     container.read(isLoggedInProvider.notifier).state = true;
     container.read(sessionRoleProvider.notifier).state = 'tenant_keeper';
     container.read(sessionUsernameProvider.notifier).state = 'janji';
+    container.read(sessionNameProvider.notifier).state = 'Janji Jiwa';
     container.read(sessionBranchIdProvider.notifier).state = 'branch-1';
     container.read(sessionZoneIdProvider.notifier).state = 'zone-1';
 
@@ -154,6 +155,7 @@ void main() {
     // router would keep routing on a stale role after the session expired.
     expect(container.read(sessionRoleProvider), isNull);
     expect(container.read(sessionUsernameProvider), isNull);
+    expect(container.read(sessionNameProvider), isNull);
     expect(container.read(sessionBranchIdProvider), isNull);
     expect(container.read(sessionZoneIdProvider), isNull);
   });

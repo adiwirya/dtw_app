@@ -73,17 +73,19 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // here purely so a non-Sunmi device's cold start isn't slowed by it.
   if (Platform.isAndroid) unawaited(SunmiPrinter.bind().catchError((_) {}));
 
-  // Six independent keys — reading them in parallel rather than one
+  // Seven independent keys — reading them in parallel rather than one
   // `await` at a time matters here specifically: this whole function runs
   // before `runApp()`, so this is on the critical path to the first frame,
   // and a secure-storage read's first cold hit into the Android Keystore
   // can be slow.
   const storage = SecureLocalStorage();
-  final [token, branchId, zoneId, username, role, userId] = await Future.wait([
+  final [token, branchId, zoneId, username, name, role, userId] =
+      await Future.wait([
     storage.read(authTokenStorageKey),
     storage.read(tenantBranchIdStorageKey),
     storage.read(busboyZoneIdStorageKey),
     storage.read(sessionUsernameStorageKey),
+    storage.read(sessionNameStorageKey),
     storage.read(sessionRoleStorageKey),
     storage.read(sessionUserIdStorageKey),
   ]);
@@ -98,6 +100,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       // what `AuthController.login` sets at login time, from the same
       // storage key `AuthRepository` writes it to.
       sessionUsernameProvider.overrideWith((ref) => username),
+      sessionNameProvider.overrideWith((ref) => name),
       sessionRoleProvider.overrideWith((ref) => role),
       sessionBranchIdProvider.overrideWith((ref) => branchId),
       sessionZoneIdProvider.overrideWith((ref) => zoneId),

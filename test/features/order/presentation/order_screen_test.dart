@@ -43,13 +43,13 @@ List<Map<String, dynamic>> _seedDeliveries() => [
   ),
 ];
 
-Widget _wrap({List<Map<String, dynamic>>? deliveries, String? username}) {
+Widget _wrap({List<Map<String, dynamic>>? deliveries, String? name}) {
   return ProviderScope(
     overrides: [
       ...busboyBoardOverrides(
         dio: cannedDeliveryListDio(deliveries ?? _seedDeliveries()),
       ),
-      sessionUsernameProvider.overrideWith((ref) => username),
+      sessionNameProvider.overrideWith((ref) => name),
     ],
     child: const MaterialApp(home: OrderScreen()),
   );
@@ -161,17 +161,16 @@ void main() {
 
   group('header greeting', () {
     // The greeting used to hardcode 'Hi, Adi Wiryadi 👋'. It now shows the
-    // session's real username — a login handle, since the API has no
-    // display-name field.
-    testWidgets('greets the logged-in user by username', (tester) async {
-      await tester.pumpWidget(_wrap(username: 'busboy1'));
+    // session's real display name (`data.user.name`).
+    testWidgets('greets the logged-in user by name', (tester) async {
+      await tester.pumpWidget(_wrap(name: 'busboy1'));
       await tester.pumpAndSettle();
 
       expect(find.text('Hi, busboy1 👋'), findsOneWidget);
       expect(find.text('Hi, Adi Wiryadi 👋'), findsNothing);
     });
 
-    testWidgets('drops the name when the username is unknown', (tester) async {
+    testWidgets('drops the name when the name is unknown', (tester) async {
       await tester.pumpWidget(_wrap());
       await tester.pumpAndSettle();
 

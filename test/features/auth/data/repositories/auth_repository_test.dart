@@ -34,6 +34,52 @@ void main() {
     expect(storage.values.containsKey(tenantBranchIdStorageKey), isFalse);
   });
 
+  test('loginWithPassword persists the display name when present', () async {
+    final storage = FakeLocalStorage();
+    final repository = AuthRepository(
+      dio: cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {
+          'access_token': 'tok_123',
+          'user': {'id': 'u1', 'username': 'budi', 'name': 'Budi Santoso'},
+        },
+      }),
+      localStorage: storage,
+    );
+
+    await repository.loginWithPassword(username: 'budi', password: 'secret');
+
+    expect(storage.values[sessionNameStorageKey], 'Budi Santoso');
+  });
+
+  test('loginWithPassword deletes the stored name when absent', () async {
+    final storage = FakeLocalStorage()..values[sessionNameStorageKey] = 'Old';
+    final repository = AuthRepository(
+      dio: cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {
+          'access_token': 'tok_123',
+          'user': {'id': 'u1', 'username': 'budi'},
+        },
+      }),
+      localStorage: storage,
+    );
+
+    await repository.loginWithPassword(username: 'budi', password: 'secret');
+
+    expect(storage.values.containsKey(sessionNameStorageKey), isFalse);
+  });
+
   test('loginWithPassword persists the branch id for a branch-scoped login',
       () async {
     final storage = FakeLocalStorage();

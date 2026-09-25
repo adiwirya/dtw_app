@@ -42,7 +42,7 @@ Future<void> _pumpScreen(WidgetTester tester) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sessionUsernameProvider.overrideWith((ref) => 'busboy1')],
+      overrides: [sessionNameProvider.overrideWith((ref) => 'busboy1')],
       child: const MaterialApp(home: ProfileSayaScreen()),
     ),
   );
@@ -50,7 +50,7 @@ Future<void> _pumpScreen(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('renders the profile fields, real username + placeholders',
+  testWidgets('renders the profile fields, real name + placeholders',
       (tester) async {
     await _pumpScreen(tester);
 
@@ -73,7 +73,7 @@ void main() {
       expect(find.text(label), findsOneWidget, reason: 'missing label: $label');
     }
 
-    // The real session username fills Nama Lengkap; every other field has no
+    // The real session name fills Nama Lengkap; every other field has no
     // backing endpoint yet, so it shows a placeholder rather than a
     // fabricated value.
     expect(find.text('busboy1'), findsOneWidget);

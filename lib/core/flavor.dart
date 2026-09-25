@@ -43,6 +43,15 @@ final sessionBranchIdProvider = StateProvider<String?>((ref) => null);
 /// it is null.
 final sessionUsernameProvider = StateProvider<String?>((ref) => null);
 
+/// The logged-in user's real display name, or null when unknown — set from
+/// `LoginResponse.user.name` by `AuthController.login`, cleared on
+/// logout/401.
+///
+/// Unlike [sessionUsernameProvider] (a login handle) this is meant to be
+/// shown as-is in greetings. Screens omit the name entirely when it is null
+/// rather than falling back to the username.
+final sessionNameProvider = StateProvider<String?>((ref) => null);
+
 /// The logged-in user's id, or null when unknown — set from
 /// `LoginResponse.user.id` by `AuthController.login`, cleared on
 /// logout/401.

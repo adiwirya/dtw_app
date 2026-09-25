@@ -34,14 +34,14 @@ GoRouter _testRouter() => GoRouter(
 Future<void> _pump(
   WidgetTester tester,
   GoRouter router, {
-  String? username = 'busboy1',
+  String? name = 'busboy1',
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sessionUsernameProvider.overrideWith((ref) => username)],
+      overrides: [sessionNameProvider.overrideWith((ref) => name)],
       child: MaterialApp.router(routerConfig: router),
     ),
   );
@@ -52,7 +52,7 @@ void main() {
   testWidgets('renders the identity, stats and every menu row', (tester) async {
     await _pump(tester, _testRouter());
 
-    // The greeting is the real session username — not a fabricated name.
+    // The greeting is the real session display name.
     expect(find.text('Hi, busboy1'), findsOneWidget);
     // No busboy-profile endpoint yet, so identity/stats show a placeholder
     // rather than a fabricated ID/date/number.
@@ -76,9 +76,9 @@ void main() {
     }
   });
 
-  testWidgets('omits the name from the greeting when the username is unknown',
+  testWidgets('omits the name from the greeting when the name is unknown',
       (tester) async {
-    await _pump(tester, _testRouter(), username: null);
+    await _pump(tester, _testRouter(), name: null);
 
     expect(find.text('Hi'), findsOneWidget);
     expect(find.textContaining('Hi,'), findsNothing);

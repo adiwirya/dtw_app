@@ -8,8 +8,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'akun_provider.g.dart';
 
 // TODO(open-question): the account data source is unresolved (Open Question 1).
-// `name` is the real session username; every other identity/stat field below
-// is `-` because the busboy API has no profile/performance endpoint yet.
+// `name` is the real session display name; every other identity/stat field
+// below is `-` because the busboy API has no profile/performance endpoint yet.
 // When one lands, replace this synchronous provider with an async repository
 // fetch (`Future<AkunAccount>` backed by dio, per
 // knowledge/riverpod-patterns.md) and have the screen consume the resulting
@@ -18,9 +18,9 @@ part 'akun_provider.g.dart';
 /// Backing data for the `akun` account screen.
 @riverpod
 AkunAccount akunAccount(Ref ref) {
-  final username = ref.watch(sessionUsernameProvider);
+  final name = ref.watch(sessionNameProvider);
   return AkunAccount(
-    name: username,
+    name: name,
     busboyId: '-',
     joinedLabel: '-',
     stats: const [

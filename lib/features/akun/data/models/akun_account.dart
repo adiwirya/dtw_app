@@ -71,10 +71,10 @@ class AkunAccount {
     required this.logoutItem,
   });
 
-  /// The session login handle (`sessionUsernameProvider`), not a display
-  /// name: the API has no display-name field. Rendered as `Hi, <name>`;
-  /// null (unknown) drops the name from the greeting instead of substituting
-  /// a fabricated one — mirrors `OrderHomeHeader`.
+  /// The session's real display name (`sessionNameProvider`,
+  /// `data.user.name`). Rendered as `Hi, <name>`; null (unknown) drops the
+  /// name from the greeting instead of substituting a fabricated one —
+  /// mirrors `OrderHomeHeader`.
   final String? name;
 
   /// Busboy identifier — `-` (the API has no busboy-profile endpoint yet).
