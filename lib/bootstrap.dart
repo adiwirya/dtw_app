@@ -73,13 +73,13 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // here purely so a non-Sunmi device's cold start isn't slowed by it.
   if (Platform.isAndroid) unawaited(SunmiPrinter.bind().catchError((_) {}));
 
-  // Seven independent keys — reading them in parallel rather than one
+  // Eight independent keys — reading them in parallel rather than one
   // `await` at a time matters here specifically: this whole function runs
   // before `runApp()`, so this is on the critical path to the first frame,
   // and a secure-storage read's first cold hit into the Android Keystore
   // can be slow.
   const storage = SecureLocalStorage();
-  final [token, branchId, zoneId, username, name, role, userId] =
+  final [token, branchId, zoneId, username, name, role, userId, deviceFlag] =
       await Future.wait([
     storage.read(authTokenStorageKey),
     storage.read(tenantBranchIdStorageKey),
@@ -88,6 +88,14 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
     storage.read(sessionNameStorageKey),
     storage.read(sessionRoleStorageKey),
     storage.read(sessionUserIdStorageKey),
+    // The device-onboarding gate is Android-only (see
+    // `deviceRegisteredProvider`) — skip the read entirely on other
+    // platforms rather than pay for a Keystore hit whose result is never
+    // used.
+    if (Platform.isAndroid)
+      storage.read(deviceRegisteredStorageKey)
+    else
+      Future<String?>.value(),
   ]);
 
   final container = ProviderContainer(
@@ -95,6 +103,12 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       localStorageProvider.overrideWithValue(storage),
       isLoggedInProvider.overrideWith(
         (ref) => token != null && token.isNotEmpty,
+      ),
+      // Android only (see `deviceRegisteredProvider`'s doc comment) — a
+      // non-Android build never reads the flag above, so it's always
+      // treated as already registered.
+      deviceRegisteredProvider.overrideWith(
+        (ref) => !Platform.isAndroid || deviceFlag == 'true',
       ),
       // Restores which shell a persisted session resumes into — mirrors
       // what `AuthController.login` sets at login time, from the same

@@ -12,6 +12,7 @@ import 'package:dtw_app/features/auth/presentation/screens/forgot_password_reset
 import 'package:dtw_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:dtw_app/features/auth/presentation/screens/forgot_password_verify_screen.dart';
 import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:dtw_app/features/device/presentation/screens/device_onboarding_screen.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_detail_screen.dart';
@@ -37,6 +38,9 @@ part 'app_router.g.dart';
 /// with the real screen — keep these names/paths stable so callers
 /// (`context.goNamed(...)`) don't need to change.
 abstract class AppRoutes {
+  // --- Device onboarding (root navigator, precedes even login) ---
+  static const onboarding = 'onboarding'; // device onboarding gate
+
   // --- Auth (outside the bottom-nav shell; shared with the tenant shell — see
   // `appRouter` below) ---
   static const login = 'login'; // login-default
@@ -73,6 +77,7 @@ abstract class AppRoutes {
   // Path used as the post-login landing location (Order tab).
   static const orderPath = '/order';
   static const loginPath = '/login';
+  static const onboardingPath = '/onboarding';
 }
 
 /// Deep-link shim for `/order/antar` and `/order/selesai`: selects the matching
@@ -268,6 +273,7 @@ String homePathFor({required String? role, required String? branchId}) =>
 @riverpod
 GoRouter appRouter(Ref ref) {
   final loggedIn = ref.watch(isLoggedInProvider);
+  final deviceRegistered = ref.watch(deviceRegisteredProvider);
   final homePath = homePathFor(
     role: ref.watch(sessionRoleProvider),
     branchId: ref.watch(sessionBranchIdProvider),
@@ -275,12 +281,22 @@ GoRouter appRouter(Ref ref) {
   return GoRouter(
     // [isLoggedInProvider] and the session role are what let a successful
     // login land straight on the right shell's Order tab instead of the
-    // login screen — see [homePath] above.
-    initialLocation: loggedIn ? homePath : AppRoutes.loginPath,
+    // login screen — see [homePath] above. The device-onboarding gate wins
+    // over all of that: an unregistered device always starts there.
+    initialLocation: !deviceRegistered
+        ? AppRoutes.onboardingPath
+        : (loggedIn ? homePath : AppRoutes.loginPath),
     // Session expiry (401, via dioProvider's interceptor) clears
     // isLoggedInProvider mid-use; this guard makes that redirect to /login
     // on the next navigation, not only at the router's initial construction.
     redirect: (context, state) {
+      final onOnboarding =
+          state.matchedLocation == AppRoutes.onboardingPath ||
+          state.matchedLocation.startsWith('${AppRoutes.onboardingPath}/');
+      if (!deviceRegistered && !onOnboarding) return AppRoutes.onboardingPath;
+      if (deviceRegistered && onOnboarding) {
+        return loggedIn ? homePath : AppRoutes.loginPath;
+      }
       final onLogin =
           state.matchedLocation == AppRoutes.loginPath ||
           state.matchedLocation.startsWith('${AppRoutes.loginPath}/');
@@ -290,6 +306,12 @@ GoRouter appRouter(Ref ref) {
     },
     observers: ref.watch(analyticsObserversProvider),
     routes: [
+      // Onboarding sits OUTSIDE every shell too, ahead of login.
+      GoRoute(
+        path: AppRoutes.onboardingPath,
+        name: AppRoutes.onboarding,
+        builder: (context, state) => const DeviceOnboardingScreen(),
+      ),
       // Login sits OUTSIDE both shells (root navigator, no bottom nav).
       GoRoute(
         path: AppRoutes.loginPath,
