@@ -1,32 +1,37 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/forgot_password_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// `login-forgot-verifikasi`: step 2 of the forgot-password flow — enter the
-/// 6-digit OTP sent to the [email] from step 1.
+/// 6-digit token sent to the [email] from step 1.
 ///
-/// TODO(open-question): no backend endpoint to verify a password-reset OTP
-/// (or resend it) is documented yet. "Verifikasi Kode" advances the flow
-/// locally once all 6 digits are entered; "Kirim Ulang" is a no-op. Wire the
-/// real requests once the endpoints exist.
-class ForgotPasswordVerifyScreen extends StatefulWidget {
+/// `api-auth-device-external.md` has no separate "verify token" endpoint —
+/// the token is only checked together with the new password on
+/// `POST /v1/auth/reset-password` (step 3). "Verifikasi Kode" is therefore
+/// local validation only (all 6 digits entered); the digits are carried
+/// forward as the `token` for that call. "Kirim Ulang" re-calls
+/// `forgotPassword` to send a fresh token.
+class ForgotPasswordVerifyScreen extends ConsumerStatefulWidget {
   const ForgotPasswordVerifyScreen({required this.email, super.key});
 
   final String email;
 
   @override
-  State<ForgotPasswordVerifyScreen> createState() =>
+  ConsumerState<ForgotPasswordVerifyScreen> createState() =>
       _ForgotPasswordVerifyScreenState();
 }
 
 class _ForgotPasswordVerifyScreenState
-    extends State<ForgotPasswordVerifyScreen> {
+    extends ConsumerState<ForgotPasswordVerifyScreen> {
   static const _digitCount = 6;
   final List<TextEditingController> _controllers = List.generate(
     _digitCount,
@@ -37,6 +42,7 @@ class _ForgotPasswordVerifyScreenState
     (_) => FocusNode(),
   );
   String? _validationMessage;
+  bool _resending = false;
 
   @override
   void dispose() {
@@ -62,7 +68,40 @@ class _ForgotPasswordVerifyScreenState
       return;
     }
     setState(() => _validationMessage = null);
-    unawaited(context.pushNamed(AppRoutes.forgotPasswordReset));
+    // `push`, not `go`: a `go` to a nested route rebuilds every ancestor
+    // route in the stack (forgot-password, verify) against this SAME
+    // `state.extra`, and `verify`'s builder casts it as `String?` — passing
+    // the `(email, code)` record that way throws a cast error there. `push`
+    // adds this page on top instead, leaving the ancestors' own extras
+    // alone.
+    unawaited(
+      context.pushNamed(
+        AppRoutes.forgotPasswordReset,
+        extra: (widget.email, code),
+      ),
+    );
+  }
+
+  Future<void> _onKirimUlang() async {
+    if (_resending) return;
+    setState(() => _resending = true);
+    try {
+      await ref
+          .read(authRepositoryProvider)
+          .forgotPassword(email: widget.email);
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage(error))));
+      setState(() => _resending = false);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _resending = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Kode baru sudah dikirim ke email Anda.')),
+    );
   }
 
   @override
@@ -166,8 +205,9 @@ class _ForgotPasswordVerifyScreenState
                     const SizedBox(height: 24),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      // TODO(open-question): no resend-OTP endpoint yet.
-                      onTap: () {},
+                      onTap: _resending
+                          ? null
+                          : () => unawaited(_onKirimUlang()),
                       child: const Text.rich(
                         TextSpan(
                           children: [

@@ -77,6 +77,47 @@ class AuthRepository {
     }
   }
 
+  /// `POST /v1/auth/forgot-password` — always succeeds (200) regardless of
+  /// whether [email] has an account, by API design (anti-enumeration): a
+  /// caller must never infer or display "this email exists/doesn't exist"
+  /// from the result. Only a network failure, a malformed [email] (422) or
+  /// the rate limit (429, 5/min/IP) throw.
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/forgot-password',
+        data: {'email': email},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// `POST /v1/auth/reset-password` — [token] is the one emailed by
+  /// [forgotPassword], valid once and for 60 minutes. Success revokes every
+  /// other active session for this account (server-side, not reflected
+  /// here — this device isn't logged in yet at this point in the flow).
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/v1/auth/reset-password',
+        data: {
+          'email': email,
+          'token': token,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _dio.post<void>('/v1/auth/logout');

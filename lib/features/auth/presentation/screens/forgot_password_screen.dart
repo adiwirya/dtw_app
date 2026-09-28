@@ -1,30 +1,36 @@
 import 'dart:async';
 
+import 'package:dtw_app/core/exceptions.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:dtw_app/features/auth/presentation/widgets/forgot_password_nav_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// `login-forgot`: step 1 of the forgot-password flow — enter the email to
-/// receive a reset OTP.
+/// receive a reset token (`POST /v1/auth/forgot-password`).
 ///
-/// TODO(open-question): no backend endpoint to request a password-reset OTP
-/// is documented yet (see `docs/api-reference.md`). "Kirim Kode" advances the
-/// flow locally with the entered email; wire the real request once the
-/// endpoint exists.
-class ForgotPasswordScreen extends StatefulWidget {
+/// The endpoint's response is identical whether or not the entered email
+/// has an account (anti-enumeration, per `api-auth-device-external.md`) —
+/// "Kirim Kode" always advances to the OTP step on a successful call,
+/// regardless of whether an email actually went out. Only a network failure,
+/// a malformed email, or the rate limit (429) surface as an error here.
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   String? _validationMessage;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -32,13 +38,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _onKirimKode() {
+  Future<void> _onKirimKode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       setState(() => _validationMessage = 'Email wajib diisi.');
       return;
     }
-    setState(() => _validationMessage = null);
+    setState(() {
+      _validationMessage = null;
+      _submitting = true;
+    });
+    try {
+      await ref.read(authRepositoryProvider).forgotPassword(email: email);
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _validationMessage = errorMessage(error);
+      });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _submitting = false);
     unawaited(context.pushNamed(AppRoutes.forgotPasswordVerify, extra: email));
   }
 
@@ -110,7 +131,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           const SizedBox(height: 24),
                           PrimaryButton(
                             label: 'Kirim Kode',
-                            onPressed: _onKirimKode,
+                            onPressed: _submitting
+                                ? null
+                                : () => unawaited(_onKirimKode()),
                           ),
                         ],
                       ),

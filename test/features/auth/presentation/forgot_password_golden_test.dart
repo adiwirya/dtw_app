@@ -41,7 +41,13 @@ void main() {
   }, tags: 'golden');
 
   testWidgets('login-forgot-password-baru self-golden', (tester) async {
-    await pumpAt390x844(tester, const ForgotPasswordResetScreen());
+    await pumpAt390x844(
+      tester,
+      const ForgotPasswordResetScreen(
+        email: 'test@example.com',
+        token: '123456',
+      ),
+    );
     await expectLater(
       find.byType(ForgotPasswordResetScreen),
       matchesGoldenFile('goldens/login_forgot_password_baru.png'),

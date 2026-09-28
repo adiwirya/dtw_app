@@ -311,8 +311,14 @@ GoRouter appRouter(Ref ref) {
                   GoRoute(
                     path: 'new-password',
                     name: AppRoutes.forgotPasswordReset,
-                    builder: (context, state) =>
-                        const ForgotPasswordResetScreen(),
+                    builder: (context, state) {
+                      final args = state.extra as (String, String)? ??
+                          ('', '');
+                      return ForgotPasswordResetScreen(
+                        email: args.$1,
+                        token: args.$2,
+                      );
+                    },
                   ),
                 ],
               ),

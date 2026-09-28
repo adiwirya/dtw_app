@@ -254,4 +254,133 @@ void main() {
     expect(storage.values.containsKey(busboyZoneIdStorageKey), isFalse);
     expect(storage.values.containsKey(sessionUserIdStorageKey), isFalse);
   });
+
+  group('forgotPassword', () {
+    test('completes without throwing on success', () async {
+      final repository = AuthRepository(
+        dio: cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': null,
+        }),
+        localStorage: FakeLocalStorage(),
+      );
+
+      await repository.forgotPassword(email: 'busboy@example.com');
+    });
+
+    test('sends email in the request body', () async {
+      final dio = cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': null,
+      });
+      final repository = AuthRepository(
+        dio: dio,
+        localStorage: FakeLocalStorage(),
+      );
+
+      await repository.forgotPassword(email: 'busboy@example.com');
+
+      final lastRequest = (dio.httpClientAdapter as CannedAdapter).lastRequest;
+      expect(lastRequest!.path, '/v1/auth/forgot-password');
+      expect(lastRequest.data, {'email': 'busboy@example.com'});
+    });
+
+    test('429 rate limit throws a mapped ApiException', () async {
+      final repository = AuthRepository(
+        dio: cannedDio(429, {
+          'meta': {
+            'success': false,
+            'message': 'Too Many Attempts.',
+            'code': 429,
+            'trace_id': 'abc',
+          },
+        }),
+        localStorage: FakeLocalStorage(),
+      );
+
+      await expectLater(
+        repository.forgotPassword(email: 'busboy@example.com'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
+
+  group('resetPassword', () {
+    test('sends email/token/password/password_confirmation', () async {
+      final dio = cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': null,
+      });
+      final repository = AuthRepository(
+        dio: dio,
+        localStorage: FakeLocalStorage(),
+      );
+
+      await repository.resetPassword(
+        email: 'busboy@example.com',
+        token: '123456',
+        password: 'newSecret1',
+        passwordConfirmation: 'newSecret1',
+      );
+
+      final lastRequest = (dio.httpClientAdapter as CannedAdapter).lastRequest;
+      expect(lastRequest!.path, '/v1/auth/reset-password');
+      expect(lastRequest.data, {
+        'email': 'busboy@example.com',
+        'token': '123456',
+        'password': 'newSecret1',
+        'password_confirmation': 'newSecret1',
+      });
+    });
+
+    test('an invalid/expired token throws a mapped ApiException', () async {
+      final repository = AuthRepository(
+        dio: cannedDio(422, {
+          'meta': {
+            'success': false,
+            'message': 'Validation',
+            'code': 422,
+            'trace_id': 'abc',
+          },
+          'errors': {
+            'token': [
+              'Link reset password tidak valid atau sudah kedaluwarsa.',
+            ],
+          },
+        }),
+        localStorage: FakeLocalStorage(),
+      );
+
+      await expectLater(
+        repository.resetPassword(
+          email: 'busboy@example.com',
+          token: 'bad-token',
+          password: 'newSecret1',
+          passwordConfirmation: 'newSecret1',
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            'Link reset password tidak valid atau sudah kedaluwarsa.',
+          ),
+        ),
+      );
+    });
+  });
 }
