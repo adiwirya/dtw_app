@@ -79,8 +79,16 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // and a secure-storage read's first cold hit into the Android Keystore
   // can be slow.
   const storage = SecureLocalStorage();
-  final [token, branchId, zoneId, username, name, role, userId, deviceFlag] =
-      await Future.wait([
+  final [
+    token,
+    branchId,
+    zoneId,
+    username,
+    name,
+    role,
+    userId,
+    deviceFlag,
+  ] = await Future.wait([
     storage.read(authTokenStorageKey),
     storage.read(tenantBranchIdStorageKey),
     storage.read(busboyZoneIdStorageKey),
@@ -98,18 +106,21 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
       Future<String?>.value(),
   ]);
 
+  // Android only (see `deviceRegisteredProvider`'s doc comment) — a
+  // non-Android build never reads the flag above, so it's always treated as
+  // already registered. Computed once so both the provider override below
+  // and the restore guards further down (an unregistered device is stuck on
+  // the onboarding screen, so nothing session-restore-related should start
+  // behind it — see the onboarding gate's design doc, Review Focus) agree.
+  final deviceRegistered = !Platform.isAndroid || deviceFlag == 'true';
+
   final container = ProviderContainer(
     overrides: [
       localStorageProvider.overrideWithValue(storage),
       isLoggedInProvider.overrideWith(
         (ref) => token != null && token.isNotEmpty,
       ),
-      // Android only (see `deviceRegisteredProvider`'s doc comment) — a
-      // non-Android build never reads the flag above, so it's always
-      // treated as already registered.
-      deviceRegisteredProvider.overrideWith(
-        (ref) => !Platform.isAndroid || deviceFlag == 'true',
-      ),
+      deviceRegisteredProvider.overrideWith((ref) => deviceRegistered),
       // Restores which shell a persisted session resumes into — mirrors
       // what `AuthController.login` sets at login time, from the same
       // storage key `AuthRepository` writes it to.
@@ -128,7 +139,10 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   // login/logout cycle. Same fire-and-forget contract as
   // `AuthController.login`: realtime is additive to the REST fetch, so a
   // failed/slow connect here must never block the first frame.
-  if (branchId != null && token != null && token.isNotEmpty) {
+  if (deviceRegistered &&
+      branchId != null &&
+      token != null &&
+      token.isNotEmpty) {
     unawaited(
       container
           .read(tenantRealtimeServiceProvider)
@@ -144,7 +158,7 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
           .catchError((_) {}),
     );
   }
-  if (zoneId != null && token != null && token.isNotEmpty) {
+  if (deviceRegistered && zoneId != null && token != null && token.isNotEmpty) {
     unawaited(
       container
           .read(busboyRealtimeServiceProvider)
@@ -161,9 +175,12 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
     );
     // Same restoration as above — see `BusboyFcmService`.
     unawaited(
-      container.read(busboyFcmServiceProvider).initialize().catchError(
-        (_) {},
-      ),
+      container
+          .read(busboyFcmServiceProvider)
+          .initialize()
+          .catchError(
+            (_) {},
+          ),
     );
   }
 
