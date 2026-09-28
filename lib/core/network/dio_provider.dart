@@ -83,6 +83,26 @@ Dio dio(Ref ref) {
   return dio;
 }
 
+/// A [Dio] for the device-onboarding endpoint only
+/// (`POST /v1/devices/register`) — deliberately NOT [dioProvider]. That one's
+/// `onError` interceptor treats every 401 as an expired *user* session and
+/// logs the whole app out (clears the auth token, disconnects realtime,
+/// resets every session provider) — but a 401 on device registration means a
+/// bad/misconfigured `X-Device-Key`, which has nothing to do with whichever
+/// user session (if any) is already active on this device. Sharing
+/// [dioProvider] would mean a device-key misconfiguration silently logs out
+/// an unrelated, perfectly valid user session — the exact case the
+/// onboarding gate's "mid-restore" scenario needs to NOT break. Same base
+/// URL/timeouts as [dioProvider], no auth header, no session interceptor.
+@riverpod
+Dio deviceDio(Ref ref) => Dio(
+  BaseOptions(
+    baseUrl: _baseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 15),
+  ),
+);
+
 /// Retries a request when it failed without ever getting a server response —
 /// a dropped wifi handoff, a slow cell handover — instead of surfacing
 /// "Tidak bisa terhubung ke server" for what's often just one bad beat.

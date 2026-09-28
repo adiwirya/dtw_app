@@ -53,4 +53,4 @@ class DeviceRepository {
 
 @riverpod
 DeviceRepository deviceRepository(Ref ref) =>
-    DeviceRepository(dio: ref.watch(dioProvider));
+    DeviceRepository(dio: ref.watch(deviceDioProvider));

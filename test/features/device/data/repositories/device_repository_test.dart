@@ -1,5 +1,8 @@
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/flavor.dart';
+import 'package:dtw_app/core/network/dio_provider.dart';
 import 'package:dtw_app/features/device/data/repositories/device_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../support/canned_dio.dart';
@@ -119,6 +122,40 @@ void main() {
       throwsA(isA<ApiException>()),
     );
   });
+
+  test(
+    'register() runs on an isolated Dio — a 401 never clears '
+    'isLoggedInProvider (a device-key 401 is not a user-session 401)',
+    () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(isLoggedInProvider.notifier).state = true;
+
+      container.read(deviceDioProvider).httpClientAdapter = CannedAdapter(
+        401,
+        {
+          'meta': {
+            'success': false,
+            'message': 'Unauthorized',
+            'code': 401,
+            'trace_id': 'abc',
+          },
+          'errors': null,
+        },
+      );
+
+      try {
+        await container
+            .read(deviceRepositoryProvider)
+            .register(deviceId: 'SN-A1B2C3D4', fcmToken: 'tok-1');
+      } on Object catch (_) {
+        // Expected to throw — asserting the interceptor side effect below,
+        // not this call's own outcome.
+      }
+
+      expect(container.read(isLoggedInProvider), isTrue);
+    },
+  );
 
   test('a network failure throws a mapped ApiException', () async {
     final repository = DeviceRepository(
