@@ -40,6 +40,12 @@ const sessionUserIdStorageKey = 'session_user_id';
 /// `zone_id` to fetch/subscribe with.
 const busboyZoneIdStorageKey = 'busboy_zone_id';
 
+/// Key the one-time device-onboarding gate's result is stored under
+/// (`'true'` once `POST /v1/devices/register` has succeeded on this
+/// install). Android only — see `deviceRegisteredProvider` and
+/// `bootstrap.dart`.
+const deviceRegisteredStorageKey = 'device_registered';
+
 /// [LocalStorage] backed by the platform Keychain (iOS) / EncryptedShared
 /// Preferences+Keystore (Android) via `flutter_secure_storage`.
 class SecureLocalStorage implements LocalStorage {

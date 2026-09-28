@@ -67,3 +67,16 @@ final sessionUserIdProvider = StateProvider<String?>((ref) => null);
 /// `AuthController.login`, cleared on logout/401. Mirrors
 /// [sessionBranchIdProvider] for the zone-scoped side of a session.
 final sessionZoneIdProvider = StateProvider<String?>((ref) => null);
+
+/// Whether this device has completed the one-time device-registration
+/// onboarding gate (`POST /v1/devices/register`) — see
+/// `docs/superpowers/specs/2026-09-28-device-onboarding-design.md`. The
+/// single merged `GoRouter` redirects to onboarding before it even looks
+/// at [isLoggedInProvider].
+///
+/// Defaults `true` so tests/screens that don't care about onboarding
+/// aren't forced through it — `bootstrap.dart` is the only call site that
+/// ever sets this `false` (a real Android device that hasn't registered
+/// yet). The gate is Android-only by decision, so a non-Android build
+/// never sets this `false` either.
+final deviceRegisteredProvider = StateProvider<bool>((ref) => true);
