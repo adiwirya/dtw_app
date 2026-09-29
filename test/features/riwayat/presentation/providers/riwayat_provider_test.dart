@@ -14,13 +14,14 @@ void main() {
   late ProviderContainer container;
 
   group('RiwayatBoard', () {
-    test('fetches DELIVERED deliveries using the stored zone id', () async {
+    test(
+        "fetches this busboy's own DELIVERED history, not the whole zone's "
+        'board', () async {
+      final dio = cannedDeliveryListDio([
+        deliveryJson(id: '1', status: 'DELIVERED'),
+      ]);
       container = ProviderContainer(
-        overrides: busboyBoardOverrides(
-          dio: cannedDeliveryListDio([
-            deliveryJson(id: '1', status: 'DELIVERED'),
-          ]),
-        ),
+        overrides: busboyBoardOverrides(dio: dio),
       );
       addTearDown(container.dispose);
       container.listen(riwayatBoardProvider, (_, _) {});
@@ -29,6 +30,9 @@ void main() {
 
       expect(deliveries, hasLength(1));
       expect(deliveries.single.id, '1');
+      final adapter = dio.httpClientAdapter as CannedAdapter;
+      expect(adapter.lastRequest!.path, '/v1/busboy/deliveries/history');
+      expect(adapter.lastRequest!.queryParameters, {'status': 'DELIVERED'});
     });
 
     test('surfaces a fetch failure as AsyncError', () async {

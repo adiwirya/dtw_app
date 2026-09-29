@@ -25,14 +25,17 @@ class RiwayatTab extends _$RiwayatTab {
   void selectRange(RiwayatRange range) => state = range.index;
 }
 
-/// The busboy's completed-delivery history, fetched once from
-/// `GET /api/v1/busboy/deliveries?status=DELIVERED`. [riwayatDaysFrom]
-/// buckets this same list by date for each [RiwayatRange] tab, and
-/// [riwayatDetailProvider] looks a single entry up out of it.
-// TODO(open-question): the busboy API has no date-range query param, so this
-// fetches every DELIVERED delivery (unbounded, no pagination) and buckets by
-// date client-side — fine for now, but will need a real range/pagination
-// param from backend once delivery history grows large.
+/// This busboy's own completed-delivery history, fetched once from
+/// `GET /api/v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+/// logged-in busboy, unlike the Order tab's `GET /api/v1/busboy/deliveries`
+/// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
+/// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
+/// entry up out of it.
+// TODO(open-question): the busboy API has no date-range query param on this
+// endpoint either, so this fetches this busboy's entire DELIVERED history
+// (unbounded, no pagination) and buckets by date client-side — fine for now,
+// but will need a real range/pagination param from backend once delivery
+// history grows large.
 @riverpod
 class RiwayatBoard extends _$RiwayatBoard {
   @override
@@ -44,7 +47,7 @@ class RiwayatBoard extends _$RiwayatBoard {
     }
     return ref
         .watch(busboyDeliveryRepositoryProvider)
-        .fetchDeliveries(status: DeliveryStatus.delivered);
+        .fetchHistory(status: DeliveryStatus.delivered);
   }
 }
 
