@@ -141,21 +141,19 @@ are real. `TenantAdminInfo`
 its own gaps clearly and the screen already hides each row rather than
 fabricate a value, so this is a short list of already-known nulls:
 
-### 8. Booth/location, rating, contact, operating hours
-- **Where:** the hero header's booth label + rating chip, and the
-  "Informasi Tenant"/"Jam Operasional" cards.
-- **Now:** all `null` — the branch endpoint has no booth/location, rating,
-  contact, or operating-hours fields, confirmed live.
+### 8. Booth/location, contact, operating hours
+- **Where:** the hero header's booth label, and the "Informasi
+  Tenant"/"Jam Operasional" cards.
+- **Now:** all `null` — the branch endpoint has no booth/location, contact,
+  or operating-hours fields, confirmed live.
 - **Needs:** those fields added to `GET /v1/tenant-branches/{id}` (or a
   dedicated tenant-profile endpoint).
 - **Wire up at:** `TenantBranch.toTenantAdminInfo` in
   `lib/features/tenant/data/models/tenant_branch.dart`.
-
-## Login (shared with busboy)
-
-Tenant and busboy share one login screen/flow. "Lupa Password?" has no
-destination for either flavor — see item 7 in
-`docs/busboy-missing-endpoints.md` rather than duplicating it here.
+- **Note:** the hero's rating chip and the "Rating" info-card row are *not*
+  a backend gap anymore — `GET /v1/tenant-branches/{branch}/rating` (§5.1 of
+  `api-tenant-busboy-guide.md`) is real and already wired
+  (`tenantAdminInfoProvider`'s best-effort fetch → `rating`/`heroRating`).
 
 ## Summary table
 
@@ -169,4 +167,4 @@ destination for either flavor — see item 7 in
 | 6 | Tambah Menu | *(not a gap — endpoint exists, just unwired)* | — |
 | 7 | Kelola Varian | "Digunakan di N menu" usage count | Low |
 | — | Laporan | Full reporting/analytics endpoint(s) | **High** — entire tab is fake data |
-| 8 | Admin | Booth, rating, contact, operating hours | Low — already gracefully hidden |
+| 8 | Admin | Booth, contact, operating hours | Low — already gracefully hidden |

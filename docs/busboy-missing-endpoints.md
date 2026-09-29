@@ -15,16 +15,22 @@ endpoints that don't exist.
 
 ## Order tab (`menu-order-baru`)
 
-### 1. On-time rate / customer rating summary stats
-- **Where:** header stats card, "Ketepatan Waktu" and "Rating Pelanggan".
-- **Now:** both hardcoded to `-`. "Pesanan Selesai" (the third stat) is real —
+### 1. On-time rate summary stat
+- **Where:** header stats card, "Ketepatan Waktu".
+- **Now:** hardcoded to `-`. "Pesanan Selesai" (the third stat) is real —
   computed client-side from today's `DELIVERED` deliveries already on the
   board, no new endpoint needed for that one.
 - **Needs:** an endpoint (or fields on an existing busboy summary/profile
-  endpoint) returning an on-time-delivery percentage and an average customer
-  rating, scoped to the logged-in busboy.
+  endpoint) returning an on-time-delivery percentage, scoped to the
+  logged-in busboy.
 - **Wire up at:** `orderHeaderStats` in
   `lib/features/order/presentation/providers/order_provider.dart`.
+- **Note:** the header's other stat, "Rating Pelanggan", is *not* a backend
+  gap anymore — `GET /busboys/{user}/rating` (§5.2 of
+  `api-tenant-busboy-guide.md`) is real and already wired for the Akun tab
+  (`busboyRatingProvider` in `akun_provider.dart`). This card just hasn't
+  been pointed at that same provider yet — a client-side wiring task, not
+  an endpoint gap.
 
 ### 2. Call customer
 - **Where:** order detail screen (`menu-order-baru-2`), phone button on the
@@ -78,14 +84,17 @@ wired to a real source.
 
 ## Riwayat tab (`riwayat-hari-ini`, `-kemarin`, `-7-hari`)
 
-Already real — backed by
-`GET /v1/busboy/deliveries?status=DELIVERED` — but with one scaling gap:
+Already real — backed by `GET /v1/busboy/deliveries/history?status=DELIVERED`
+(§4 of `api-tenant-busboy-guide.md`, self-scoped to the logged-in busboy —
+not the whole zone's board). Not a gap anymore: the endpoint already supports
+real `from`/`to` date-range query params, the app just doesn't send them yet.
 
-- **No date-range/pagination query params.** The endpoint returns every
-  `DELIVERED` delivery unbounded; the three date tabs (Hari Ini / Kemarin /
-  7 Hari Terakhir) are bucketed client-side off that single unfiltered list.
-  Fine at current volume, but will need a real `date_from`/`date_to` (or
-  `range=`) + pagination param once history grows.
+- **Not wired: `from`/`to` params.** The three date tabs (Hari Ini / Kemarin
+  / 7 Hari Terakhir) are still bucketed client-side off the full unfiltered
+  history instead of asking the server to filter — a client wiring
+  simplification, not a missing endpoint. Worth revisiting once history
+  grows large enough that fetching it all client-side stops being cheap;
+  there's still no pagination param even with `from`/`to` sent.
 - **Wire up at:** `RiwayatBoard.build` in
   `lib/features/riwayat/presentation/providers/riwayat_provider.dart`.
 
@@ -96,15 +105,17 @@ only field with a real source — the session's login username
 (`sessionUsernameProvider`). Everything else below is `-`.
 
 ### 4. Busboy profile — read
-- **Where:** Akun home (Busboy ID, join date, 3 performance stats) and
-  Profil Saya (Busboy ID, full name, phone, email, outlet, shift).
-- **Now:** every field except the greeting name is `-`.
+- **Where:** Akun home (Busboy ID, join date, 2 remaining performance stats)
+  and Profil Saya (Busboy ID, full name, phone, email, outlet, shift).
+- **Now:** every field except the greeting name is `-`. Rating is the one
+  exception — already real (see item 1's note; `GET /busboys/{user}/rating`
+  is wired into `akunAccountProvider`'s stats box).
 - **Needs:** a `GET /v1/busboy/profile` (or `GET /v1/users/me`-style) endpoint
   returning: busboy id, full name, phone, email, assigned outlet/branch,
-  shift, join date, and the same performance-stat fields as the Performa
-  endpoint above (completed-task count, avg delivery time, rating) — Akun's
-  stats box and Performa's metrics look like the same underlying numbers
-  presented twice, so these may end up being one data source.
+  shift, join date, and the remaining performance-stat fields (completed-task
+  count, avg delivery time) — Akun's stats box and Performa's metrics look
+  like the same underlying numbers presented twice, so these may end up being
+  one data source.
 - **Wire up at:** `akunAccountProvider` in
   `lib/features/akun/presentation/providers/akun_provider.dart` and
   `busboyProfileProvider` in
@@ -134,27 +145,31 @@ only field with a real source — the session's login username
 - **Wire up at:** `AkunScreen._onMenuTap` in
   `lib/features/akun/presentation/screens/akun_screen.dart`.
 
-## Login (`login-default` → `login-tenantt`)
+## Tracked separately: endpoints that exist but have no screen at all
 
-### 7. Forgot password
-- **Where:** "Lupa Password?" link on the filled login form.
-- **Now:** stubbed, no destination (`TODO(open-question)` in
-  `login_screen.dart`).
-- **Needs:** a password-reset flow endpoint (request + confirm, typically
-  email or SMS OTP-based).
-- **Wire up at:** the `'Lupa Password ?'` `GestureDetector`/`InkWell` in
-  `lib/features/auth/presentation/screens/login_screen.dart`.
+Not a gap in this doc's sense (the backend has these) — noted here only so
+they aren't lost. Unlike item 1-7 above, there's no existing screen to wire
+these into; a screen would need to be designed first.
+
+### Partial-reject confirmation flow (`api-tenant-busboy-guide.md` §1.2-1.4)
+- `GET /busboy/order-confirmations?status=` — list pending confirmations
+  (order partially rejected by tenant, busboy needs to ask the customer
+  proceed-or-cancel).
+- `POST /busboy/order-confirmations/{id}/claim`
+- `POST /busboy/order-confirmations/{id}/resolve` (`{decision: PROCEED|CANCEL}`)
+- **Status:** no UI/screen exists for this anywhere in the app — no Figma
+  frame under `ai_specs/0001-busboy-order-app/` covers it either. Needs
+  design/spec work before implementation, not just wiring.
 
 ## Summary table
 
 | # | Screen | Missing endpoint | Priority |
 |---|--------|-------------------|----------|
-| 1 | Order home | On-time rate + rating stats | Low — cosmetic, 1 of 3 stats already real |
+| 1 | Order home | On-time rate stat | Low — cosmetic, rating stat now real, just not wired here |
 | 2 | Order detail | Customer phone field | Low — feature not confirmed in scope |
 | 3 | Order (all tabs) | `delivery.claimed`/`delivery.completed` broadcast | **High** — causes stale/racy multi-busboy state |
 | — | Performa v1 + v2 | Full performance-dashboard endpoint | **High** — entire tab is fake data |
-| — | Riwayat | Date-range/pagination params | Low — works today, scaling concern only |
-| 4 | Akun + Profil Saya | Profile read endpoint | **High** — entire identity/stats block is fake |
+| — | Riwayat | *(not a gap — endpoint has `from`/`to`, just unwired)* | — |
+| 4 | Akun + Profil Saya | Profile read endpoint (minus rating, now real) | **High** — rest of identity/stats block is fake |
 | 5 | Profil Saya | Profile update + avatar upload | Medium — "Simpan" is currently a lie to the user |
 | 6 | Akun | Change-password mutation | Medium |
-| 7 | Login | Forgot-password flow | Medium |
