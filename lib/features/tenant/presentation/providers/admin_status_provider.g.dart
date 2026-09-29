@@ -6,7 +6,7 @@ part of 'admin_status_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$tenantAdminInfoHash() => r'47bd5e33a83ffbc155d4c0d5abda88c4d38c6ed0';
+String _$tenantAdminInfoHash() => r'3b8946a76faaa98f73363a4dcfd3a2c449e273d6';
 
 /// Real tenant identity for the Admin status screen, fetched from
 /// `GET /v1/tenant-branches/{id}`. See [TenantAdminInfo] for which fields the

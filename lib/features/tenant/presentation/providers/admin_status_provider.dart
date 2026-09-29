@@ -24,5 +24,16 @@ Future<TenantAdminInfo> tenantAdminInfo(Ref ref) async {
     logoUrl = null;
   }
 
-  return branch.toTenantAdminInfo(brandLogoUrl: logoUrl);
+  // Same best-effort convention as the logo above: the rating is a display
+  // nicety, not core profile data, so a failed (or 404, not-yet-implemented)
+  // fetch must never fail the whole screen.
+  String? rating;
+  try {
+    final result = await repository.fetchRating(branchId: branch.id);
+    rating = result.average?.toStringAsFixed(1);
+  } on Object {
+    rating = null;
+  }
+
+  return branch.toTenantAdminInfo(brandLogoUrl: logoUrl, rating: rating);
 }

@@ -85,5 +85,20 @@ void main() {
 
       expect(info.logoUrl, isNull);
     });
+
+    test('passes rating through to both rating and heroRating when given',
+        () {
+      final info = _branch().toTenantAdminInfo(rating: '4.5');
+
+      expect(info.rating, '4.5');
+      expect(info.heroRating, '4.5');
+    });
+
+    test('leaves rating and heroRating null when omitted', () {
+      final info = _branch().toTenantAdminInfo();
+
+      expect(info.rating, isNull);
+      expect(info.heroRating, isNull);
+    });
   });
 }

@@ -114,4 +114,63 @@ void main() {
       );
     });
   });
+
+  group('fetchRating', () {
+    test('parses the average and count from the rating payload', () async {
+      final dio = cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {'average': 4.5, 'count': 12},
+      });
+      final repository = TenantBranchRepository(dio: dio);
+
+      final rating = await repository.fetchRating(branchId: 'branch-1');
+
+      expect(rating.average, 4.5);
+      expect(rating.count, 12);
+      expect(
+        (dio.httpClientAdapter as CannedAdapter).lastRequest!.path,
+        '/v1/tenant-branches/branch-1/rating',
+      );
+    });
+
+    test('a null average (no ratings yet) is not coerced to 0', () async {
+      final dio = cannedDio(200, {
+        'meta': {
+          'success': true,
+          'message': 'Success',
+          'code': 200,
+          'trace_id': 'abc',
+        },
+        'data': {'average': null, 'count': 0},
+      });
+      final repository = TenantBranchRepository(dio: dio);
+
+      final rating = await repository.fetchRating(branchId: 'branch-1');
+
+      expect(rating.average, isNull);
+      expect(rating.count, 0);
+    });
+
+    test('throws a mapped ApiException on failure', () async {
+      final dio = cannedDio(500, {
+        'meta': {
+          'success': false,
+          'message': 'Error',
+          'code': 500,
+          'trace_id': 'abc',
+        },
+      });
+      final repository = TenantBranchRepository(dio: dio);
+
+      await expectLater(
+        repository.fetchRating(branchId: 'branch-1'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
 }

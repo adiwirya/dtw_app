@@ -6,7 +6,30 @@ part of 'akun_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$akunAccountHash() => r'9f7d2cd07da75a4e4c18c87fdb084f25efc6edcc';
+String _$busboyRatingHash() => r'e336637bd7b603d96dde92c82b1b9d81e71334de';
+
+/// The logged-in busboy's average customer rating (`GET
+/// /v1/busboys/{user}/rating`), already formatted (e.g. `'4.8'`) — or null
+/// when there's no session user id yet, no ratings exist, or the fetch
+/// failed. A display nicety, not core profile data, so this never surfaces
+/// an error — [akunAccount] just falls back to `-` when this is null.
+///
+/// Copied from [busboyRating].
+@ProviderFor(busboyRating)
+final busboyRatingProvider = AutoDisposeFutureProvider<String?>.internal(
+  busboyRating,
+  name: r'busboyRatingProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$busboyRatingHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef BusboyRatingRef = AutoDisposeFutureProviderRef<String?>;
+String _$akunAccountHash() => r'e4abd1cba15e58e4dabc99418a83c9e2300ca488';
 
 /// Backing data for the `akun` account screen.
 ///

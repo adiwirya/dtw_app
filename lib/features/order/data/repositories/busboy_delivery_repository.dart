@@ -29,6 +29,28 @@ class BusboyDeliveryRepository {
     }
   }
 
+  /// This busboy's own delivered history — `GET
+  /// /v1/busboy/deliveries/history`, scoped to the logged-in busboy (unlike
+  /// [fetchDeliveries], which returns every busboy's deliveries in the
+  /// zone). Same response item shape as [fetchDeliveries], so [Delivery]
+  /// parses it unchanged.
+  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/busboy/deliveries/history',
+        queryParameters: {
+          if (status != null) 'status': _statusToWire(status),
+        },
+      );
+      final data = response.data!['data'] as List;
+      return data
+          .map((json) => Delivery.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
   Future<void> claim(String deliveryId) async {
     try {
       await _dio.post<void>('/v1/busboy/deliveries/$deliveryId/claim');
@@ -52,6 +74,26 @@ class BusboyDeliveryRepository {
       await _dio.post<void>(
         '/v1/busboy/fcm-token',
         data: {'fcm_token': fcmToken},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
+  /// The logged-in busboy's average customer rating (`GET
+  /// /v1/busboys/{user}/rating`, read-only). `average` is `null` when no
+  /// ratings exist yet — never coerce that to `0`.
+  Future<({double? average, int count})> fetchRating({
+    required String userId,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/busboys/$userId/rating',
+      );
+      final data = response.data!['data'] as Map<String, dynamic>;
+      return (
+        average: (data['average'] as num?)?.toDouble(),
+        count: data['count'] as int,
       );
     } on DioException catch (error) {
       throw mapDioError(error);

@@ -1,6 +1,7 @@
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/features/akun/data/models/akun_account.dart';
+import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:obra_icons/obra_icons.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -15,29 +16,51 @@ part 'akun_provider.g.dart';
 // knowledge/riverpod-patterns.md) and have the screen consume the resulting
 // AsyncValue.
 
+/// The logged-in busboy's average customer rating (`GET
+/// /v1/busboys/{user}/rating`), already formatted (e.g. `'4.8'`) — or null
+/// when there's no session user id yet, no ratings exist, or the fetch
+/// failed. A display nicety, not core profile data, so this never surfaces
+/// an error — [akunAccount] just falls back to `-` when this is null.
+@riverpod
+Future<String?> busboyRating(Ref ref) async {
+  final userId = ref.watch(sessionUserIdProvider);
+  if (userId == null) return null;
+
+  try {
+    final rating = await ref
+        .watch(busboyDeliveryRepositoryProvider)
+        .fetchRating(userId: userId);
+    return rating.average?.toStringAsFixed(1);
+  } on Object {
+    return null;
+  }
+}
+
 /// Backing data for the `akun` account screen.
 @riverpod
 AkunAccount akunAccount(Ref ref) {
   final name = ref.watch(sessionNameProvider);
+  final rating = ref.watch(busboyRatingProvider).valueOrNull;
   return AkunAccount(
     name: name,
     busboyId: '-',
     joinedLabel: '-',
-    stats: const [
-      AccountStat(
+    stats: [
+      const AccountStat(
         value: '-',
         label: 'Tugas Selesai',
         color: 0xFF10A760, // AppColors.successGreen
       ),
-      AccountStat(
+      const AccountStat(
         value: '-',
         label: 'Rata-rata waktu antar',
         color: 0xFF3B82F6, // AppColors.statBlue
       ),
       AccountStat(
-        value: '-',
+        value: rating ?? '-',
         label: 'Rating Pelanggan',
         color: 0xFFF5B301, // AppColors.starAmber
+        showStar: rating != null,
       ),
     ],
     menuItems: const [

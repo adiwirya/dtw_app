@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/canned_dio.dart';
+import '../../../support/routed_dio.dart';
 
 TenantBranch _testBranch() => TenantBranch(
       id: 'branch-1',
@@ -77,4 +78,139 @@ void main() {
       expect(info.logoUrl, isNull);
     },
   );
+
+  test('combines the branch info with the fetched rating', () async {
+    final dio = routedDio({
+      'GET /v1/brands/brand-1': (
+        200,
+        {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {'id': 'brand-1', 'logo_url': null},
+        },
+      ),
+      'GET /v1/tenant-branches/branch-1/rating': (
+        200,
+        {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {'average': 4.5, 'count': 12},
+        },
+      ),
+    });
+    final container = ProviderContainer(
+      overrides: [
+        currentTenantBranchProvider.overrideWith((ref) async => _testBranch()),
+        tenantBranchRepositoryProvider.overrideWithValue(
+          TenantBranchRepository(dio: dio),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final info = await container.read(tenantAdminInfoProvider.future);
+
+    expect(info.rating, '4.5');
+    expect(info.heroRating, '4.5');
+  });
+
+  test(
+    'degrades to a null rating when the rating fetch fails — a display '
+    'nicety, not core profile data',
+    () async {
+      final dio = routedDio({
+        'GET /v1/brands/brand-1': (
+          200,
+          {
+            'meta': {
+              'success': true,
+              'message': 'Success',
+              'code': 200,
+              'trace_id': 'abc',
+            },
+            'data': {'id': 'brand-1', 'logo_url': null},
+          },
+        ),
+        'GET /v1/tenant-branches/branch-1/rating': (
+          500,
+          {
+            'meta': {
+              'success': false,
+              'message': 'Error',
+              'code': 500,
+              'trace_id': 'abc',
+            },
+          },
+        ),
+      });
+      final container = ProviderContainer(
+        overrides: [
+          currentTenantBranchProvider.overrideWith(
+            (ref) async => _testBranch(),
+          ),
+          tenantBranchRepositoryProvider.overrideWithValue(
+            TenantBranchRepository(dio: dio),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final info = await container.read(tenantAdminInfoProvider.future);
+
+      expect(info.name, 'Janji Jiwa Summarecon');
+      expect(info.rating, isNull);
+      expect(info.heroRating, isNull);
+    },
+  );
+
+  test('leaves rating null when the API has no ratings yet (average: null)',
+      () async {
+    final dio = routedDio({
+      'GET /v1/brands/brand-1': (
+        200,
+        {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {'id': 'brand-1', 'logo_url': null},
+        },
+      ),
+      'GET /v1/tenant-branches/branch-1/rating': (
+        200,
+        {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {'average': null, 'count': 0},
+        },
+      ),
+    });
+    final container = ProviderContainer(
+      overrides: [
+        currentTenantBranchProvider.overrideWith((ref) async => _testBranch()),
+        tenantBranchRepositoryProvider.overrideWithValue(
+          TenantBranchRepository(dio: dio),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final info = await container.read(tenantAdminInfoProvider.future);
+
+    expect(info.rating, isNull);
+  });
 }

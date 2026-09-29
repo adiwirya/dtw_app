@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 /// (`admin-offline` / `admin-online`).
 ///
 /// [name] and [joinedLabel] come from the real `GET /v1/tenant-branches/{id}`
-/// response (see `TenantBranch.toTenantAdminInfo`). The rest of the design's
-/// fields (booth/location, brand logo, rating, contact, operating hours) have
-/// no backing API field yet — they stay null, and the Admin screen hides
-/// those rows/chips rather than show fabricated data.
+/// response, and [rating]/[heroRating] from the real
+/// `GET /v1/tenant-branches/{id}/rating` (see `TenantBranch.toTenantAdminInfo`
+/// / `tenantAdminInfoProvider`). The rest of the design's fields
+/// (booth/location, contact, operating hours) have no backing API field yet
+/// — they stay null, and the Admin screen hides those rows/chips rather than
+/// show fabricated data.
 @immutable
 class TenantAdminInfo {
   const TenantAdminInfo({
@@ -37,12 +39,14 @@ class TenantAdminInfo {
   /// a placeholder icon when null.
   final String? logoUrl;
 
-  /// Rating shown in the hero chip next to the star — e.g. `4.8`. No API
-  /// source yet; the hero hides the chip when null.
+  /// Rating shown in the hero chip next to the star — e.g. `4.8`. From
+  /// `GET /v1/tenant-branches/{id}/rating`'s `average`; null when there are
+  /// no ratings yet (or the best-effort fetch failed) — the hero hides the
+  /// chip when null.
   final String? heroRating;
 
-  /// `Rating` value in the Informasi Tenant card — e.g. `4.3`. No API source
-  /// yet; the card hides this row when null.
+  /// `Rating` value in the Informasi Tenant card — e.g. `4.3`. Same source
+  /// as [heroRating]; the card hides this row when null.
   final String? rating;
 
   /// `Contact Tenant` value — e.g. `+6282394627322`. No API source yet; the

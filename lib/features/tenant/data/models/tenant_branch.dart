@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 /// (confirmed live, and cross-checked against the full OpenAPI spec at
 /// `/docs/api/` — see `docs/api-reference.md`).
 ///
-/// **Known gap:** the endpoint has no booth/location, rating, contact or
+/// **Known gap:** the endpoint has no booth/location, contact or
 /// operating-hours fields — [toTenantAdminInfo] leaves those slots null so
-/// the Admin screen can hide them rather than show fabricated values. The
+/// the Admin screen can hide them rather than show fabricated values. Rating
+/// is not part of this gap: it's a separate real fetch (`GET
+/// /v1/tenant-branches/{id}/rating`), threaded through [toTenantAdminInfo]'s
+/// `rating` parameter by `tenantAdminInfoProvider`. The
 /// endpoint's own `banner_url` is a wide promotional banner (spec requires
 /// min. 1280x720px), not the round brand logo the Admin hero shows — that
 /// comes from the separate `GET /v1/brands/{brandId}` `logo_url` instead
@@ -68,13 +71,18 @@ class TenantBranch {
 
   /// [brandLogoUrl] is a separate fetch (`GET /v1/brands/{brandId}`,
   /// `logo_url`) — the caller passes through whatever it resolved to
-  /// (including null on a best-effort fetch failure).
-  TenantAdminInfo toTenantAdminInfo({String? brandLogoUrl}) {
+  /// (including null on a best-effort fetch failure). [rating] is likewise a
+  /// separate best-effort fetch (`GET /v1/tenant-branches/{id}/rating`),
+  /// already formatted (or null when there's no rating yet) — fills both the
+  /// hero chip and the "Rating" info-card row with the same value.
+  TenantAdminInfo toTenantAdminInfo({String? brandLogoUrl, String? rating}) {
     final month = _months[createdAt.month - 1];
     return TenantAdminInfo(
       name: branchName,
       joinedLabel: '${createdAt.day} $month ${createdAt.year}',
       logoUrl: brandLogoUrl,
+      rating: rating,
+      heroRating: rating,
     );
   }
 }

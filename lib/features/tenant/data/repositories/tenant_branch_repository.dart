@@ -40,6 +40,27 @@ class TenantBranchRepository {
       throw mapDioError(error);
     }
   }
+
+  /// The branch's average customer rating (`GET
+  /// /v1/tenant-branches/{branch}/rating`, read-only — rating submission is a
+  /// storefront/customer-side call, out of this app's scope). `average` is
+  /// `null` when no ratings exist yet — never coerce that to `0`.
+  Future<({double? average, int count})> fetchRating({
+    required String branchId,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/v1/tenant-branches/$branchId/rating',
+      );
+      final data = response.data!['data'] as Map<String, dynamic>;
+      return (
+        average: (data['average'] as num?)?.toDouble(),
+        count: data['count'] as int,
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
 }
 
 @riverpod

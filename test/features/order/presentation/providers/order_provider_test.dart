@@ -530,6 +530,16 @@ class _FailingRepository implements BusboyDeliveryRepository {
   @override
   Future<void> registerFcmToken(String fcmToken) =>
       _delegate.registerFcmToken(fcmToken);
+
+  @override
+  Future<({double? average, int count})> fetchRating({
+    required String userId,
+  }) =>
+      _delegate.fetchRating(userId: userId);
+
+  @override
+  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) =>
+      _delegate.fetchHistory(status: status);
 }
 
 /// A repository whose [fetchDeliveries] only resolves once [fetchGate]
@@ -558,4 +568,14 @@ class _DelayedFetchRepository implements BusboyDeliveryRepository {
   @override
   Future<void> registerFcmToken(String fcmToken) =>
       _delegate.registerFcmToken(fcmToken);
+
+  @override
+  Future<({double? average, int count})> fetchRating({
+    required String userId,
+  }) =>
+      _delegate.fetchRating(userId: userId);
+
+  @override
+  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) =>
+      _delegate.fetchHistory(status: status);
 }
