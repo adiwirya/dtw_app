@@ -51,6 +51,10 @@ class _StubReplayRepository implements TenantOrderRepository {
     required List<String> rejectedItemIds,
   }) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> completePickup(String orderId, {required String pickupCode}) =>
+      throw UnimplementedError();
 }
 
 /// Builds a container wired to fakes, with the lifecycle pinned to [state].

@@ -222,6 +222,48 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   Future<void> markReady(String orderId) =>
       _transition(orderId, TenantOrderStatus.ready);
 
+  /// Confirms a self-pickup order's pickup code
+  /// (`POST /v1/orders/{id}/complete-pickup`), moving it to `COMPLETED`.
+  /// Same optimistic-update-then-rollback shape as [_transition]; a wrong
+  /// code (422) reverts the board and rethrows so the screen can show its
+  /// inline error (see `IncomingOrderCard`'s "Verifikasi Pickup" action).
+  Future<void> verifyPickup(
+    String orderId, {
+    required String pickupCode,
+  }) async {
+    final current = state.value;
+    if (current == null) {
+      throw StateError(
+        'TenantOrderBoard: cannot verify pickup for order $orderId — the '
+        'board has not finished loading',
+      );
+    }
+    final index = current.indexWhere((o) => o.id == orderId);
+    if (index == -1) {
+      throw StateError(
+        'TenantOrderBoard: cannot verify pickup for order $orderId — it is '
+        'not on the board',
+      );
+    }
+    final previous = current[index];
+    state = AsyncData([
+      for (final o in current)
+        if (o.id == orderId)
+          previous.copyWith(status: TenantOrderStatus.completed)
+        else
+          o,
+    ]);
+
+    try {
+      await ref
+          .read(tenantOrderRepositoryProvider)
+          .completePickup(orderId, pickupCode: pickupCode);
+    } on Object catch (_) {
+      state = AsyncData(current);
+      rethrow;
+    }
+  }
+
   Future<void> _transition(String orderId, TenantOrderStatus target) async {
     // Both guards below used to `return` silently. That turned every
     // mis-targeted mutation into a fake success: the caller saw no

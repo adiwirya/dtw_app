@@ -216,6 +216,10 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                           .read(tenantOrderBoardProvider.notifier)
                           .markReady(order.orderId),
                     ),
+                    onVerifyPickup: (order) => context.goNamed(
+                      TenantRoutes.verifikasiPickup,
+                      pathParameters: {'orderId': order.orderId},
+                    ),
                     // The order id MUST reach the reject screen: it is what
                     // scopes the screen's data and its `reject` call.
                     // Dropping it here was what let the rejection silently
@@ -290,6 +294,7 @@ class _OrderList extends StatelessWidget {
     required this.orders,
     required this.onAccept,
     required this.onPickupReady,
+    required this.onVerifyPickup,
     required this.onReject,
     required this.onOpenDetail,
   });
@@ -297,6 +302,7 @@ class _OrderList extends StatelessWidget {
   final List<IncomingOrderData> orders;
   final ValueChanged<IncomingOrderData> onAccept;
   final ValueChanged<IncomingOrderData> onPickupReady;
+  final ValueChanged<IncomingOrderData> onVerifyPickup;
   final ValueChanged<IncomingOrderData> onReject;
   final ValueChanged<IncomingOrderData> onOpenDetail;
 
@@ -315,6 +321,7 @@ class _OrderList extends StatelessWidget {
           onAccept: () => onAccept(order),
           onReject: () => onReject(order),
           onPickupReady: () => onPickupReady(order),
+          onVerifyPickup: () => onVerifyPickup(order),
         );
       },
     );

@@ -203,6 +203,79 @@ void main() {
     );
   });
 
+  group('completePickup', () {
+    test(
+      'POSTs pickup_code to /complete-pickup',
+      () async {
+        final dio = cannedDio(200, {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await repository.completePickup('order-1', pickupCode: '123456');
+
+        final adapter = dio.httpClientAdapter as CannedAdapter;
+        expect(adapter.lastRequest!.path, '/v1/orders/order-1/complete-pickup');
+        expect(adapter.lastRequest!.method, 'POST');
+        expect(adapter.lastRequest!.data, {'pickup_code': '123456'});
+      },
+    );
+
+    test(
+      'throws ApiException with the wrong-code message on 422',
+      () async {
+        final dio = cannedDio(422, {
+          'meta': {
+            'success': false,
+            'message': 'Validation failed.',
+            'code': 422,
+            'trace_id': 'abc',
+          },
+          'errors': {
+            'pickup_code': ['Kode pickup tidak sesuai.'],
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await expectLater(
+          repository.completePickup('order-1', pickupCode: '000000'),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              'Kode pickup tidak sesuai.',
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'throws a mapped ApiException on failure (network/5xx)',
+      () async {
+        final dio = cannedDio(500, {
+          'meta': {
+            'success': false,
+            'message': 'Error',
+            'code': 500,
+            'trace_id': 'abc',
+          },
+        });
+        final repository = TenantOrderRepository(dio: dio);
+
+        await expectLater(
+          repository.completePickup('order-1', pickupCode: '123456'),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
+  });
+
   group('fetchMissedEvents', () {
     test(
       'passes branch_id and after_id as query params',

@@ -63,6 +63,24 @@ class TenantOrderRepository {
     }
   }
 
+  /// Completes a self-pickup order once the tenant confirms the customer's
+  /// pickup code (`api-tenant-busboy-guide.md` §3). A wrong code returns 422
+  /// with a `pickup_code` field error (`mapDioError` surfaces its message,
+  /// e.g. "Kode pickup tidak sesuai.", verbatim via [ApiException.message]).
+  Future<void> completePickup(
+    String orderId, {
+    required String pickupCode,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/v1/orders/$orderId/complete-pickup',
+        data: {'pickup_code': pickupCode},
+      );
+    } on DioException catch (error) {
+      throw mapDioError(error);
+    }
+  }
+
   Future<List<TenantOrder>> fetchMissedEvents({
     required String branchId,
     required int afterId,

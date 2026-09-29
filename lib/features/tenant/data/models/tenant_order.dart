@@ -33,17 +33,53 @@ String tenantOrderStatusToWire(TenantOrderStatus status) => switch (status) {
       TenantOrderStatus.cancelled => 'CANCELLED',
     };
 
+/// How a tenant order reaches the customer — a busboy carries it
+/// ([delivery]), or the customer collects it themselves at the counter
+/// ([selfPickup]). See `GLOSSARY.md`'s "Fulfillment Type" entry: this is a
+/// mobile-app-only naming choice over the real `order_group.is_delivery`
+/// boolean, deliberately not called "pickup" alone — that word already
+/// means something unrelated on the busboy-delivery side
+/// ([TenantOrderStatus] has no `pendingPickup` value itself, but the
+/// parallel busboy-delivery status of the same name is a different concept
+/// entirely; see the Glossary).
+enum OrderFulfillmentType { delivery, selfPickup }
+
+/// Maps the real `order_group.is_delivery` boolean to [OrderFulfillmentType].
+/// `null` (no `order_group` to read it from at all — see the Spec's Blocking
+/// Questions for why `GET /v1/orders`'s flat shape can't provide this today)
+/// defaults to [OrderFulfillmentType.delivery]: the safer wrong guess, since
+/// it only means a real self-pickup order fetched via the initial/REST path
+/// behaves like it does today (straight to "Selesai") rather than wrongly
+/// demanding a pickup code on what might actually be a delivery order.
+OrderFulfillmentType orderFulfillmentTypeFromIsDelivery({bool? isDelivery}) =>
+    isDelivery == false
+        ? OrderFulfillmentType.selfPickup
+        : OrderFulfillmentType.delivery;
+
 /// Translates a backend status into the three UI sub-tabs. [TenantOrder]
 /// lists are filtered to exclude [TenantOrderStatus.cancelled] before this
 /// is ever called (see `TenantOrderRepository`/`TenantOrderBoard`) — calling
 /// it with `cancelled` is a programming error, not a case to render.
-IncomingOrderStatus incomingOrderStatusFromBackend(TenantOrderStatus status) {
+///
+/// [TenantOrderStatus.ready] is the one fulfillment-dependent case: a
+/// delivery order is done from the tenant's side the moment it's ready (a
+/// busboy takes over), but a self-pickup order still needs its pickup code
+/// verified before it's really finished — so it stays in "Diproses" (see
+/// `IncomingOrderCard`'s "Verifikasi Pickup" action) until
+/// [TenantOrderStatus.completed].
+IncomingOrderStatus incomingOrderStatusFromBackend(
+  TenantOrderStatus status,
+  OrderFulfillmentType fulfillmentType,
+) {
   switch (status) {
     case TenantOrderStatus.pending:
       return IncomingOrderStatus.baru;
     case TenantOrderStatus.preparing:
       return IncomingOrderStatus.diproses;
     case TenantOrderStatus.ready:
+      return fulfillmentType == OrderFulfillmentType.selfPickup
+          ? IncomingOrderStatus.diproses
+          : IncomingOrderStatus.selesai;
     case TenantOrderStatus.completed:
     case TenantOrderStatus.partialCompleted:
       return IncomingOrderStatus.selesai;
@@ -74,6 +110,7 @@ class TenantOrder {
     required this.items,
     this.tableNumber,
     this.broadcastEventId,
+    this.fulfillmentType = OrderFulfillmentType.delivery,
   });
 
   factory TenantOrder.fromJson(Map<String, dynamic> json) {
@@ -102,16 +139,25 @@ class TenantOrder {
           ),
       ],
       broadcastEventId: json['broadcast_event_id'] as int?,
+      // The flat GET /v1/orders shape has no `is_delivery` of its own — see
+      // orderFulfillmentTypeFromIsDelivery's doc and the Spec's Blocking
+      // Questions. `fromBroadcastPayload` threads its `order_group`'s
+      // `is_delivery` in under this same key before delegating here.
+      fulfillmentType: orderFulfillmentTypeFromIsDelivery(
+        isDelivery: json['is_delivery'] as bool?,
+      ),
     );
   }
 
   /// Parses a live `order.created` socket event or a
   /// `GET /v1/broadcast/replay` item's `payload` — both wrap the order
   /// under an `order` key, sibling to `order_group` (which carries
-  /// `table_number` when the order's own copy is null) and the top-level
-  /// `broadcast_event_id`, unlike `GET /v1/orders`'s flat item shape.
-  /// Falls back to [TenantOrder.fromJson] when the payload is already flat,
-  /// so a caller that isn't sure which shape it has can always use this.
+  /// `table_number` when the order's own copy is null, and `is_delivery` —
+  /// see [OrderFulfillmentType] — which the order itself never carries at
+  /// all) and the top-level `broadcast_event_id`, unlike `GET /v1/orders`'s
+  /// flat item shape. Falls back to [TenantOrder.fromJson] when the payload
+  /// is already flat, so a caller that isn't sure which shape it has can
+  /// always use this.
   factory TenantOrder.fromBroadcastPayload(Map<String, dynamic> payload) {
     final rawOrder = payload['order'];
     if (rawOrder is! Map) return TenantOrder.fromJson(payload);
@@ -120,6 +166,9 @@ class TenantOrder {
     final orderGroup = payload['order_group'];
     if (order['table_number'] == null && orderGroup is Map) {
       order['table_number'] = orderGroup['table_number'];
+    }
+    if (orderGroup is Map) {
+      order['is_delivery'] = orderGroup['is_delivery'];
     }
     order['broadcast_event_id'] ??= payload['broadcast_event_id'];
     return TenantOrder.fromJson(order);
@@ -140,6 +189,9 @@ class TenantOrder {
   final List<OrderLineItem> items;
   final int? broadcastEventId;
 
+  /// How this order reaches the customer — see [OrderFulfillmentType].
+  final OrderFulfillmentType fulfillmentType;
+
   TenantOrder copyWith({TenantOrderStatus? status}) => TenantOrder(
         id: id,
         orderGroupId: orderGroupId,
@@ -151,6 +203,7 @@ class TenantOrder {
         createdAt: createdAt,
         items: items,
         broadcastEventId: broadcastEventId,
+        fulfillmentType: fulfillmentType,
       );
 
   /// The human-facing table label: the real [tableNumber] when the API has
@@ -171,9 +224,10 @@ class TenantOrder {
       displayNumber: receiptNumber,
       tableName: tableLabel,
       time: '$hh:$mm',
-      status: incomingOrderStatusFromBackend(status),
+      status: incomingOrderStatusFromBackend(status, fulfillmentType),
       items: items,
       total: formatRupiah(grandTotal),
+      fulfillmentType: fulfillmentType,
     );
   }
 }

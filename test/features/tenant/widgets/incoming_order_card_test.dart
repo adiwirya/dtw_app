@@ -1,3 +1,4 @@
+import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,17 @@ const _diproses = IncomingOrderData(
   status: IncomingOrderStatus.diproses,
   items: _items,
   total: 'Rp40.000',
+);
+
+const _diprosesSelfPickup = IncomingOrderData(
+  orderId: '92842',
+  displayNumber: 'RCP-92842',
+  tableName: 'Meja A-12',
+  time: '10:36 WIB',
+  status: IncomingOrderStatus.diproses,
+  items: _items,
+  total: 'Rp40.000',
+  fulfillmentType: OrderFulfillmentType.selfPickup,
 );
 
 Widget _host(Widget child) => MaterialApp(
@@ -118,6 +130,42 @@ void main() {
       await tester.tap(find.text('Siap Diambil'));
       await tester.pump();
       expect(pickup, 1);
+    });
+
+    testWidgets('renders a Delivery badge by default', (tester) async {
+      await tester.pumpWidget(_host(const IncomingOrderCard(data: _baru)));
+      expect(find.text('Delivery'), findsOneWidget);
+      expect(find.text('Pickup'), findsNothing);
+    });
+
+    testWidgets('renders a Pickup badge for a self-pickup order',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(const IncomingOrderCard(data: _diprosesSelfPickup)),
+      );
+      expect(find.text('Pickup'), findsOneWidget);
+      expect(find.text('Delivery'), findsNothing);
+    });
+
+    testWidgets(
+        'diproses + self-pickup: Verifikasi Pickup fires onVerifyPickup '
+        'instead of Siap Diambil', (tester) async {
+      var verified = 0;
+      await tester.pumpWidget(
+        _host(
+          IncomingOrderCard(
+            data: _diprosesSelfPickup,
+            onVerifyPickup: () => verified++,
+          ),
+        ),
+      );
+
+      expect(find.text('Verifikasi Pickup'), findsOneWidget);
+      expect(find.text('Siap Diambil'), findsNothing);
+
+      await tester.tap(find.text('Verifikasi Pickup'));
+      await tester.pump();
+      expect(verified, 1);
     });
   });
 

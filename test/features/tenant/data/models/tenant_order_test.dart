@@ -113,6 +113,27 @@ void main() {
 
       expect(order.broadcastEventId, 123);
     });
+
+    test(
+      'defaults fulfillmentType to delivery — the flat GET /v1/orders shape '
+      'has no order_group to read is_delivery from (see Spec Blocking '
+      'Questions)',
+      () {
+        final order = TenantOrder.fromJson(const {
+          'id': 'order-1',
+          'order_group_id': 'group-1',
+          'branch_id': 'branch-1',
+          'receipt_number': 'RCP-1',
+          'grand_total': 5000,
+          'order_status': 'PENDING',
+          'created_at': '2026-08-07 09:24:08',
+          'updated_at': '2026-08-07 09:24:08',
+          'items': <dynamic>[],
+        });
+
+        expect(order.fulfillmentType, OrderFulfillmentType.delivery);
+      },
+    );
   });
 
   group('TenantOrder.fromBroadcastPayload', () {
@@ -154,7 +175,51 @@ void main() {
       expect(order.receiptNumber, 'RCP-1');
       expect(order.tableNumber, 'A-01');
       expect(order.broadcastEventId, 13);
+      expect(order.fulfillmentType, OrderFulfillmentType.selfPickup);
     });
+
+    test('order_group.is_delivery: true parses to '
+        'OrderFulfillmentType.delivery', () {
+      final order = TenantOrder.fromBroadcastPayload(const {
+        'order_group': {'is_delivery': true},
+        'order': {
+          'id': 'order-1',
+          'order_group_id': 'group-1',
+          'branch_id': 'branch-1',
+          'receipt_number': 'RCP-1',
+          'grand_total': 10000,
+          'order_status': 'PENDING',
+          'created_at': '2026-08-26 08:54:20',
+          'updated_at': '2026-08-26 08:54:21',
+          'items': <dynamic>[],
+        },
+      });
+
+      expect(order.fulfillmentType, OrderFulfillmentType.delivery);
+    });
+
+    test(
+      'a missing is_delivery on order_group defaults to delivery, same as '
+      'fromJson',
+      () {
+        final order = TenantOrder.fromBroadcastPayload(const {
+          'order_group': {'table_number': 'A-01'},
+          'order': {
+            'id': 'order-1',
+            'order_group_id': 'group-1',
+            'branch_id': 'branch-1',
+            'receipt_number': 'RCP-1',
+            'grand_total': 10000,
+            'order_status': 'PENDING',
+            'created_at': '2026-08-26 08:54:20',
+            'updated_at': '2026-08-26 08:54:21',
+            'items': <dynamic>[],
+          },
+        });
+
+        expect(order.fulfillmentType, OrderFulfillmentType.delivery);
+      },
+    );
 
     test("prefers the nested order's own table_number when present", () {
       final order = TenantOrder.fromBroadcastPayload(const {
@@ -195,6 +260,29 @@ void main() {
     });
   });
 
+  group('orderFulfillmentTypeFromIsDelivery', () {
+    test('true maps to delivery', () {
+      expect(
+        orderFulfillmentTypeFromIsDelivery(isDelivery: true),
+        OrderFulfillmentType.delivery,
+      );
+    });
+
+    test('false maps to selfPickup', () {
+      expect(
+        orderFulfillmentTypeFromIsDelivery(isDelivery: false),
+        OrderFulfillmentType.selfPickup,
+      );
+    });
+
+    test('null defaults to delivery — see Spec Blocking Questions', () {
+      expect(
+        orderFulfillmentTypeFromIsDelivery(),
+        OrderFulfillmentType.delivery,
+      );
+    });
+  });
+
   group('tenantOrderStatusFromWire / tenantOrderStatusToWire', () {
     test('round-trips every enum value', () {
       for (final status in TenantOrderStatus.values) {
@@ -209,39 +297,90 @@ void main() {
   });
 
   group('incomingOrderStatusFromBackend', () {
-    test('maps pending to baru', () {
+    // Fulfillment type doesn't affect these — delivery is passed
+    // arbitrarily.
+    test('maps pending to baru regardless of fulfillment type', () {
       expect(
-        incomingOrderStatusFromBackend(TenantOrderStatus.pending),
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.pending,
+          OrderFulfillmentType.delivery,
+        ),
+        IncomingOrderStatus.baru,
+      );
+      expect(
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.pending,
+          OrderFulfillmentType.selfPickup,
+        ),
         IncomingOrderStatus.baru,
       );
     });
 
-    test('maps preparing to diproses', () {
+    test('maps preparing to diproses regardless of fulfillment type', () {
       expect(
-        incomingOrderStatusFromBackend(TenantOrderStatus.preparing),
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.preparing,
+          OrderFulfillmentType.delivery,
+        ),
+        IncomingOrderStatus.diproses,
+      );
+      expect(
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.preparing,
+          OrderFulfillmentType.selfPickup,
+        ),
         IncomingOrderStatus.diproses,
       );
     });
 
-    test('maps ready, completed and partialCompleted to selesai', () {
+    test('a delivery order maps ready to selesai (busboy takes over)', () {
       expect(
-        incomingOrderStatusFromBackend(TenantOrderStatus.ready),
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.ready,
+          OrderFulfillmentType.delivery,
+        ),
         IncomingOrderStatus.selesai,
       );
-      expect(
-        incomingOrderStatusFromBackend(TenantOrderStatus.completed),
-        IncomingOrderStatus.selesai,
-      );
-      expect(
-        incomingOrderStatusFromBackend(TenantOrderStatus.partialCompleted),
-        IncomingOrderStatus.selesai,
-      );
+    });
+
+    test(
+      'a self-pickup order maps ready to diproses (still needs '
+      'verification)',
+      () {
+        expect(
+          incomingOrderStatusFromBackend(
+            TenantOrderStatus.ready,
+            OrderFulfillmentType.selfPickup,
+          ),
+          IncomingOrderStatus.diproses,
+        );
+      },
+    );
+
+    test('maps completed and partialCompleted to selesai for both '
+        'fulfillment types', () {
+      for (final type in OrderFulfillmentType.values) {
+        expect(
+          incomingOrderStatusFromBackend(TenantOrderStatus.completed, type),
+          IncomingOrderStatus.selesai,
+        );
+        expect(
+          incomingOrderStatusFromBackend(
+            TenantOrderStatus.partialCompleted,
+            type,
+          ),
+          IncomingOrderStatus.selesai,
+        );
+      }
     });
 
     test('throws for cancelled (callers must filter cancelled out first)',
         () {
       expect(
-        () => incomingOrderStatusFromBackend(TenantOrderStatus.cancelled),
+        () => incomingOrderStatusFromBackend(
+          TenantOrderStatus.cancelled,
+          OrderFulfillmentType.delivery,
+        ),
         throwsStateError,
       );
     });
@@ -308,6 +447,54 @@ void main() {
       expect(data.items, hasLength(1));
       expect(data.items.single.name, 'Sahabat Latte');
     });
+
+    test('carries fulfillmentType through, unchanged', () {
+      final order = TenantOrder.fromBroadcastPayload(const {
+        'order_group': {'is_delivery': false},
+        'order': {
+          'id': 'order-1',
+          'order_group_id': 'group-1',
+          'branch_id': 'branch-1',
+          'receipt_number': 'RCP-1',
+          'grand_total': 10000,
+          'order_status': 'PENDING',
+          'created_at': '2026-08-26 08:54:20',
+          'updated_at': '2026-08-26 08:54:21',
+          'items': <dynamic>[],
+        },
+      });
+
+      expect(
+        order.toIncomingOrderData().fulfillmentType,
+        OrderFulfillmentType.selfPickup,
+      );
+    });
+
+    test(
+      'a READY self-pickup order maps to diproses (via '
+      'incomingOrderStatusFromBackend), not selesai',
+      () {
+        final order = TenantOrder.fromBroadcastPayload(const {
+          'order_group': {'is_delivery': false},
+          'order': {
+            'id': 'order-1',
+            'order_group_id': 'group-1',
+            'branch_id': 'branch-1',
+            'receipt_number': 'RCP-1',
+            'grand_total': 10000,
+            'order_status': 'READY',
+            'created_at': '2026-08-26 08:54:20',
+            'updated_at': '2026-08-26 08:54:21',
+            'items': <dynamic>[],
+          },
+        });
+
+        expect(
+          order.toIncomingOrderData().status,
+          IncomingOrderStatus.diproses,
+        );
+      },
+    );
   });
 
   // Single-sourced so the Order card and the reject screen can never disagree

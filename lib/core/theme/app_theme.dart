@@ -146,6 +146,22 @@ class AppColors {
   /// Border of an empty OTP digit box (`Rectangle 2317`) — measured
   /// `#B9BCBF`, distinct from `neutral100`/`neutral300`.
   static const Color otpBoxBorder = Color(0xFFB9BCBF);
+
+  // --- Fulfillment badge (`OrderFulfillmentType` card badge) ---------------
+
+  /// Text/icon color of the "Delivery" fulfillment badge (Figma "Component 30").
+  static const Color fulfillmentDeliveryText = Color(0xFF2F80ED);
+
+  /// Tint background of the "Delivery" fulfillment badge.
+  static const Color fulfillmentDeliveryTint = Color(0xFFEAF2FD);
+
+  /// Text/icon color of the "Pickup" fulfillment badge — distinct from
+  /// [orderBadgeAmber] (the Diproses tab count badge) to avoid visual
+  /// confusion between an unrelated pair of amber tones.
+  static const Color fulfillmentPickupText = Color(0xFFAD8514);
+
+  /// Tint background of the "Pickup" fulfillment badge.
+  static const Color fulfillmentPickupTint = Color(0xFFFEF8E8);
 }
 
 class AppSpacing {

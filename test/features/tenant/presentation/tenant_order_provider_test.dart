@@ -441,6 +441,75 @@ void main() {
     });
   });
 
+  group('verifyPickup', () {
+    test(
+        'optimistically completes a ready self-pickup order then confirms',
+        () async {
+      container = buildContainer(
+        statusCode: 200,
+        body: tenantEnvelope([tenantOrderJson(id: '1', status: 'READY')]),
+      );
+      await container.read(tenantOrderBoardProvider.future);
+
+      await container
+          .read(tenantOrderBoardProvider.notifier)
+          .verifyPickup('1', pickupCode: '123456');
+
+      final orders = container.read(tenantOrderBoardProvider).value!;
+      expect(orders.single.status, TenantOrderStatus.completed);
+      expect(adapter.lastRequest!.path, '/v1/orders/1/complete-pickup');
+      expect(adapter.lastRequest!.data, {'pickup_code': '123456'});
+    });
+
+    test('reverts the optimistic change and rethrows on a wrong code',
+        () async {
+      storage = branchScopedStorage();
+      realtime = FakeTenantRealtimeService();
+      addTearDown(realtime.close);
+      final fetchDio = cannedDio(
+        200,
+        tenantEnvelope([tenantOrderJson(id: '1', status: 'READY')]),
+      );
+      final failingRepository = _FailingUpdateRepository(dio: fetchDio);
+      container = ProviderContainer(
+        overrides: [
+          localStorageProvider.overrideWithValue(storage),
+          tenantOrderRepositoryProvider.overrideWithValue(failingRepository),
+          tenantRealtimeServiceProvider.overrideWithValue(realtime),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(tenantOrderBoardProvider, (_, _) {});
+      await container.read(tenantOrderBoardProvider.future);
+
+      await expectLater(
+        container
+            .read(tenantOrderBoardProvider.notifier)
+            .verifyPickup('1', pickupCode: '000000'),
+        throwsA(isA<ApiException>()),
+      );
+
+      final orders = container.read(tenantOrderBoardProvider).value!;
+      expect(orders.single.status, TenantOrderStatus.ready);
+    });
+
+    test('verifyPickup on an unknown order id throws instead of no-oping',
+        () async {
+      container = buildContainer(
+        statusCode: 200,
+        body: tenantEnvelope([tenantOrderJson(id: '1', status: 'READY')]),
+      );
+      await container.read(tenantOrderBoardProvider.future);
+
+      await expectLater(
+        container
+            .read(tenantOrderBoardProvider.notifier)
+            .verifyPickup('nope', pickupCode: '123456'),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+
   // These two used to `return` silently, which is what let the reject screen
   // show "berhasil" feedback for a rejection the backend never heard about.
   // A mutation aimed at an order that is not on the board is a bug and has to
@@ -527,6 +596,11 @@ class _FailingUpdateRepository implements TenantOrderRepository {
   }
 
   @override
+  Future<void> completePickup(String orderId, {required String pickupCode}) {
+    throw ApiException(message: 'Terjadi kesalahan. Coba lagi.');
+  }
+
+  @override
   Future<List<TenantOrder>> fetchMissedEvents({
     required String branchId,
     required int afterId,
@@ -567,6 +641,10 @@ class _RecordingReplayRepository implements TenantOrderRepository {
       _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
 
   @override
+  Future<void> completePickup(String orderId, {required String pickupCode}) =>
+      _delegate.completePickup(orderId, pickupCode: pickupCode);
+
+  @override
   Future<List<TenantOrder>> fetchMissedEvents({
     required String branchId,
     required int afterId,
@@ -601,6 +679,10 @@ class _FailingReplayRepository implements TenantOrderRepository {
     required List<String> rejectedItemIds,
   }) =>
       _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
+
+  @override
+  Future<void> completePickup(String orderId, {required String pickupCode}) =>
+      _delegate.completePickup(orderId, pickupCode: pickupCode);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({
@@ -640,6 +722,10 @@ class _DelayedFetchRepository implements TenantOrderRepository {
     required List<String> rejectedItemIds,
   }) =>
       _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
+
+  @override
+  Future<void> completePickup(String orderId, {required String pickupCode}) =>
+      _delegate.completePickup(orderId, pickupCode: pickupCode);
 
   @override
   Future<List<TenantOrder>> fetchMissedEvents({

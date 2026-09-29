@@ -1,5 +1,6 @@
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_toggle.dart';
+import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:flutter/material.dart';
 
 /// The tenant-side lifecycle stage of an incoming order, mapped to the three
@@ -83,6 +84,7 @@ class IncomingOrderData {
     required this.items,
     required this.total,
     this.note,
+    this.fulfillmentType = OrderFulfillmentType.delivery,
   });
 
   /// The real order id — what every mutation (`accept`/`reject`/`markReady`,
@@ -112,6 +114,57 @@ class IncomingOrderData {
 
   /// Free-form note. Rendered as `Catatan : <note>` (`Catatan : -` when null).
   final String? note;
+
+  /// How this order reaches the customer — drives the card's
+  /// [FulfillmentBadge] and, in [IncomingOrderStatus.diproses], which action
+  /// button renders (see `IncomingOrderCard._actions`).
+  final OrderFulfillmentType fulfillmentType;
+}
+
+/// The "Delivery" / "Pickup" badge shown on every order card
+/// (Figma "Component 30") — see `GLOSSARY.md`'s "Fulfillment Type" entry.
+class FulfillmentBadge extends StatelessWidget {
+  const FulfillmentBadge({required this.type, super.key});
+
+  final OrderFulfillmentType type;
+
+  bool get _isDelivery => type == OrderFulfillmentType.delivery;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _isDelivery
+        ? AppColors.fulfillmentDeliveryText
+        : AppColors.fulfillmentPickupText;
+    final tint = _isDelivery
+        ? AppColors.fulfillmentDeliveryTint
+        : AppColors.fulfillmentPickupTint;
+    final icon = _isDelivery ? Icons.delivery_dining : Icons.storefront;
+    final label = _isDelivery ? 'Delivery' : 'Pickup';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Reusable incoming-order summary card (`menu-order-baru` / `menu-diproses`).
@@ -133,6 +186,7 @@ class IncomingOrderCard extends StatelessWidget {
     this.onAccept,
     this.onReject,
     this.onPickupReady,
+    this.onVerifyPickup,
     this.acceptLabel,
     super.key,
   });
@@ -149,8 +203,12 @@ class IncomingOrderCard extends StatelessWidget {
   /// "Tolak" handler ([IncomingOrderStatus.baru]) — opens the per-item flow.
   final VoidCallback? onReject;
 
-  /// "Siap Diambil" handler ([IncomingOrderStatus.diproses]).
+  /// "Siap Diambil" handler ([IncomingOrderStatus.diproses], delivery orders).
   final VoidCallback? onPickupReady;
+
+  /// "Verifikasi Pickup" handler ([IncomingOrderStatus.diproses], self-pickup
+  /// orders) — opens the pickup-code entry screen.
+  final VoidCallback? onVerifyPickup;
 
   /// Overrides the accept button label (defaults to `Terima`). No caller uses
   /// this today — a prior static `Terima (29s)` label was removed (it never
@@ -277,6 +335,8 @@ class IncomingOrderCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: _gap),
+            FulfillmentBadge(type: data.fulfillmentType),
+            const SizedBox(width: 8),
             Text(
               _statusLabel,
               style: TextStyle(
@@ -359,11 +419,17 @@ class IncomingOrderCard extends StatelessWidget {
           ],
         );
       case IncomingOrderStatus.diproses:
-        return _PillButton(
-          label: 'Siap Diambil',
-          onPressed: onPickupReady,
-          color: AppColors.successGreen,
-        );
+        return data.fulfillmentType == OrderFulfillmentType.selfPickup
+            ? _PillButton(
+                label: 'Verifikasi Pickup',
+                onPressed: onVerifyPickup,
+                color: AppColors.successGreen,
+              )
+            : _PillButton(
+                label: 'Siap Diambil',
+                onPressed: onPickupReady,
+                color: AppColors.successGreen,
+              );
       case IncomingOrderStatus.selesai:
         return const SizedBox.shrink();
     }

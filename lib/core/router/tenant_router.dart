@@ -12,6 +12,7 @@ import 'package:dtw_app/features/tenant/presentation/screens/tambah_varian_scree
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_order_detail_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_order_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/screens/tenant_reject_order_screen.dart';
+import 'package:dtw_app/features/tenant/presentation/screens/verifikasi_pickup_screen.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/kelola_menu_sheet.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/menu_success_modal.dart';
@@ -46,6 +47,8 @@ abstract class TenantRoutes {
       'tenantKonfirmasiPesanan'; // konfirmasi-pesanan
   static const alasanPenolakan =
       'tenantAlasanPenolakan'; // alasan-penolakan (modal)
+  static const verifikasiPickup =
+      'tenantVerifikasiPickup'; // verifikasi-pickup
   static const selesai = 'tenantSelesai'; // selesai
   static const pesananBerhasil =
       'tenantPesananBerhasil'; // berhasil-ditambahkan-2 (modal)
@@ -365,6 +368,14 @@ StatefulShellRoute tenantShellRoute() {
                 name: TenantRoutes.alasanPenolakan,
                 builder: (context, state) =>
                     const _AlasanPenolakanRouteScreen(),
+              ),
+              // verifikasi-pickup: the self-pickup code-entry screen.
+              GoRoute(
+                path: 'verifikasi/:orderId',
+                name: TenantRoutes.verifikasiPickup,
+                builder: (context, state) => VerifikasiPickupScreen(
+                  orderId: state.pathParameters['orderId']!,
+                ),
               ),
               // selesai: same Order home seeded to the "Selesai" sub-tab.
               GoRoute(

@@ -38,7 +38,7 @@ class TenantOrderDetailScreen extends ConsumerWidget {
     // this frame) — never a case worth failing the navigation over.
     final status = order == null
         ? IncomingOrderStatus.baru
-        : incomingOrderStatusFromBackend(order.status);
+        : incomingOrderStatusFromBackend(order.status, order.fulfillmentType);
 
     return TenantOrderScreen(initialStatus: status);
   }
