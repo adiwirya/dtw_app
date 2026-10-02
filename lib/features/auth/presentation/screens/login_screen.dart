@@ -4,9 +4,16 @@ import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
+import 'package:dtw_app/features/device/data/services/device_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+/// Same `android_id` the device-registration call sends, shown on the login
+/// screen so an admin can match this device in the CMS.
+final _androidIdProvider = FutureProvider<String?>(
+  (ref) => ref.watch(deviceIdentityProvider).deviceId(),
+);
 
 /// The login screen — the app's single shared entry point, hosted on `/login`.
 ///
@@ -117,14 +124,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // Brand wordmark + subtitle, left-aligned. "DTW" takes the app's
           // Open Sans from the theme; "Order" is Pacifico, the one place the
           // design uses a second family.
-          const Positioned(
+          Positioned(
             top: 46,
             left: 16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text.rich(
+                const Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
@@ -148,8 +155,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
+                const SizedBox(height: 6),
+                const Text(
                   'Pesan Cepat, Nikmati Sekarang',
                   style: TextStyle(
                     color: AppColors.neutral500,
@@ -157,6 +164,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     height: 1,
                   ),
                 ),
+                // Null off-Android / on failure — then the line is omitted.
+                if (ref.watch(_androidIdProvider).asData?.value
+                    case final androidId?) ...[
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    'ID: $androidId',
+                    style: const TextStyle(
+                      color: AppColors.neutral500,
+                      fontSize: 10,
+                      height: 1,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

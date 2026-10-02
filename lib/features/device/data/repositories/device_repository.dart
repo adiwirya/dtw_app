@@ -14,7 +14,8 @@ part 'device_repository.g.dart';
 ///
 /// PLACEHOLDER — replace with the real value before this ships. Every
 /// register call 401s with this value in place.
-const _deviceRegistrationKey = 'CHANGE_ME_DEVICE_REGISTRATION_KEY';
+const _deviceRegistrationKey =
+    '14b75c1d509249bb09d88d978b7a642a3013e47f2d2da9193fc4226f6b8f69c6';
 
 class DeviceRepository {
   const DeviceRepository({required this._dio});

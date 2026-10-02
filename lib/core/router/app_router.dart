@@ -293,8 +293,16 @@ GoRouter appRouter(Ref ref) {
       final onOnboarding =
           state.matchedLocation == AppRoutes.onboardingPath ||
           state.matchedLocation.startsWith('${AppRoutes.onboardingPath}/');
-      if (!deviceRegistered && !onOnboarding) return AppRoutes.onboardingPath;
-      if (deviceRegistered && onOnboarding) {
+      // While the device isn't registered, the onboarding gate is the ONLY
+      // rule in play — every other branch below assumes deviceRegistered is
+      // true. Falling through to the login guard while still unregistered
+      // (e.g. a fresh install that's also never logged in) bounced
+      // /onboarding -> /login -> /onboarding -> ... until go_router's
+      // redirect-loop detector threw.
+      if (!deviceRegistered) {
+        return onOnboarding ? null : AppRoutes.onboardingPath;
+      }
+      if (onOnboarding) {
         return loggedIn ? homePath : AppRoutes.loginPath;
       }
       final onLogin =

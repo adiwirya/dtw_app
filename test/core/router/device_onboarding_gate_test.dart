@@ -42,6 +42,33 @@ void main() {
     },
   );
 
+  // Regression: a fresh install (device unregistered AND never logged in)
+  // used to bounce /onboarding -> /login -> /onboarding forever, because the
+  // redirect callback fell through to the login guard even while still on
+  // /onboarding with an unregistered device — go_router's redirect-loop
+  // detector threw a GoException before the app ever rendered anything.
+  testWidgets(
+    'a fresh install (unregistered device, never logged in) stays on '
+    'onboarding without looping',
+    (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          ...busboyBoardOverrides(dio: cannedDeliveryListDio([])),
+          deviceRegisteredProvider.overrideWith((ref) => false),
+          deviceIdentityProvider.overrideWithValue(FakeDeviceIdentity()),
+        ],
+      );
+      addTearDown(container.dispose);
+      // Deliberately NOT setting isLoggedInProvider — a fresh install has
+      // never logged in.
+
+      await _pumpApp(tester, container);
+
+      expect(find.byType(DeviceOnboardingScreen), findsOneWidget);
+      expect(find.text('Username'), findsNothing);
+    },
+  );
+
   testWidgets(
     'once the device is registered, a logged-in session lands on its shell',
     (tester) async {

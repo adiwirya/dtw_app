@@ -4,7 +4,9 @@ import 'package:dtw_app/core/network/firebase_performance_dio_interceptor.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'dio_provider.g.dart';
@@ -26,7 +28,7 @@ Dio dio(Ref ref) {
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
     ),
-  )..interceptors.add(LogInterceptor(responseBody: true));
+  );
 
   dio.interceptors.add(
     InterceptorsWrapper(
@@ -80,8 +82,15 @@ Dio dio(Ref ref) {
   // metric.
   dio.interceptors.add(FirebasePerformanceDioInterceptor());
 
+  // Last so it logs the final request (auth header included) and the final
+  // outcome after retries/401 handling. Debug builds only.
+  if (kDebugMode) dio.interceptors.add(_prettyLogger());
+
   return dio;
 }
+
+PrettyDioLogger _prettyLogger() =>
+    PrettyDioLogger(requestHeader: true, requestBody: true);
 
 /// A [Dio] for the device-onboarding endpoint only
 /// (`POST /v1/devices/register`) — deliberately NOT [dioProvider]. That one's
@@ -101,7 +110,7 @@ Dio deviceDio(Ref ref) => Dio(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 15),
   ),
-);
+)..interceptors.addAll([if (kDebugMode) _prettyLogger()]);
 
 /// Retries a request when it failed without ever getting a server response —
 /// a dropped wifi handoff, a slow cell handover — instead of surfacing

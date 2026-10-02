@@ -50,6 +50,7 @@ dependencies:
   laravel_reverb: ^0.6.0
   nfc_manager: ^4.2.1
   obra_icons: ^1.0.0
+  pretty_dio_logger: ^1.4.0
   riverpod_annotation: ^2.6.1
   sentry_flutter: ^9.29.0
   sunmi_utils: ^1.0.0
