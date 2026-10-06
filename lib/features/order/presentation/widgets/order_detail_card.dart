@@ -17,6 +17,8 @@ class OrderDetailCard extends StatelessWidget {
   final OrderDetail detail;
 
   /// Tap handler for the "phone-outgoing" call button on the Pelanggan row.
+  /// The button is omitted when this is null (e.g. the tenant side has no
+  /// customer phone number to call).
   final VoidCallback? onCall;
 
   static const double _tile = 30;
@@ -144,8 +146,10 @@ class OrderDetailCard extends StatelessWidget {
             value: Text(detail.customerName, style: _valueStyle),
           ),
         ),
-        const SizedBox(width: 12),
-        _CallButton(onTap: onCall),
+        if (onCall != null) ...[
+          const SizedBox(width: 12),
+          _CallButton(onTap: onCall),
+        ],
       ],
     );
   }

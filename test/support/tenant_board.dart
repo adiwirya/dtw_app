@@ -34,6 +34,8 @@ Map<String, dynamic> tenantOrderJson({
   int grandTotal = 21000,
   String? receiptNumber,
   String? tableNumber,
+  String? customerName,
+  bool? isDelivery,
   String createdAt = '2026-08-07 09:24:08',
   int? broadcastEventId,
   List<Map<String, dynamic>> items = const [],
@@ -43,6 +45,8 @@ Map<String, dynamic> tenantOrderJson({
   'branch_id': testBranchId,
   'receipt_number': receiptNumber ?? 'RCP-$id',
   'table_number': ?tableNumber,
+  'customer_name': ?customerName,
+  'is_delivery': ?isDelivery,
   'grand_total': grandTotal,
   'order_status': status,
   'created_at': createdAt,
@@ -59,11 +63,13 @@ Map<String, dynamic> tenantOrderItemJson({
   String productName = 'Item',
   int subtotal = 10000,
   int quantity = 1,
+  String? notes,
 }) => {
   'id': id,
   'product_name': productName,
   'subtotal': subtotal,
   'quantity': quantity,
+  'notes': notes,
 };
 
 /// Wraps [data] in the CMS success envelope every endpoint returns.

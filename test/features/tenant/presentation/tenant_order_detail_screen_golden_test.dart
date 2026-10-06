@@ -7,9 +7,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../support/tenant_board.dart';
 
-/// Self-golden for the `menu-order-baru-2` order view (from a card tap).
-/// It delegates to the Baru Order home; this golden pins that the route
-/// target renders the board. See the reject-screen golden note about fonts.
+/// Self-golden for the `menu-order-baru-2` "Detail Pesanan" screen (from a
+/// card tap) on a Baru order — nav bar, order card, summary and the
+/// Tolak/Terima bar. See the reject-screen golden note about fonts.
 void main() {
   testWidgets(
     'menu-order-baru-2 order detail (Baru board)',
@@ -38,15 +38,34 @@ void main() {
         ],
       );
 
-      // This screen delegates to `TenantOrderScreen`, which watches the real
-      // `tenantOrderBoardProvider`. Without these overrides the board's
-      // initial fetch hangs on the unmocked `flutter_secure_storage`
-      // channel, the spinner never stops, and `pumpAndSettle` times out.
+      // The screen watches the real `tenantOrderBoardProvider`. Without these
+      // overrides the board's initial fetch hangs on the unmocked
+      // `flutter_secure_storage` channel, the spinner never stops, and
+      // `pumpAndSettle` times out.
       await tester.pumpWidget(
         ProviderScope(
           overrides: tenantBoardOverrides(
             dio: cannedOrderListDio([
-              tenantOrderJson(id: 'order-1', status: 'PENDING'),
+              tenantOrderJson(
+                id: 'order-1',
+                status: 'PENDING',
+                tableNumber: 'A-12',
+                customerName: 'Budi Santoso',
+                isDelivery: true,
+                grandTotal: 40000,
+                items: [
+                  tenantOrderItemJson(
+                    id: 'item-1',
+                    productName: 'Paket Super Besar',
+                    subtotal: 35000,
+                  ),
+                  tenantOrderItemJson(
+                    id: 'item-2',
+                    productName: 'Es Lemon Tea',
+                    subtotal: 5000,
+                  ),
+                ],
+              ),
             ]),
           ),
           child: MaterialApp.router(routerConfig: router),

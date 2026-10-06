@@ -145,6 +145,7 @@ class TenantOrder {
             price: formatRupiah((item['subtotal'] as num).round()),
             subtotal: (item['subtotal'] as num).round(),
             qty: (item['quantity'] as num).toInt(),
+            notes: item['notes'] as String?,
           ),
       ],
       broadcastEventId: json['broadcast_event_id'] as int?,

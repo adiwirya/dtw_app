@@ -33,6 +33,7 @@ class OrderLineItem {
     required this.qty,
     required this.name,
     required this.price,
+    this.notes,
   });
 
   /// Quantity, rendered as `<qty>x`.
@@ -43,6 +44,10 @@ class OrderLineItem {
 
   /// Formatted price, e.g. `Rp35.000`.
   final String price;
+
+  /// The customer's note for this item; `null` when there is none. Only the
+  /// tenant detail screen shows it.
+  final String? notes;
 }
 
 /// Full order detail backing the `menu-order-baru-2` ("Detail Pesanan") screen:

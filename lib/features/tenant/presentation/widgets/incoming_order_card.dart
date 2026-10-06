@@ -25,6 +25,7 @@ class OrderLineItem {
     this.qty = 1,
     this.available = true,
     this.imageUrl,
+    this.notes,
   });
 
   /// The real item id — what `POST /v1/orders/{id}/process`'s
@@ -58,6 +59,10 @@ class OrderLineItem {
   /// a placeholder tile when null.
   final String? imageUrl;
 
+  /// The customer's note for this item (`notes` on the live item shape);
+  /// shown on the order detail screen, `null` when there is none.
+  final String? notes;
+
   OrderLineItem copyWith({bool? available}) => OrderLineItem(
     id: id,
     name: name,
@@ -66,6 +71,7 @@ class OrderLineItem {
     qty: qty,
     available: available ?? this.available,
     imageUrl: imageUrl,
+    notes: notes,
   );
 }
 

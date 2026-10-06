@@ -8,6 +8,7 @@ import 'package:dtw_app/core/widgets/success_modal.dart';
 import 'package:dtw_app/features/order/data/models/delivery.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
+import 'package:dtw_app/features/order/presentation/widgets/detail_screen_parts.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_detail_card.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_success_details.dart';
 import 'package:flutter/material.dart';
@@ -75,7 +76,10 @@ class OrderDetailScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _DetailNavBar(title: 'Detail Pesanan'),
+          const DetailNavBar(
+            title: 'Detail Pesanan',
+            fallbackRoute: AppRoutes.order,
+          ),
           Expanded(
             child: Container(
               transform: Matrix4.translationValues(0, -8, 0),
@@ -88,7 +92,12 @@ class OrderDetailScreen extends ConsumerWidget {
             ),
           ),
           if (detail != null && detail.status == OrderStatus.baru)
-            _BottomAction(onPressed: () => _take(context, ref, detail)),
+            DetailBottomBar(
+              child: PrimaryButton(
+                label: 'Ambil Pesanan',
+                onPressed: () => _take(context, ref, detail),
+              ),
+            ),
         ],
       ),
     );
@@ -111,7 +120,7 @@ class OrderDetailScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 16),
-          _SummaryCard(detail: detail),
+          OrderSummaryCard(detail: detail),
           const SizedBox(height: 16),
           _NoteCard(note: detail.note),
         ],
@@ -143,172 +152,6 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 }
 
-/// Green nav bar: white status bar over a back arrow + centered title.
-class _DetailNavBar extends StatelessWidget {
-  const _DetailNavBar({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.headerGreenTop, AppColors.headerGreenBottom],
-        ),
-      ),
-      child: Column(
-        children: [
-          // The OS draws the real status bar here; the header runs behind
-          // it. A fake `9:41` bar used to sit in this slot, doubling up with
-          // the real one on device.
-          SizedBox(height: MediaQuery.paddingOf(context).top),
-          SizedBox(
-            height: 48,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.goNamed(AppRoutes.order);
-                      }
-                    },
-                    icon: const Icon(
-                      Icons.chevron_left,
-                      color: AppColors.white,
-                      size: 28,
-                    ),
-                  ),
-                ),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Ringkasan Pesanan" card: title + item count, line items, hairline, total.
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.detail});
-
-  final OrderDetail detail;
-
-  static const TextStyle _titleStyle = TextStyle(
-    color: AppColors.neutral900,
-    fontSize: 16,
-    fontWeight: FontWeight.w700,
-    height: 1.2,
-  );
-  static const TextStyle _mutedStyle = TextStyle(
-    color: AppColors.neutral500,
-    fontSize: 14,
-    height: 1.2,
-  );
-  static const TextStyle _bodyStyle = TextStyle(
-    color: AppColors.neutral900,
-    fontSize: 14,
-    height: 1.3,
-  );
-  static const TextStyle _totalStyle = TextStyle(
-    color: AppColors.neutral900,
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-    height: 1.2,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text('Ringkasan Pesanan', style: _titleStyle),
-              ),
-              Text('${detail.itemCount} Item', style: _mutedStyle),
-            ],
-          ),
-          const SizedBox(height: 16),
-          for (var i = 0; i < detail.items.length; i++) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _lineItem(detail.items[i]),
-          ],
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.neutral100,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text('Total Pesanan', style: _totalStyle),
-              ),
-              Text(
-                detail.total,
-                style: const TextStyle(
-                  color: AppColors.successGreen,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _lineItem(OrderLineItem item) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              SizedBox(
-                width: 24,
-                child: Text('${item.qty}x', style: _bodyStyle),
-              ),
-              const SizedBox(width: 8),
-              Flexible(child: Text(item.name, style: _bodyStyle)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(item.price, style: _bodyStyle),
-      ],
-    );
-  }
-}
-
 /// "Catatan dari Pelanggan" card.
 class _NoteCard extends StatelessWidget {
   const _NoteCard({required this.note});
@@ -317,7 +160,7 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
+    return DetailCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -341,54 +184,6 @@ class _NoteCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Shared white rounded card used by the summary / note sections.
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 16,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: child,
-    );
-  }
-}
-
-/// The pinned bottom "Ambil Pesanan" CTA bar.
-class _BottomAction extends StatelessWidget {
-  const _BottomAction({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      elevation: 8,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: PrimaryButton(label: 'Ambil Pesanan', onPressed: onPressed),
-        ),
       ),
     );
   }

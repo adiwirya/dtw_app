@@ -10,6 +10,7 @@ import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
+import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_actions.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/tenant_order_header.dart';
@@ -216,7 +217,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
                     orders: orders,
                     onAccept: (order) => _runAction(
                       context,
-                      () => _accept(order.orderId, board),
+                      () => acceptOrderAndPrint(ref, order.orderId),
                     ),
                     onPickupReady: (order) => _runAction(
                       context,
@@ -260,38 +261,6 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage(error))),
-      );
-    }
-  }
-
-  /// Accepts [orderId], then prints its bon — the "Terima" action's whole
-  /// point: the kitchen only learns about the order once the printer spits
-  /// out a physical ticket. Printing is fire-and-forget after a successful
-  /// accept: a busy/out-of-paper printer must never undo (or block the UI
-  /// on) an accept the backend already recorded.
-  Future<void> _accept(String orderId, List<TenantOrder> board) async {
-    TenantOrder? order;
-    for (final o in board) {
-      if (o.id == orderId) {
-        order = o;
-        break;
-      }
-    }
-
-    await ref.read(tenantOrderBoardProvider.notifier).accept(orderId);
-
-    final branch = ref.read(currentTenantBranchProvider).valueOrNull;
-    if (order != null && branch != null) {
-      unawaited(
-        ref
-            .read(receiptPrinterServiceProvider)
-            .printOrder(
-              order,
-              brandName: branch.brandName,
-              areaName: branch.areaName,
-              locationCode: branch.locationCode,
-            )
-            .catchError((_) {}),
       );
     }
   }
