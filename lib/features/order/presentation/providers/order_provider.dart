@@ -116,7 +116,13 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
     final repository = ref.watch(busboyDeliveryRepositoryProvider);
     final realtime = ref.watch(busboyRealtimeServiceProvider);
 
+    // Events fired while the socket was down are gone for good — refetch to
+    // gap-fill. `invalidateSelf` keeps the previous list visible meanwhile.
+    final reconnectedSubscription =
+        realtime.reconnected.listen((_) => ref.invalidateSelf());
+
     ref.onDispose(() {
+      unawaited(reconnectedSubscription.cancel());
       unawaited(_deliveryCreatedSubscription?.cancel() ?? Future.value());
       unawaited(_deliveryClaimedSubscription?.cancel() ?? Future.value());
       unawaited(_deliveryCompletedSubscription?.cancel() ?? Future.value());

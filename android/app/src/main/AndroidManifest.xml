@@ -12,6 +12,9 @@
          connection alive, not sync-ing files or relaying push messages. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <!-- Lets `BusboyForegroundService` ask the user to exempt the app from
+         battery optimization so Doze doesn't throttle the Reverb socket. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <application
         android:label="dtw_app"
         android:name="${applicationName}"

@@ -79,6 +79,10 @@ class PluginBusboyForegroundService implements BusboyForegroundService {
         // No periodic work — see the class doc. `nothing()` skips
         // `onRepeatEvent` entirely instead of ticking for no reason.
         eventAction: ForegroundTaskEventAction.nothing(),
+        // The Reverb socket lives on Wi-Fi/mobile data — without a Wi-Fi lock
+        // Android can power the radio down in Doze and the socket stalls
+        // silently. (CPU wake lock is already on by default.)
+        allowWifiLock: true,
       ),
     );
     _initialized = true;
@@ -94,6 +98,11 @@ class PluginBusboyForegroundService implements BusboyForegroundService {
         await FlutterForegroundTask.checkNotificationPermission();
     if (permission != NotificationPermission.granted) {
       await FlutterForegroundTask.requestNotificationPermission();
+    }
+    // Doze/OEM battery savers still throttle a foreground service unless the
+    // app is exempt — one-time system dialog, no-op once granted.
+    if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+      await FlutterForegroundTask.requestIgnoreBatteryOptimization();
     }
     if (await FlutterForegroundTask.isRunningService) return;
     await FlutterForegroundTask.startService(

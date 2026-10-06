@@ -12,7 +12,8 @@ class ReverbConfig {
 
   static const host = 'dtw-ws.gadingemerald.com';
   static const authHost = 'dtw-cms.gadingemerald.com';
-  static const appKey = 'qvata3lm1xtqpocb9g2i';
+  static const appKey =
+      '65b4d7b2a0bbb45cc69d580e9fd4a80c120cd02d8cb84752cb368134f296d66a';
   static const useTls = true;
 
   static const port = 443;

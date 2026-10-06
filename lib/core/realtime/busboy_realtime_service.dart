@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dtw_app/core/realtime/reverb_config.dart';
 import 'package:flutter/foundation.dart';
@@ -40,8 +41,8 @@ abstract class BusboyRealtimeService {
   /// Emits once each time the underlying connection re-establishes after a
   /// drop (not on the very first connect). There is no gap-fill/replay
   /// endpoint on the busboy API (unlike the tenant side's
-  /// `/broadcast/replay`), so nothing currently listens to this — kept for
-  /// interface parity and in case one is added later.
+  /// `/broadcast/replay`), so `OrderBoardNotifier` gap-fills by refetching
+  /// the whole delivery list.
   Stream<void> get reconnected;
 
   /// Human-readable connection status/error lines, for surfacing socket
@@ -97,6 +98,18 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
       useTls: ReverbConfig.useTls,
       authEndpoint: ReverbConfig.authEndpoint,
       authHeaders: () async => {'Authorization': 'Bearer $token'},
+      // Package default tears the socket down on `paused` and reconnects on
+      // `resumed`, so every event fired while backgrounded is lost (no
+      // replay endpoint on the busboy API). `BusboyForegroundService` keeps
+      // the Android process alive precisely so the socket can stay up — see
+      // `ReverbTenantRealtimeService` for the same setting.
+      handleAppLifecycle: !Platform.isAndroid,
+      // ponytail: temporary diagnostics for background-socket drops (debug
+      // builds only — socket frames can carry order data); remove once
+      // realtime is confirmed stable on device.
+      onLog: kDebugMode
+          ? (message) => debugPrint('ReverbBusboyRealtimeService log: $message')
+          : null,
       onError: (error, stackTrace) {
         debugPrint('ReverbBusboyRealtimeService error: $error');
         _statusController.add('Realtime error: $error');
@@ -106,11 +119,13 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
 
     reverb.onReconnected(() {
       _statusController.add('Realtime reconnected');
+      debugPrint('Realtime reconnected');
       _reconnectedController.add(null);
     });
 
     await reverb.connect();
     _statusController.add('Realtime connected');
+    debugPrint('Realtime connected');
     // The leading dot is required so the package treats this as the literal
     // broadcast name (`delivery.created`) rather than namespace-qualifying
     // it — see `ReverbTenantRealtimeService`'s `order.created` subscription

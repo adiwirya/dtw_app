@@ -90,6 +90,12 @@ class ReverbTenantRealtimeService implements TenantRealtimeService {
       // this callback. Without it, a broken connection looks identical to a
       // working one: no exception, no thrown error, just a socket that never
       // delivers anything.
+      // ponytail: temporary diagnostics for background-socket drops (debug
+      // builds only — socket frames can carry order data); remove once
+      // realtime is confirmed stable on device.
+      onLog: kDebugMode
+          ? (message) => debugPrint('ReverbTenantRealtimeService log: $message')
+          : null,
       onError: (error, stackTrace) {
         debugPrint('ReverbTenantRealtimeService error: $error');
         _statusController.add('Realtime error: $error');
@@ -103,11 +109,13 @@ class ReverbTenantRealtimeService implements TenantRealtimeService {
     // connect, which matches this interface's contract exactly.
     reverb.onReconnected(() {
       _statusController.add('Realtime reconnected');
+      debugPrint('Realtime reconnected');
       _reconnectedController.add(null);
     });
 
     await reverb.connect();
     _statusController.add('Realtime connected');
+    debugPrint('Realtime connected');
     // The leading dot tells the package this is a literal broadcast name
     // (Laravel's `broadcastAs('order.created')`), not a class name to
     // namespace-qualify — without it, `resolveEventName` silently listens
