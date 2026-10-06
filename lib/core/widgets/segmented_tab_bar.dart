@@ -103,20 +103,24 @@ class _Segment extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
+              // Segments are equal-width, so a label + count badge can be
+              // wider than its segment (e.g. "Order Baru" + a two-digit pill
+              // on a narrow screen). Scale the whole row down to fit rather
+              // than ellipsizing the label; at normal widths it's a no-op.
               child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (item.icon != null) ...[
-                      Icon(item.icon, size: 16, color: color),
-                      const SizedBox(width: 6),
-                    ],
-                    Flexible(
-                      child: Text(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (item.icon != null) ...[
+                        Icon(item.icon, size: 16, color: color),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
                         item.label,
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: color,
@@ -126,12 +130,12 @@ class _Segment extends StatelessWidget {
                           height: 1,
                         ),
                       ),
-                    ),
-                    if (item.badge != null) ...[
-                      const SizedBox(width: 6),
-                      item.badge!,
+                      if (item.badge != null) ...[
+                        const SizedBox(width: 6),
+                        item.badge!,
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,8 @@
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
+import 'package:dtw_app/features/order/presentation/widgets/order_tab_badge.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _host(Widget child, {double width = 358}) {
@@ -115,5 +117,56 @@ void main() {
       expect(find.byIcon(Icons.notifications), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
     });
+  });
+
+  group('labels with a count badge', () {
+    // The tenant Order tabs: three equal segments, the first two carrying a
+    // count pill. On a narrow screen "Order Baru" + a two-digit badge is wider
+    // than its segment and used to be clipped to "Order B…".
+    const tenantTabs = [
+      SegmentedTabItem(
+        label: 'Order Baru',
+        badge: OrderTabBadge(count: 12, color: Colors.red),
+      ),
+      SegmentedTabItem(
+        label: 'Diproses',
+        badge: OrderTabBadge(count: 7, color: Colors.amber),
+      ),
+      SegmentedTabItem(label: 'Selesai'),
+    ];
+
+    bool clipped(WidgetTester tester, String label) {
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: find.byType(SegmentedTabBar),
+          matching: find.text(label),
+        ),
+      );
+      return paragraph.didExceedMaxLines;
+    }
+
+    for (final scale in [1.0, 1.3]) {
+      testWidgets('are never clipped (text scale $scale, 328px bar)',
+          (tester) async {
+        await tester.pumpWidget(
+          MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: _host(
+              SegmentedTabBar(
+                items: tenantTabs,
+                selectedIndex: 0,
+                onChanged: (_) {},
+              ),
+              width: 328,
+            ),
+          ),
+        );
+
+        expect(tester.takeException(), isNull);
+        for (final label in ['Order Baru', 'Diproses', 'Selesai']) {
+          expect(clipped(tester, label), isFalse, reason: '$label was clipped');
+        }
+      });
+    }
   });
 }
