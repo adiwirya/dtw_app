@@ -886,4 +886,81 @@ void main() {
 
     expect(foregroundService.stopCallCount, 1);
   });
+
+  group('loginWithCard', () {
+    test('logs in, sets the session and connects realtime', () async {
+      final storage = FakeLocalStorage();
+      final tenantRealtime = FakeTenantRealtimeService();
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            _repositoryReturning(200, {
+              'meta': {
+                'success': true,
+                'message': 'Success',
+                'code': 200,
+                'trace_id': 'abc',
+              },
+              'data': {
+                'access_token': 'tok_card',
+                'user': {'id': 'u1', 'username': null, 'role': 'tenant_keeper'},
+                'scopes': [
+                  {'type': 'branch', 'tenant_branch_id': 'branch-1'},
+                ],
+              },
+            }, storage),
+          ),
+          tenantRealtimeServiceProvider.overrideWithValue(tenantRealtime),
+          tenantForegroundServiceProvider.overrideWithValue(
+            FakeTenantForegroundService(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(authControllerProvider.notifier)
+          .loginWithCard(cardUid: '04A1B2C3');
+
+      expect(container.read(isLoggedInProvider), isTrue);
+      expect(container.read(sessionRoleProvider), 'tenant_keeper');
+      expect(container.read(sessionBranchIdProvider), 'branch-1');
+      expect(container.read(authControllerProvider).error, isNull);
+      expect(tenantRealtime.connectCalls, [
+        (token: 'tok_card', branchId: 'branch-1'),
+      ]);
+    });
+
+    test(
+      'surfaces the card-specific error on 401 and stays logged out',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              _repositoryReturning(401, {
+                'meta': {
+                  'success': false,
+                  'message': 'Unauthorized',
+                  'code': 401,
+                },
+                'errors': null,
+              }, FakeLocalStorage()),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(authControllerProvider.notifier)
+            .loginWithCard(cardUid: 'DEADBEEF');
+
+        expect(container.read(isLoggedInProvider), isFalse);
+        expect(
+          (container.read(authControllerProvider).error! as ApiException)
+              .message,
+          'Kartu tidak terdaftar.',
+        );
+      },
+    );
+  });
 }

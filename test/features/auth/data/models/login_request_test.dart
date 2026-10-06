@@ -17,4 +17,11 @@ void main() {
       });
     },
   );
+
+  test('LoginRequest.card.toJson sends only method/card_uid', () {
+    expect(LoginRequest.card(cardUid: '04A1B2C3D4E5F6').toJson(), {
+      'method': 'card',
+      'card_uid': '04A1B2C3D4E5F6',
+    });
+  });
 }

@@ -383,4 +383,70 @@ void main() {
       );
     });
   });
+
+  group('loginWithCard', () {
+    Map<String, Object?> okBody({String? username}) => {
+          'meta': {
+            'success': true,
+            'message': 'Success',
+            'code': 200,
+            'trace_id': 'abc',
+          },
+          'data': {
+            'access_token': 'tok_card',
+            'user': {'id': 'u9', 'username': username, 'role': 'tenant_keeper'},
+          },
+        };
+
+    test('posts method=card with the uid and stores the session', () async {
+      final storage = FakeLocalStorage();
+      final dio = cannedDio(200, okBody(username: 'budi'));
+      final repository = AuthRepository(dio: dio, localStorage: storage);
+
+      final response = await repository.loginWithCard(cardUid: '04A1B2C3');
+
+      final request = (dio.httpClientAdapter as CannedAdapter).lastRequest!;
+      expect(request.path, '/v1/auth/login');
+      expect(request.data, {'method': 'card', 'card_uid': '04A1B2C3'});
+      expect(response.accessToken, 'tok_card');
+      expect(storage.values[authTokenStorageKey], 'tok_card');
+      expect(storage.values[sessionRoleStorageKey], 'tenant_keeper');
+    });
+
+    test('keeps the role when the card user has no username', () async {
+      final storage = FakeLocalStorage();
+      final repository = AuthRepository(
+        dio: cannedDio(200, okBody()),
+        localStorage: storage,
+      );
+
+      await repository.loginWithCard(cardUid: '04A1B2C3');
+
+      // A card-only user has no username; that must not wipe the role the
+      // router needs to pick the tenant/busboy shell.
+      expect(storage.values[sessionRoleStorageKey], 'tenant_keeper');
+      expect(storage.values.containsKey(sessionUsernameStorageKey), isFalse);
+    });
+
+    test('maps 401 to a card-specific message', () async {
+      final repository = AuthRepository(
+        dio: cannedDio(401, {
+          'meta': {'success': false, 'message': 'Unauthorized', 'code': 401},
+          'errors': null,
+        }),
+        localStorage: FakeLocalStorage(),
+      );
+
+      expect(
+        () => repository.loginWithCard(cardUid: 'DEADBEEF'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            'Kartu tidak terdaftar.',
+          ),
+        ),
+      );
+    });
+  });
 }

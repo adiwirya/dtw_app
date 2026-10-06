@@ -6,6 +6,7 @@ import 'package:dtw_app/core/notifications/busboy_foreground_service.dart';
 import 'package:dtw_app/core/notifications/tenant_foreground_service.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/realtime/tenant_realtime_service.dart';
+import 'package:dtw_app/features/auth/data/models/login_response.dart';
 import 'package:dtw_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -30,16 +31,32 @@ class AuthController extends _$AuthController {
   @override
   AuthState build() => const AuthState();
 
+  void clearError() {
+    if (state.error != null) state = const AuthState();
+  }
+
   Future<void> login({
     required String username,
     required String password,
-  }) async {
+  }) => _signIn(
+    () => ref
+        .read(authRepositoryProvider)
+        .loginWithPassword(
+          username: username,
+          password: password,
+        ),
+  );
+
+  /// NFC tap-login with the tag's [cardUid] — same session setup and
+  /// background services as [login].
+  Future<void> loginWithCard({required String cardUid}) => _signIn(
+    () => ref.read(authRepositoryProvider).loginWithCard(cardUid: cardUid),
+  );
+
+  Future<void> _signIn(Future<LoginResponse> Function() request) async {
     state = const AuthState(isLoading: true);
     try {
-      final response = await ref.read(authRepositoryProvider).loginWithPassword(
-            username: username,
-            password: password,
-          );
+      final response = await request();
       ref.read(isLoggedInProvider.notifier).state = true;
       ref.read(sessionUserIdProvider.notifier).state = response.user.id;
       ref.read(sessionUsernameProvider.notifier).state = response.user.username;

@@ -12,7 +12,7 @@ part 'auth_repository.g.dart';
 
 class AuthRepository {
   AuthRepository({required this._dio, required LocalStorage localStorage})
-      : _localStorage = localStorage;
+    : _localStorage = localStorage;
 
   final Dio _dio;
   final LocalStorage _localStorage;
@@ -20,14 +20,26 @@ class AuthRepository {
   Future<LoginResponse> loginWithPassword({
     required String username,
     required String password,
+  }) => _login(
+    LoginRequest.password(username: username, password: password),
+    unauthorizedMessage: 'Username atau password salah.',
+  );
+
+  /// NFC tap-login (`method: "card"`). [cardUid] is sent as the tag reports
+  /// it. Same session storage as [loginWithPassword].
+  Future<LoginResponse> loginWithCard({required String cardUid}) => _login(
+    LoginRequest.card(cardUid: cardUid),
+    unauthorizedMessage: 'Kartu tidak terdaftar.',
+  );
+
+  Future<LoginResponse> _login(
+    LoginRequest request, {
+    required String unauthorizedMessage,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/v1/auth/login',
-        data: LoginRequest.password(
-          username: username,
-          password: password,
-        ).toJson(),
+        data: request.toJson(),
       );
       final loginResponse = LoginResponse.fromJson(response.data!);
       await _localStorage.write(authTokenStorageKey, loginResponse.accessToken);
@@ -38,7 +50,6 @@ class AuthRepository {
       } else {
         await _localStorage.delete(sessionRoleStorageKey);
       }
-      // Named to avoid shadowing this method's `username` parameter.
       final sessionUsername = loginResponse.user.username;
       if (sessionUsername != null) {
         await _localStorage.write(
@@ -47,7 +58,6 @@ class AuthRepository {
         );
       } else {
         await _localStorage.delete(sessionUsernameStorageKey);
-      await _localStorage.delete(sessionRoleStorageKey);
       }
       final name = loginResponse.user.name;
       if (name != null) {
@@ -64,16 +74,16 @@ class AuthRepository {
         await _localStorage.delete(tenantBranchIdStorageKey);
       }
       if (loginResponse.zoneId != null) {
-        await _localStorage.write(busboyZoneIdStorageKey, loginResponse.zoneId!);
+        await _localStorage.write(
+          busboyZoneIdStorageKey,
+          loginResponse.zoneId!,
+        );
       } else {
         await _localStorage.delete(busboyZoneIdStorageKey);
       }
       return loginResponse;
     } on DioException catch (error) {
-      throw mapDioError(
-        error,
-        unauthorizedMessage: (_) => 'Username atau password salah.',
-      );
+      throw mapDioError(error, unauthorizedMessage: (_) => unauthorizedMessage);
     }
   }
 
@@ -133,11 +143,10 @@ class AuthRepository {
       await _localStorage.delete(busboyZoneIdStorageKey);
     }
   }
-
 }
 
 @riverpod
 AuthRepository authRepository(Ref ref) => AuthRepository(
-      dio: ref.watch(dioProvider),
-      localStorage: ref.watch(localStorageProvider),
-    );
+  dio: ref.watch(dioProvider),
+  localStorage: ref.watch(localStorageProvider),
+);

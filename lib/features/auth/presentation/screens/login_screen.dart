@@ -1,9 +1,12 @@
 import 'package:dtw_app/core/exceptions.dart';
+import 'package:dtw_app/core/nfc/card_reader_service.dart';
 import 'package:dtw_app/core/router/app_router.dart';
 import 'package:dtw_app/core/theme/app_theme.dart';
 import 'package:dtw_app/core/widgets/app_input.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
+import 'package:dtw_app/core/widgets/secondary_button.dart';
 import 'package:dtw_app/features/auth/presentation/providers/auth_controller.dart';
+import 'package:dtw_app/features/auth/presentation/widgets/tap_card_sheet.dart';
 import 'package:dtw_app/features/device/data/services/device_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +16,14 @@ import 'package:go_router/go_router.dart';
 /// screen so an admin can match this device in the CMS.
 final _androidIdProvider = FutureProvider<String?>(
   (ref) => ref.watch(deviceIdentityProvider).deviceId(),
+);
+
+/// Whether a tap-card login option makes sense on this device — hidden
+/// entirely when there is no NFC hardware (or off Android).
+final _cardLoginAvailableProvider = FutureProvider<bool>(
+  (ref) async =>
+      await ref.watch(cardReaderServiceProvider).availability() !=
+      CardReaderAvailability.unsupported,
 );
 
 /// The login screen — the app's single shared entry point, hosted on `/login`.
@@ -36,11 +47,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _rememberMe = false;
   String? _validationMessage;
 
+  /// While the tap-card sheet is up it shows its own errors, so the form
+  /// must not repeat the same `AuthController` error behind it.
+  bool _cardSheetOpen = false;
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onTapKartu() async {
+    setState(() {
+      _cardSheetOpen = true;
+      _validationMessage = null;
+    });
+    await showTapCardSheet(context);
+    if (!mounted) return;
+    setState(() => _cardSheetOpen = false);
+    // A cancelled attempt must not leave its error on the password form.
+    ref.read(authControllerProvider.notifier).clearError();
   }
 
   Future<void> _onMasuk() async {
@@ -186,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildForm(AuthState authState) {
-    final error = authState.error;
+    final error = _cardSheetOpen ? null : authState.error;
     final errorMessage =
         _validationMessage ??
         (error == null
@@ -228,8 +255,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             label: 'Masuk',
             onPressed: authState.isLoading ? null : _onMasuk,
           ),
+          if (ref.watch(_cardLoginAvailableProvider).valueOrNull ?? false) ...[
+            const SizedBox(height: 16),
+            _buildOrDivider(),
+            const SizedBox(height: 16),
+            SecondaryButton(
+              label: 'Masuk dengan Tap Kartu',
+              onPressed: authState.isLoading ? null : _onTapKartu,
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildOrDivider() {
+    const line = Expanded(
+      child: Divider(height: 1, thickness: 1, color: AppColors.neutral100),
+    );
+    return const Row(
+      children: [
+        line,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'atau',
+            style: TextStyle(
+              color: AppColors.neutral500,
+              fontSize: 12,
+              height: 1,
+            ),
+          ),
+        ),
+        line,
+      ],
     );
   }
 

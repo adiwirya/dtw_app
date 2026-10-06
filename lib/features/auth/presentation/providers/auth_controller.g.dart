@@ -6,7 +6,7 @@ part of 'auth_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authControllerHash() => r'bfccecbd51776187ddb16f1282dd11d6753870e0';
+String _$authControllerHash() => r'ae8500a8ea6dcf4a85c9ef73018ffd511e954104';
 
 /// `keepAlive: true` — without it this autoDisposes as soon as the last
 /// reader drops its subscription (e.g. a bare `container.read`/`ref.read`
