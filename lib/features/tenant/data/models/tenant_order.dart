@@ -3,12 +3,15 @@ import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card
 import 'package:flutter/foundation.dart';
 
 /// Mirrors the backend's `order_status` enum (confirmed live: values are
-/// UPPER_SNAKE_CASE strings). Distinct from the UI-only [IncomingOrderStatus]
+/// UPPER_SNAKE_CASE strings): `PENDING → PREPARING → READY → DELIVERING →
+/// COMPLETED / PARTIAL_COMPLETED` (`CANCELLED` off to the side). Distinct from
+/// the UI-only [IncomingOrderStatus]
 /// — see [incomingOrderStatusFromBackend] for the translation.
 enum TenantOrderStatus {
   pending,
   preparing,
   ready,
+  delivering,
   completed,
   partialCompleted,
   cancelled,
@@ -18,6 +21,7 @@ TenantOrderStatus tenantOrderStatusFromWire(String value) => switch (value) {
       'PENDING' => TenantOrderStatus.pending,
       'PREPARING' => TenantOrderStatus.preparing,
       'READY' => TenantOrderStatus.ready,
+      'DELIVERING' => TenantOrderStatus.delivering,
       'COMPLETED' => TenantOrderStatus.completed,
       'PARTIAL_COMPLETED' => TenantOrderStatus.partialCompleted,
       'CANCELLED' => TenantOrderStatus.cancelled,
@@ -28,6 +32,7 @@ String tenantOrderStatusToWire(TenantOrderStatus status) => switch (status) {
       TenantOrderStatus.pending => 'PENDING',
       TenantOrderStatus.preparing => 'PREPARING',
       TenantOrderStatus.ready => 'READY',
+      TenantOrderStatus.delivering => 'DELIVERING',
       TenantOrderStatus.completed => 'COMPLETED',
       TenantOrderStatus.partialCompleted => 'PARTIAL_COMPLETED',
       TenantOrderStatus.cancelled => 'CANCELLED',
@@ -80,6 +85,8 @@ IncomingOrderStatus incomingOrderStatusFromBackend(
       return fulfillmentType == OrderFulfillmentType.selfPickup
           ? IncomingOrderStatus.diproses
           : IncomingOrderStatus.selesai;
+    // A busboy has claimed it — the tenant's part is over.
+    case TenantOrderStatus.delivering:
     case TenantOrderStatus.completed:
     case TenantOrderStatus.partialCompleted:
       return IncomingOrderStatus.selesai;
@@ -238,6 +245,7 @@ class TenantOrder {
       items: items,
       total: formatRupiah(grandTotal),
       fulfillmentType: fulfillmentType,
+      readyForPickup: status == TenantOrderStatus.ready,
     );
   }
 }

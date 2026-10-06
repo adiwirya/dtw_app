@@ -104,7 +104,7 @@ exists or guessing at a shape.
   }
   ```
   `order_status` is an UPPER_SNAKE_CASE enum:
-  `PENDING | PREPARING | READY | COMPLETED | PARTIAL_COMPLETED | CANCELLED`.
+  `PENDING | PREPARING | READY | DELIVERING | COMPLETED | PARTIAL_COMPLETED | CANCELLED`.
 
 ## Endpoints by tag
 

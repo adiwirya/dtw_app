@@ -350,6 +350,20 @@ void main() {
       );
     });
 
+    test('maps delivering to selesai (a busboy has claimed it)', () {
+      expect(
+        tenantOrderStatusFromWire('DELIVERING'),
+        TenantOrderStatus.delivering,
+      );
+      expect(
+        incomingOrderStatusFromBackend(
+          TenantOrderStatus.delivering,
+          OrderFulfillmentType.delivery,
+        ),
+        IncomingOrderStatus.selesai,
+      );
+    });
+
     test('maps preparing to diproses regardless of fulfillment type', () {
       expect(
         incomingOrderStatusFromBackend(

@@ -39,6 +39,18 @@ const _diprosesSelfPickup = IncomingOrderData(
   fulfillmentType: OrderFulfillmentType.selfPickup,
 );
 
+const _diprosesSelfPickupReady = IncomingOrderData(
+  orderId: '92842',
+  displayNumber: 'RCP-92842',
+  tableName: 'Meja A-12',
+  time: '10:36 WIB',
+  status: IncomingOrderStatus.diproses,
+  items: _items,
+  total: 'Rp40.000',
+  fulfillmentType: OrderFulfillmentType.selfPickup,
+  readyForPickup: true,
+);
+
 Widget _host(Widget child) => MaterialApp(
       home: Scaffold(
         body: Center(child: SizedBox(width: 358, child: child)),
@@ -47,14 +59,14 @@ Widget _host(Widget child) => MaterialApp(
 
 void main() {
   group('IncomingOrderCard', () {
-    testWidgets('baru: renders fields + Tolak/Terima, red status',
+    testWidgets('baru: renders fields + Tolak/Terima',
         (tester) async {
       await tester.pumpWidget(_host(const IncomingOrderCard(data: _baru)));
 
       expect(find.text('#RCP-92842'), findsOneWidget);
       expect(find.text('Meja A-12'), findsOneWidget);
       expect(find.text('10:36 WIB'), findsOneWidget);
-      expect(find.text('Baru'), findsOneWidget);
+      expect(find.text('Baru'), findsNothing);
       expect(find.text('Paket Super Besar'), findsOneWidget);
       expect(find.text('Rp35.000'), findsOneWidget);
       expect(find.text('Catatan : -'), findsOneWidget);
@@ -123,7 +135,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Diproses'), findsOneWidget);
+      expect(find.text('Diproses'), findsNothing);
       expect(find.text('Tolak'), findsNothing);
       expect(find.text('Siap Diambil'), findsOneWidget);
 
@@ -148,13 +160,34 @@ void main() {
     });
 
     testWidgets(
-        'diproses + self-pickup: Verifikasi Pickup fires onVerifyPickup '
-        'instead of Siap Diambil', (tester) async {
-      var verified = 0;
+        'diproses + self-pickup, not ready yet: still Siap Diambil',
+        (tester) async {
+      var ready = 0;
       await tester.pumpWidget(
         _host(
           IncomingOrderCard(
             data: _diprosesSelfPickup,
+            onPickupReady: () => ready++,
+          ),
+        ),
+      );
+
+      expect(find.text('Siap Diambil'), findsOneWidget);
+      expect(find.text('Verifikasi Pickup'), findsNothing);
+
+      await tester.tap(find.text('Siap Diambil'));
+      await tester.pump();
+      expect(ready, 1);
+    });
+
+    testWidgets(
+        'diproses + self-pickup, ready: Verifikasi Pickup fires '
+        'onVerifyPickup instead of Siap Diambil', (tester) async {
+      var verified = 0;
+      await tester.pumpWidget(
+        _host(
+          IncomingOrderCard(
+            data: _diprosesSelfPickupReady,
             onVerifyPickup: () => verified++,
           ),
         ),

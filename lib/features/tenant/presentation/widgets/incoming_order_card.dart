@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 /// The tenant-side lifecycle stage of an incoming order, mapped to the three
 /// "Order" sub-tabs (`menu-order-baru` / `menu-diproses` / selesai).
 ///
-/// Drives the coloured status label and the action affordance in
-/// [IncomingOrderCard]:
-/// - [baru] ("Order Baru"): red `Baru` label + "Tolak" / "Terima" buttons.
-/// - [diproses] ("Diproses"): amber `Diproses` label + a single full-width
-///   "Siap Diambil" button.
-/// - [selesai] ("Selesai"): green `Selesai` label, no action buttons.
+/// Drives the action affordance in [IncomingOrderCard]:
+/// - [baru] ("Order Baru"): "Tolak" / "Terima" buttons.
+/// - [diproses] ("Diproses"): a single full-width "Siap Diambil" button;
+///   a self-pickup order that is already ready shows "Verifikasi Pickup"
+///   instead.
+/// - [selesai] ("Selesai"): no action buttons.
 enum IncomingOrderStatus { baru, diproses, selesai }
 
 /// One line item of an incoming order (`Frame 2018` in the card).
@@ -85,6 +85,7 @@ class IncomingOrderData {
     required this.total,
     this.note,
     this.fulfillmentType = OrderFulfillmentType.delivery,
+    this.readyForPickup = false,
   });
 
   /// The real order id — what every mutation (`accept`/`reject`/`markReady`,
@@ -103,7 +104,7 @@ class IncomingOrderData {
   /// Quoted/created time, e.g. `10:36 WIB`.
   final String time;
 
-  /// Lifecycle stage — selects the status label + action row.
+  /// Lifecycle stage — selects the action row.
   final IncomingOrderStatus status;
 
   /// Line items shown in the body.
@@ -119,6 +120,12 @@ class IncomingOrderData {
   /// [FulfillmentBadge] and, in [IncomingOrderStatus.diproses], which action
   /// button renders (see `IncomingOrderCard._actions`).
   final OrderFulfillmentType fulfillmentType;
+
+  /// The kitchen has marked the order ready (`READY`). For a self-pickup
+  /// order this is what flips the [IncomingOrderStatus.diproses] button from
+  /// "Siap Diambil" to "Verifikasi Pickup" — the card stays in Diproses until
+  /// the pickup code is verified.
+  final bool readyForPickup;
 }
 
 /// The "Delivery" / "Pickup" badge shown on every order card
@@ -170,7 +177,7 @@ class FulfillmentBadge extends StatelessWidget {
 /// Reusable incoming-order summary card (`menu-order-baru` / `menu-diproses`).
 ///
 /// One widget covers all three sub-tabs; [IncomingOrderData.status] drives the
-/// coloured label and the action affordance:
+/// action affordance:
 /// - [IncomingOrderStatus.baru]: [onReject] ("Tolak") + [onAccept] with an
 ///   overridable [acceptLabel] (defaults to `Terima`).
 /// - [IncomingOrderStatus.diproses]: a single [onPickupReady] ("Siap Diambil").
@@ -242,28 +249,6 @@ class IncomingOrderCard extends StatelessWidget {
     height: 1.2,
   );
 
-  Color get _statusColor {
-    switch (data.status) {
-      case IncomingOrderStatus.baru:
-        return AppColors.orderBadgeRed;
-      case IncomingOrderStatus.diproses:
-        return AppColors.orderBadgeAmber;
-      case IncomingOrderStatus.selesai:
-        return AppColors.successGreen;
-    }
-  }
-
-  String get _statusLabel {
-    switch (data.status) {
-      case IncomingOrderStatus.baru:
-        return 'Baru';
-      case IncomingOrderStatus.diproses:
-        return 'Diproses';
-      case IncomingOrderStatus.selesai:
-        return 'Selesai';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(_radius);
@@ -324,8 +309,8 @@ class IncomingOrderCard extends StatelessWidget {
         Row(
           children: [
             // A long receipt number can still outrun the card's width, so it
-            // needs to yield space to and truncate before the fixed-width
-            // status label rather than overflow past the card edge.
+            // needs to yield space to and truncate before the fulfillment
+            // badge rather than overflow past the card edge.
             Expanded(
               child: Text(
                 '#${data.displayNumber}',
@@ -336,16 +321,6 @@ class IncomingOrderCard extends StatelessWidget {
             ),
             const SizedBox(width: _gap),
             FulfillmentBadge(type: data.fulfillmentType),
-            const SizedBox(width: 8),
-            Text(
-              _statusLabel,
-              style: TextStyle(
-                color: _statusColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 1.2,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -419,7 +394,8 @@ class IncomingOrderCard extends StatelessWidget {
           ],
         );
       case IncomingOrderStatus.diproses:
-        return data.fulfillmentType == OrderFulfillmentType.selfPickup
+        return data.fulfillmentType == OrderFulfillmentType.selfPickup &&
+                data.readyForPickup
             ? _PillButton(
                 label: 'Verifikasi Pickup',
                 onPressed: onVerifyPickup,
