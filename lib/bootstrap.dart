@@ -24,7 +24,7 @@ import 'package:sunmi_utils/sunmi_utils.dart';
 /// Boots the app. [overrides] lets an entrypoint reconfigure the
 /// ProviderScope without changing `App`.
 Future<void> bootstrap({List<Override> overrides = const []}) async {
-  WidgetsFlutterBinding.ensureInitialized();
+  SentryWidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Debug builds keep crashing locally but don't pollute the Crashlytics
   // dashboard with dev noise.
