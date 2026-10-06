@@ -12,8 +12,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'dio_provider.g.dart';
 
 /// Downtown CMS / DT POS backend base URL — same host for both busboy and
-/// tenant flavors; they differ only in which paths they call
-/// (`/v1/...` vs `/v1/storefront/...`).
+/// tenant sessions; they differ only in which paths they call
+/// (`/v1/busboy/...` vs the tenant `/v1/...` endpoints). Never call
+/// `/v1/storefront/...` — see CLAUDE.md.
 const _baseUrl = 'https://dtw-cms.gadingemerald.com/api';
 
 @riverpod
