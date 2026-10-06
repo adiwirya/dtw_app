@@ -50,6 +50,8 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
     IncomingOrderStatus.selesai,
   ];
 
+  static const bool _showTestPrintButton = false;
+
   late int _selected = _statuses.indexOf(widget.initialStatus);
 
   int _countFor(List<IncomingOrderData> board, IncomingOrderStatus status) =>
@@ -67,8 +69,11 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
       // Debug-only: prints a dummy bon so the Sunmi layout/hardware can be
       // checked without a real order to accept. Never built in release, and
       // `flutter test` sets `FLUTTER_TEST` so it doesn't leak into golden
-      // screenshots either.
-      floatingActionButton: kDebugMode &&
+      // screenshots either. Hidden by default — flip [_showTestPrintButton]
+      // when the bon layout needs checking on a device.
+      floatingActionButton:
+          _showTestPrintButton &&
+              kDebugMode &&
               Platform.environment['FLUTTER_TEST'] == null
           ? FloatingActionButton.extended(
               onPressed: () => _printDummyBon(context),
@@ -114,6 +119,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
       branchId: branch?.id ?? 'dummy-branch',
       receiptNumber: 'PRN-6327',
       tableNumber: '2',
+      customerName: 'Budi Santoso',
       grandTotal: 95000,
       status: TenantOrderStatus.pending,
       createdAt: DateTime.now(),
@@ -135,7 +141,9 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
     );
 
     try {
-      await ref.read(receiptPrinterServiceProvider).printOrder(
+      await ref
+          .read(receiptPrinterServiceProvider)
+          .printOrder(
             order,
             brandName: branch?.brandName ?? 'Ayam Betutu Khas Gilimanuk Bali',
             areaName: branch?.areaName ?? 'Downtown',

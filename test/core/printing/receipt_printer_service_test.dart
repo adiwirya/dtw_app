@@ -2,8 +2,11 @@ import 'package:dtw_app/core/printing/receipt_printer_service.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sunmi_utils/sunmi_utils.dart';
 
-TenantOrder _order({String? tableNumber = '2'}) => TenantOrder(
+TenantOrder _order({String? tableNumber = '2', String? customerName}) =>
+    TenantOrder(
+      customerName: customerName,
       id: 'order-1',
       orderGroupId: 'group-1',
       branchId: 'branch-1',
@@ -26,17 +29,61 @@ TenantOrder _order({String? tableNumber = '2'}) => TenantOrder(
 /// Concatenates every [ReceiptText]/[ReceiptRow]'s printable text, in
 /// order — enough to assert on content without coupling to font/align enums.
 List<String> _textsOf(List<ReceiptLine> lines) => [
-      for (final line in lines)
-        switch (line) {
-          ReceiptText() => line.text,
-          ReceiptRow() => line.columns.map((c) => c.text).join(' | '),
-          ReceiptDivider() => '---',
-          ReceiptFeed() => '',
-        },
-    ];
+  for (final line in lines)
+    switch (line) {
+      ReceiptText() => line.text,
+      ReceiptRow() => line.columns.map((c) => c.text).join(' | '),
+      ReceiptDivider() => '---',
+      ReceiptFeed() => '',
+    },
+];
 
 void main() {
   group('buildReceiptLines', () {
+    List<String> receiptTexts(TenantOrder order) => _textsOf(
+      buildReceiptLines(
+        order,
+        brandName: 'Ayam Betutu Khas Gilimanuk Bali',
+        areaName: 'Downtown',
+        locationCode: 'SMB',
+      ),
+    );
+
+    test('prints only the Total row in large type', () {
+      final lines = buildReceiptLines(
+        _order(),
+        brandName: 'Ayam Betutu Khas Gilimanuk Bali',
+        areaName: 'Downtown',
+        locationCode: 'SMB',
+      );
+      ReceiptRow rowStarting(String label) => lines
+          .whereType<ReceiptRow>()
+          .firstWhere((r) => r.columns.first.text == label);
+
+      expect(rowStarting('Total').size, SunmiFontSize.lg);
+      expect(rowStarting('Subtotal').size, isNull);
+    });
+
+    test('prints the customer name under the table when known', () {
+      final texts = receiptTexts(_order(customerName: 'Budi Santoso'));
+
+      final table = texts.indexOf('No Meja : 2');
+      expect(texts[table + 1], 'Nama : Budi Santoso');
+    });
+
+    test('omits the customer line when there is no name', () {
+      expect(
+        receiptTexts(_order()).where((t) => t.startsWith('Nama')),
+        isEmpty,
+      );
+      expect(
+        receiptTexts(
+          _order(customerName: '  '),
+        ).where((t) => t.startsWith('Nama')),
+        isEmpty,
+      );
+    });
+
     test('matches the Figma "Order Normal" bon layout', () {
       final texts = _textsOf(
         buildReceiptLines(
@@ -48,7 +95,7 @@ void main() {
       );
 
       expect(texts, [
-        'DTW ORDER',
+        'Click N Dine',
         'Ayam Betutu Khas Gilimanuk Bali',
         'DOWNTOWN - SMB',
         '', // feed

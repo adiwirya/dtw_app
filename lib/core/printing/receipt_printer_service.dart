@@ -32,10 +32,13 @@ class ReceiptText extends ReceiptLine {
 /// One row of columns (qty/name/price and similar), via
 /// `SunmiPrinter.printTable`.
 class ReceiptRow extends ReceiptLine {
-  const ReceiptRow(this.columns, {this.bold = false});
+  const ReceiptRow(this.columns, {this.bold = false, this.size});
 
   final List<SunmiColumn> columns;
   final bool bold;
+
+  /// Font size for this row; `null` keeps whatever size is already set.
+  final SunmiFontSize? size;
 }
 
 /// A full-width dashed divider.
@@ -75,7 +78,7 @@ List<ReceiptLine> buildReceiptLines(
 }) {
   final lines = <ReceiptLine>[
     const ReceiptText(
-      'DTW ORDER',
+      'Click N Dine',
       align: SunmiAlign.center,
       bold: true,
       size: SunmiFontSize.xl,
@@ -84,7 +87,6 @@ List<ReceiptLine> buildReceiptLines(
     ReceiptText(
       '${areaName.toUpperCase()} - ${locationCode.toUpperCase()}',
       align: SunmiAlign.center,
-      size: SunmiFontSize.sm,
     ),
     const ReceiptFeed(),
     ReceiptText(
@@ -94,13 +96,11 @@ List<ReceiptLine> buildReceiptLines(
       size: SunmiFontSize.lg,
     ),
     const ReceiptFeed(),
-    ReceiptText(
-      'No Meja : ${order.tableNumber ?? '-'}',
-      size: SunmiFontSize.sm,
-    ),
+    ReceiptText('No Meja : ${order.tableNumber ?? '-'}'),
+    if (order.customerName?.trim() case final name? when name.isNotEmpty)
+      ReceiptText('Nama : $name'),
     ReceiptText(
       'Tanggal Order : ${_formatOrderTime(order.createdAt)}',
-      size: SunmiFontSize.sm,
     ),
     const ReceiptDivider(),
   ];
@@ -129,14 +129,18 @@ List<ReceiptLine> buildReceiptLines(
         align: SunmiAlign.right,
       ),
     ], bold: true),
-    ReceiptRow([
-      const SunmiColumn('Total', width: 1),
-      SunmiColumn(
-        _plainAmount(order.grandTotal),
-        width: 1,
-        align: SunmiAlign.right,
-      ),
-    ], bold: true),
+    ReceiptRow(
+      [
+        const SunmiColumn('Total', width: 1),
+        SunmiColumn(
+          _plainAmount(order.grandTotal),
+          width: 1,
+          align: SunmiAlign.right,
+        ),
+      ],
+      bold: true,
+      size: SunmiFontSize.lg,
+    ),
     const ReceiptDivider(),
     const ReceiptFeed(3),
   ]);
@@ -152,8 +156,18 @@ String _plainAmount(int value) => formatRupiah(value).replaceFirst('Rp', '');
 /// receipt; deliberately not `Delivery.formatDate`'s full month name.
 String _formatOrderTime(DateTime at) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
   final hh = at.hour.toString().padLeft(2, '0');
   final mm = at.minute.toString().padLeft(2, '0');
@@ -175,7 +189,7 @@ abstract class ReceiptPrinterService {
 /// hardware only exists on Sunmi Android devices).
 class SunmiReceiptPrinterService implements ReceiptPrinterService {
   SunmiReceiptPrinterService({bool? isAndroid})
-      : _isAndroid = isAndroid ?? Platform.isAndroid;
+    : _isAndroid = isAndroid ?? Platform.isAndroid;
 
   final bool _isAndroid;
 
@@ -201,12 +215,15 @@ class SunmiReceiptPrinterService implements ReceiptPrinterService {
           await SunmiPrinter.setFontSize(line.size.value);
           await SunmiPrinter.printText(line.text);
         case ReceiptRow():
+          if (line.size case final size?) {
+            await SunmiPrinter.setFontSize(size.value);
+          }
           await SunmiPrinter.setBold(line.bold);
           await SunmiPrinter.printTable(line.columns);
         case ReceiptDivider():
           await SunmiPrinter.setAlignment(SunmiAlign.left);
           await SunmiPrinter.setBold(false);
-          await SunmiPrinter.setFontSize(SunmiFontSize.sm.value);
+          await SunmiPrinter.setFontSize(SunmiFontSize.md.value);
           await SunmiPrinter.printText('-' * _dividerWidth);
         case ReceiptFeed():
           await SunmiPrinter.lineWrap(line.lines);

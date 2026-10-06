@@ -109,6 +109,7 @@ class TenantOrder {
     required this.createdAt,
     required this.items,
     this.tableNumber,
+    this.customerName,
     this.broadcastEventId,
     this.fulfillmentType = OrderFulfillmentType.delivery,
   });
@@ -124,6 +125,7 @@ class TenantOrder {
       // not take down the whole board's fetch.
       receiptNumber: json['receipt_number'] as String? ?? '-',
       tableNumber: json['table_number'] as String?,
+      customerName: json['customer_name'] as String?,
       grandTotal: (json['grand_total'] as num).toInt(),
       status: tenantOrderStatusFromWire(json['order_status'] as String),
       createdAt:
@@ -169,6 +171,7 @@ class TenantOrder {
     }
     if (orderGroup is Map) {
       order['is_delivery'] = orderGroup['is_delivery'];
+      order['customer_name'] ??= orderGroup['customer_name'];
     }
     order['broadcast_event_id'] ??= payload['broadcast_event_id'];
     return TenantOrder.fromJson(order);
@@ -183,6 +186,12 @@ class TenantOrder {
   /// original "no table name" gap. Null for orders fetched before this field
   /// existed.
   final String? tableNumber;
+
+  /// The customer's name, printed on the bon. Not in the live
+  /// `GET /v1/orders` shape as of 2026-10-06 — read from `customer_name`
+  /// (the key the order group uses) when the API starts sending it, `null`
+  /// until then.
+  final String? customerName;
   final int grandTotal;
   final TenantOrderStatus status;
   final DateTime createdAt;
@@ -198,6 +207,7 @@ class TenantOrder {
         branchId: branchId,
         receiptNumber: receiptNumber,
         tableNumber: tableNumber,
+        customerName: customerName,
         grandTotal: grandTotal,
         status: status ?? this.status,
         createdAt: createdAt,

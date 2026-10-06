@@ -136,6 +136,40 @@ void main() {
     );
   });
 
+  group('TenantOrder customer name', () {
+    Map<String, dynamic> flat({Object? customerName}) => {
+          'id': 'o1',
+          'order_group_id': 'g1',
+          'branch_id': 'b1',
+          'receipt_number': 'RCP-1',
+          'grand_total': 1000,
+          'order_status': 'PENDING',
+          'created_at': '2026-08-07 09:24:08',
+          'items': <dynamic>[],
+          if (customerName != null) 'customer_name': customerName,
+        };
+
+    test('is read from customer_name when the API sends it', () {
+      expect(
+        TenantOrder.fromJson(flat(customerName: 'Budi Santoso')).customerName,
+        'Budi Santoso',
+      );
+    });
+
+    test('is null when the API does not send it', () {
+      expect(TenantOrder.fromJson(flat()).customerName, isNull);
+    });
+
+    test('a live payload takes it from the order group', () {
+      final order = TenantOrder.fromBroadcastPayload({
+        'order': flat(),
+        'order_group': {'customer_name': 'Siti'},
+      });
+
+      expect(order.customerName, 'Siti');
+    });
+  });
+
   group('TenantOrder.fromBroadcastPayload', () {
     test(
         'unwraps the order/order_group-nested shape of a live order.created '
