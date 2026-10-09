@@ -1,6 +1,7 @@
 import 'package:dtw_app/app.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 

@@ -40,7 +40,7 @@ Future<String?> busboyRating(Ref ref) async {
 @riverpod
 AkunAccount akunAccount(Ref ref) {
   final name = ref.watch(sessionNameProvider);
-  final rating = ref.watch(busboyRatingProvider).valueOrNull;
+  final rating = ref.watch(busboyRatingProvider).value;
   return AkunAccount(
     name: name,
     busboyId: '-',

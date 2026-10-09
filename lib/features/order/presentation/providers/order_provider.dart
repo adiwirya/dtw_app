@@ -50,7 +50,7 @@ int completedTodayCount(List<Delivery> deliveries, DateTime today) {
 /// than a fabricated number.
 @riverpod
 List<OrderHeaderStat> orderHeaderStats(Ref ref) {
-  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  final deliveries = ref.watch(orderBoardProvider).value;
   final completedToday = deliveries == null
       ? null
       : completedTodayCount(deliveries, DateTime.now());
@@ -92,7 +92,7 @@ class OrderTab extends _$OrderTab {
 }
 
 /// The busboy's raw delivery list, fetched once from
-/// `GET /api/v1/busboy/deliveries` and kept live via
+/// `GET /v1/busboy/deliveries` and kept live via
 /// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
 /// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
 /// screen's three sub-tabs are [orderBoardFrom] projections of this same
@@ -278,11 +278,11 @@ class OrderBoardNotifier extends _$OrderBoardNotifier {
 }
 
 /// Looks [orderId] (a delivery id) up out of the same list
-/// [orderBoardNotifierProvider] holds — null while the board is still
+/// [orderBoardProvider] holds — null while the board is still
 /// loading, has errored, or the delivery isn't (or is no longer) on it.
 @riverpod
 OrderDetail? orderDetail(Ref ref, String orderId) {
-  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  final deliveries = ref.watch(orderBoardProvider).value;
   if (deliveries == null) return null;
   for (final delivery in deliveries) {
     if (delivery.id == orderId) return delivery.toOrderDetail();
@@ -290,12 +290,12 @@ OrderDetail? orderDetail(Ref ref, String orderId) {
   return null;
 }
 
-/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
+/// Looks [orderId] up out of [orderBoardProvider] for the
 /// `detail-selesai` (completed-order detail) page — null while the board is
 /// still loading, has errored, or the delivery isn't on it.
 @riverpod
 CompletedOrderDetail? completedOrderDetail(Ref ref, String orderId) {
-  final deliveries = ref.watch(orderBoardNotifierProvider).valueOrNull;
+  final deliveries = ref.watch(orderBoardProvider).value;
   if (deliveries == null) return null;
   for (final delivery in deliveries) {
     if (delivery.id == orderId) return delivery.toCompletedOrderDetail();

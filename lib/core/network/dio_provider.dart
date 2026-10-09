@@ -17,7 +17,10 @@ part 'dio_provider.g.dart';
 /// `/v1/storefront/...` — see CLAUDE.md.
 const _baseUrl = 'https://dtw-cms.gadingemerald.com/api';
 
-@riverpod
+// keepAlive: the app-wide client. Its interceptors use `ref` after async gaps
+// (token read, 401 session reset), and Riverpod 3 throws on `ref` use once an
+// auto-dispose provider has been disposed.
+@Riverpod(keepAlive: true)
 Dio dio(Ref ref) {
   // Unset (Dio's default), a hung request — dead wifi, half-open TCP — waits
   // forever: no `DioException` ever fires, so neither the retry interceptor

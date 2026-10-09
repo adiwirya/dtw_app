@@ -60,10 +60,15 @@ class MenuList extends _$MenuList {
           price: price,
           description: description,
         );
-    state = AsyncData([
-      ...state.value ?? const <MenuItemData>[],
-      product.toMenuItemData(),
-    ]);
+    // The caller only `read`s this notifier, so nothing may be listening and
+    // the provider can be disposed while the request is in flight; Riverpod 3
+    // throws when `state` is set after that.
+    if (ref.mounted) {
+      state = AsyncData([
+        ...state.value ?? const <MenuItemData>[],
+        product.toMenuItemData(),
+      ]);
+    }
     return product.id;
   }
 
@@ -87,6 +92,7 @@ class MenuList extends _$MenuList {
           isActive: isActive,
           description: description,
         );
+    if (!ref.mounted) return; // see [create]
     final current = state.value ?? const <MenuItemData>[];
     state = AsyncData([
       for (final menu in current)

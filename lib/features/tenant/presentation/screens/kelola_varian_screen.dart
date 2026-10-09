@@ -55,7 +55,7 @@ class _KelolaVarianScreenState extends ConsumerState<KelolaVarianScreen> {
     // the empty state's action, so it stays hidden while loading/erroring.
     // Keyed off the unfiltered list: a search that matches nothing must not
     // turn this into the "no variants yet" screen.
-    final isEmpty = variantsAsync.valueOrNull?.isEmpty ?? false;
+    final isEmpty = variantsAsync.value?.isEmpty ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.white,

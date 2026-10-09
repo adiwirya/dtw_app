@@ -75,7 +75,7 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
   @override
   Widget build(BuildContext context) {
     final menusAsync = ref.watch(menuListProvider);
-    final branch = ref.watch(currentTenantBranchProvider).valueOrNull;
+    final branch = ref.watch(currentTenantBranchProvider).value;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -114,7 +114,7 @@ class _MenuSayaScreenState extends ConsumerState<MenuSayaScreen> {
             // Counts come from the fetched list, so the pills can only be
             // built once it has resolved.
             MenuFilterTabs(
-              filters: menuFiltersFor(menusAsync.valueOrNull ?? const []),
+              filters: menuFiltersFor(menusAsync.value ?? const []),
               selectedIndex: _filter.index,
               onChanged: (i) =>
                   setState(() => _filter = MenuStatusFilter.values[i]),

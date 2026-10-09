@@ -165,7 +165,7 @@ class _OrderSuccessRouteScreenState
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(orderDetailProvider(widget.orderId));
-    final boardAsync = ref.watch(orderBoardNotifierProvider);
+    final boardAsync = ref.watch(orderBoardProvider);
 
     // The board is fetched asynchronously, so the order is only resolvable a
     // frame or more after this route builds — raise the modal on the first

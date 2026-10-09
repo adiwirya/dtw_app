@@ -6,24 +6,53 @@ part of 'tenant_foreground_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(tenantForegroundService)
+final tenantForegroundServiceProvider = TenantForegroundServiceProvider._();
+
+final class TenantForegroundServiceProvider
+    extends
+        $FunctionalProvider<
+          TenantForegroundService,
+          TenantForegroundService,
+          TenantForegroundService
+        >
+    with $Provider<TenantForegroundService> {
+  TenantForegroundServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'tenantForegroundServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$tenantForegroundServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<TenantForegroundService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  TenantForegroundService create(Ref ref) {
+    return tenantForegroundService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TenantForegroundService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TenantForegroundService>(value),
+    );
+  }
+}
+
 String _$tenantForegroundServiceHash() =>
     r'9d24bdd4a9ede003abd2369b1ab08630c5da832f';
-
-/// See also [tenantForegroundService].
-@ProviderFor(tenantForegroundService)
-final tenantForegroundServiceProvider =
-    Provider<TenantForegroundService>.internal(
-      tenantForegroundService,
-      name: r'tenantForegroundServiceProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$tenantForegroundServiceHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TenantForegroundServiceRef = ProviderRef<TenantForegroundService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

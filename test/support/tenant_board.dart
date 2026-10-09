@@ -8,6 +8,7 @@ import 'package:dtw_app/features/tenant/data/repositories/tenant_branch_reposito
 import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_branch_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'canned_dio.dart';
 import 'fake_local_storage.dart';

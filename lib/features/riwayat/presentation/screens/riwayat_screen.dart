@@ -19,7 +19,7 @@ import 'package:go_router/go_router.dart';
 /// Terakhir); the shared [SegmentedTabBar] switches the date-grouped history
 /// list in place (mirroring the Order home's sub-tab pattern via
 /// [riwayatTabProvider]). Backed by the real, zone-scoped
-/// [riwayatBoardProvider] (`GET /api/v1/busboy/deliveries?status=DELIVERED`),
+/// [riwayatBoardProvider] (`GET /v1/busboy/deliveries?status=DELIVERED`),
 /// bucketed client-side by [riwayatDaysFrom]. Rows open `detail-riwayat`.
 /// Hosted inside the app shell, so the bottom nav is provided by `AppShell`.
 class RiwayatScreen extends ConsumerStatefulWidget {

@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:sunmi_utils/sunmi_utils.dart';
 
@@ -115,6 +116,10 @@ Future<void> bootstrap({List<Override> overrides = const []}) async {
   final deviceRegistered = !Platform.isAndroid || deviceFlag == 'true';
 
   final container = ProviderContainer(
+    // Riverpod 3 retries a failing provider with backoff by default; the app
+    // surfaces failures with its own retry UI (`ErrorView`) instead, so a
+    // failed fetch must stay failed until the user retries.
+    retry: (retryCount, error) => null,
     overrides: [
       localStorageProvider.overrideWithValue(storage),
       isLoggedInProvider.overrideWith(

@@ -120,9 +120,9 @@ class _VerifikasiPickupScreenState
 
   @override
   Widget build(BuildContext context) {
-    final board = ref.watch(tenantOrderBoardProvider).valueOrNull;
+    final board = ref.watch(tenantOrderBoardProvider).value;
     final order = _findOrder(board);
-    final branch = ref.watch(currentTenantBranchProvider).valueOrNull;
+    final branch = ref.watch(currentTenantBranchProvider).value;
 
     return Scaffold(
       backgroundColor: AppColors.white,

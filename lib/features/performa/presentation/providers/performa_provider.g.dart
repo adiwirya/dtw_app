@@ -6,43 +6,96 @@ part of 'performa_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$performaV1DataHash() => r'68ee350a0239f477daa835c461c742fad64f49f2';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Mock backing data for the `performa-v1` frame.
+
+@ProviderFor(performaV1Data)
+final performaV1DataProvider = PerformaV1DataProvider._();
 
 /// Mock backing data for the `performa-v1` frame.
-///
-/// Copied from [performaV1Data].
-@ProviderFor(performaV1Data)
-final performaV1DataProvider = AutoDisposeProvider<PerformaV1Data>.internal(
-  performaV1Data,
-  name: r'performaV1DataProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$performaV1DataHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef PerformaV1DataRef = AutoDisposeProviderRef<PerformaV1Data>;
-String _$performaV2DataHash() => r'c4192331ed6199e07065e2ebae254c564e85e619';
+final class PerformaV1DataProvider
+    extends $FunctionalProvider<PerformaV1Data, PerformaV1Data, PerformaV1Data>
+    with $Provider<PerformaV1Data> {
+  /// Mock backing data for the `performa-v1` frame.
+  PerformaV1DataProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'performaV1DataProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$performaV1DataHash();
+
+  @$internal
+  @override
+  $ProviderElement<PerformaV1Data> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PerformaV1Data create(Ref ref) {
+    return performaV1Data(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PerformaV1Data value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PerformaV1Data>(value),
+    );
+  }
+}
+
+String _$performaV1DataHash() => r'68ee350a0239f477daa835c461c742fad64f49f2';
 
 /// Mock backing data for the `performa-v2` frame.
-///
-/// Copied from [performaV2Data].
-@ProviderFor(performaV2Data)
-final performaV2DataProvider = AutoDisposeProvider<PerformaV2Data>.internal(
-  performaV2Data,
-  name: r'performaV2DataProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$performaV2DataHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef PerformaV2DataRef = AutoDisposeProviderRef<PerformaV2Data>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+@ProviderFor(performaV2Data)
+final performaV2DataProvider = PerformaV2DataProvider._();
+
+/// Mock backing data for the `performa-v2` frame.
+
+final class PerformaV2DataProvider
+    extends $FunctionalProvider<PerformaV2Data, PerformaV2Data, PerformaV2Data>
+    with $Provider<PerformaV2Data> {
+  /// Mock backing data for the `performa-v2` frame.
+  PerformaV2DataProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'performaV2DataProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$performaV2DataHash();
+
+  @$internal
+  @override
+  $ProviderElement<PerformaV2Data> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PerformaV2Data create(Ref ref) {
+    return performaV2Data(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PerformaV2Data value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PerformaV2Data>(value),
+    );
+  }
+}
+
+String _$performaV2DataHash() => r'c4192331ed6199e07065e2ebae254c564e85e619';

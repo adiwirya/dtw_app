@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/canned_dio.dart';
 import '../../../support/fake_local_storage.dart';
+import '../../../support/no_retry.dart';
 import '../../../support/fake_tenant_realtime_service.dart';
 import '../../../support/tenant_board.dart';
 
@@ -34,6 +35,7 @@ void main() {
     adapter = dio.httpClientAdapter as CannedAdapter;
     repository = TenantOrderRepository(dio: dio);
     final c = ProviderContainer(
+      retry: noRetry,
       overrides: [
         localStorageProvider.overrideWithValue(storage),
         tenantOrderRepositoryProvider.overrideWithValue(repository),

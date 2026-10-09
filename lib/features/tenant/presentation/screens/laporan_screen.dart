@@ -21,7 +21,7 @@ class LaporanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final report = ref.watch(laporanReportProvider);
-    final branch = ref.watch(currentTenantBranchProvider).valueOrNull;
+    final branch = ref.watch(currentTenantBranchProvider).value;
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(

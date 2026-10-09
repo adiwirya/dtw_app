@@ -6,336 +6,114 @@ part of 'order_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$orderHeaderStatsHash() => r'611a42f9732bed2b6a81624aa04f3f5110342c4d';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// The three header summary stats on the Order home (`menu-order-baru`).
+/// Only "Pesanan Selesai" has real backing data (today's delivered count off
+/// the same board this screen already renders) — the busboy API has no
+/// on-time-rate or customer-rating endpoint, so those two stay `-` rather
+/// than a fabricated number.
+
+@ProviderFor(orderHeaderStats)
+final orderHeaderStatsProvider = OrderHeaderStatsProvider._();
 
 /// The three header summary stats on the Order home (`menu-order-baru`).
 /// Only "Pesanan Selesai" has real backing data (today's delivered count off
 /// the same board this screen already renders) — the busboy API has no
 /// on-time-rate or customer-rating endpoint, so those two stay `-` rather
 /// than a fabricated number.
-///
-/// Copied from [orderHeaderStats].
-@ProviderFor(orderHeaderStats)
-final orderHeaderStatsProvider =
-    AutoDisposeProvider<List<OrderHeaderStat>>.internal(
-      orderHeaderStats,
-      name: r'orderHeaderStatsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$orderHeaderStatsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef OrderHeaderStatsRef = AutoDisposeProviderRef<List<OrderHeaderStat>>;
-String _$orderDetailHash() => r'ba1c8be1515a2615ac5102c06ab7495bd0970ba3';
-
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
-
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-/// Looks [orderId] (a delivery id) up out of the same list
-/// [orderBoardNotifierProvider] holds — null while the board is still
-/// loading, has errored, or the delivery isn't (or is no longer) on it.
-///
-/// Copied from [orderDetail].
-@ProviderFor(orderDetail)
-const orderDetailProvider = OrderDetailFamily();
-
-/// Looks [orderId] (a delivery id) up out of the same list
-/// [orderBoardNotifierProvider] holds — null while the board is still
-/// loading, has errored, or the delivery isn't (or is no longer) on it.
-///
-/// Copied from [orderDetail].
-class OrderDetailFamily extends Family<OrderDetail?> {
-  /// Looks [orderId] (a delivery id) up out of the same list
-  /// [orderBoardNotifierProvider] holds — null while the board is still
-  /// loading, has errored, or the delivery isn't (or is no longer) on it.
-  ///
-  /// Copied from [orderDetail].
-  const OrderDetailFamily();
-
-  /// Looks [orderId] (a delivery id) up out of the same list
-  /// [orderBoardNotifierProvider] holds — null while the board is still
-  /// loading, has errored, or the delivery isn't (or is no longer) on it.
-  ///
-  /// Copied from [orderDetail].
-  OrderDetailProvider call(String orderId) {
-    return OrderDetailProvider(orderId);
-  }
-
-  @override
-  OrderDetailProvider getProviderOverride(
-    covariant OrderDetailProvider provider,
-  ) {
-    return call(provider.orderId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'orderDetailProvider';
-}
-
-/// Looks [orderId] (a delivery id) up out of the same list
-/// [orderBoardNotifierProvider] holds — null while the board is still
-/// loading, has errored, or the delivery isn't (or is no longer) on it.
-///
-/// Copied from [orderDetail].
-class OrderDetailProvider extends AutoDisposeProvider<OrderDetail?> {
-  /// Looks [orderId] (a delivery id) up out of the same list
-  /// [orderBoardNotifierProvider] holds — null while the board is still
-  /// loading, has errored, or the delivery isn't (or is no longer) on it.
-  ///
-  /// Copied from [orderDetail].
-  OrderDetailProvider(String orderId)
-    : this._internal(
-        (ref) => orderDetail(ref as OrderDetailRef, orderId),
-        from: orderDetailProvider,
-        name: r'orderDetailProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$orderDetailHash,
-        dependencies: OrderDetailFamily._dependencies,
-        allTransitiveDependencies: OrderDetailFamily._allTransitiveDependencies,
-        orderId: orderId,
+final class OrderHeaderStatsProvider
+    extends
+        $FunctionalProvider<
+          List<OrderHeaderStat>,
+          List<OrderHeaderStat>,
+          List<OrderHeaderStat>
+        >
+    with $Provider<List<OrderHeaderStat>> {
+  /// The three header summary stats on the Order home (`menu-order-baru`).
+  /// Only "Pesanan Selesai" has real backing data (today's delivered count off
+  /// the same board this screen already renders) — the busboy API has no
+  /// on-time-rate or customer-rating endpoint, so those two stay `-` rather
+  /// than a fabricated number.
+  OrderHeaderStatsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'orderHeaderStatsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
       );
 
-  OrderDetailProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.orderId,
-  }) : super.internal();
+  @override
+  String debugGetCreateSourceHash() => _$orderHeaderStatsHash();
 
-  final String orderId;
+  @$internal
+  @override
+  $ProviderElement<List<OrderHeaderStat>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
   @override
-  Override overrideWith(OrderDetail? Function(OrderDetailRef provider) create) {
-    return ProviderOverride(
+  List<OrderHeaderStat> create(Ref ref) {
+    return orderHeaderStats(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<OrderHeaderStat> value) {
+    return $ProviderOverride(
       origin: this,
-      override: OrderDetailProvider._internal(
-        (ref) => create(ref as OrderDetailRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        orderId: orderId,
-      ),
+      providerOverride: $SyncValueProvider<List<OrderHeaderStat>>(value),
     );
   }
-
-  @override
-  AutoDisposeProviderElement<OrderDetail?> createElement() {
-    return _OrderDetailProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is OrderDetailProvider && other.orderId == orderId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, orderId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin OrderDetailRef on AutoDisposeProviderRef<OrderDetail?> {
-  /// The parameter `orderId` of this provider.
-  String get orderId;
-}
+String _$orderHeaderStatsHash() => r'689f669f774ba18e3ccb3cde43859f2ffde10280';
 
-class _OrderDetailProviderElement
-    extends AutoDisposeProviderElement<OrderDetail?>
-    with OrderDetailRef {
-  _OrderDetailProviderElement(super.provider);
+/// Currently selected Order sub-tab, as an index into
+/// `[baru, antar, selesai]`. Kept as app state (not screen-local) so route
+/// deep-links (`/order/antar`, `/order/selesai`) and the success-modal
+/// `onConfirm` can switch the in-place tab.
 
-  @override
-  String get orderId => (origin as OrderDetailProvider).orderId;
-}
+@ProviderFor(OrderTab)
+final orderTabProvider = OrderTabProvider._();
 
-String _$completedOrderDetailHash() =>
-    r'd3422f5c74da06722b66a0b9483b81f77c0364c2';
-
-/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-/// `detail-selesai` (completed-order detail) page — null while the board is
-/// still loading, has errored, or the delivery isn't on it.
-///
-/// Copied from [completedOrderDetail].
-@ProviderFor(completedOrderDetail)
-const completedOrderDetailProvider = CompletedOrderDetailFamily();
-
-/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-/// `detail-selesai` (completed-order detail) page — null while the board is
-/// still loading, has errored, or the delivery isn't on it.
-///
-/// Copied from [completedOrderDetail].
-class CompletedOrderDetailFamily extends Family<CompletedOrderDetail?> {
-  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-  /// `detail-selesai` (completed-order detail) page — null while the board is
-  /// still loading, has errored, or the delivery isn't on it.
-  ///
-  /// Copied from [completedOrderDetail].
-  const CompletedOrderDetailFamily();
-
-  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-  /// `detail-selesai` (completed-order detail) page — null while the board is
-  /// still loading, has errored, or the delivery isn't on it.
-  ///
-  /// Copied from [completedOrderDetail].
-  CompletedOrderDetailProvider call(String orderId) {
-    return CompletedOrderDetailProvider(orderId);
-  }
-
-  @override
-  CompletedOrderDetailProvider getProviderOverride(
-    covariant CompletedOrderDetailProvider provider,
-  ) {
-    return call(provider.orderId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'completedOrderDetailProvider';
-}
-
-/// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-/// `detail-selesai` (completed-order detail) page — null while the board is
-/// still loading, has errored, or the delivery isn't on it.
-///
-/// Copied from [completedOrderDetail].
-class CompletedOrderDetailProvider
-    extends AutoDisposeProvider<CompletedOrderDetail?> {
-  /// Looks [orderId] up out of [orderBoardNotifierProvider] for the
-  /// `detail-selesai` (completed-order detail) page — null while the board is
-  /// still loading, has errored, or the delivery isn't on it.
-  ///
-  /// Copied from [completedOrderDetail].
-  CompletedOrderDetailProvider(String orderId)
-    : this._internal(
-        (ref) => completedOrderDetail(ref as CompletedOrderDetailRef, orderId),
-        from: completedOrderDetailProvider,
-        name: r'completedOrderDetailProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$completedOrderDetailHash,
-        dependencies: CompletedOrderDetailFamily._dependencies,
-        allTransitiveDependencies:
-            CompletedOrderDetailFamily._allTransitiveDependencies,
-        orderId: orderId,
+/// Currently selected Order sub-tab, as an index into
+/// `[baru, antar, selesai]`. Kept as app state (not screen-local) so route
+/// deep-links (`/order/antar`, `/order/selesai`) and the success-modal
+/// `onConfirm` can switch the in-place tab.
+final class OrderTabProvider extends $NotifierProvider<OrderTab, int> {
+  /// Currently selected Order sub-tab, as an index into
+  /// `[baru, antar, selesai]`. Kept as app state (not screen-local) so route
+  /// deep-links (`/order/antar`, `/order/selesai`) and the success-modal
+  /// `onConfirm` can switch the in-place tab.
+  OrderTabProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'orderTabProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
       );
 
-  CompletedOrderDetailProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.orderId,
-  }) : super.internal();
-
-  final String orderId;
-
   @override
-  Override overrideWith(
-    CompletedOrderDetail? Function(CompletedOrderDetailRef provider) create,
-  ) {
-    return ProviderOverride(
+  String debugGetCreateSourceHash() => _$orderTabHash();
+
+  @$internal
+  @override
+  OrderTab create() => OrderTab();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
       origin: this,
-      override: CompletedOrderDetailProvider._internal(
-        (ref) => create(ref as CompletedOrderDetailRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        orderId: orderId,
-      ),
+      providerOverride: $SyncValueProvider<int>(value),
     );
   }
-
-  @override
-  AutoDisposeProviderElement<CompletedOrderDetail?> createElement() {
-    return _CompletedOrderDetailProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is CompletedOrderDetailProvider && other.orderId == orderId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, orderId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin CompletedOrderDetailRef on AutoDisposeProviderRef<CompletedOrderDetail?> {
-  /// The parameter `orderId` of this provider.
-  String get orderId;
-}
-
-class _CompletedOrderDetailProviderElement
-    extends AutoDisposeProviderElement<CompletedOrderDetail?>
-    with CompletedOrderDetailRef {
-  _CompletedOrderDetailProviderElement(super.provider);
-
-  @override
-  String get orderId => (origin as CompletedOrderDetailProvider).orderId;
 }
 
 String _$orderTabHash() => r'e1c76da6748a4f81085bd1a5c7e7b88675773f57';
@@ -344,48 +122,299 @@ String _$orderTabHash() => r'e1c76da6748a4f81085bd1a5c7e7b88675773f57';
 /// `[baru, antar, selesai]`. Kept as app state (not screen-local) so route
 /// deep-links (`/order/antar`, `/order/selesai`) and the success-modal
 /// `onConfirm` can switch the in-place tab.
-///
-/// Copied from [OrderTab].
-@ProviderFor(OrderTab)
-final orderTabProvider = AutoDisposeNotifierProvider<OrderTab, int>.internal(
-  OrderTab.new,
-  name: r'orderTabProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$orderTabHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-typedef _$OrderTab = AutoDisposeNotifier<int>;
-String _$orderBoardNotifierHash() =>
-    r'0e000ff18ababc5b2c59c43979aa586b6d98d7b7';
+abstract class _$OrderTab extends $Notifier<int> {
+  int build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<int, int>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<int, int>,
+              int,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
 
 /// The busboy's raw delivery list, fetched once from
-/// `GET /api/v1/busboy/deliveries` and kept live via
+/// `GET /v1/busboy/deliveries` and kept live via
 /// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
 /// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
 /// screen's three sub-tabs are [orderBoardFrom] projections of this same
 /// list, and [orderDetailProvider] looks a single delivery up out of it, so
 /// `claim`/`deliver` only need to mutate this one list for every dependent
 /// view to update together.
-///
-/// Copied from [OrderBoardNotifier].
-@ProviderFor(OrderBoardNotifier)
-final orderBoardNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<
-      OrderBoardNotifier,
-      List<Delivery>
-    >.internal(
-      OrderBoardNotifier.new,
-      name: r'orderBoardNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$orderBoardNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
 
-typedef _$OrderBoardNotifier = AutoDisposeAsyncNotifier<List<Delivery>>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+@ProviderFor(OrderBoardNotifier)
+final orderBoardProvider = OrderBoardNotifierProvider._();
+
+/// The busboy's raw delivery list, fetched once from
+/// `GET /v1/busboy/deliveries` and kept live via
+/// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
+/// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
+/// screen's three sub-tabs are [orderBoardFrom] projections of this same
+/// list, and [orderDetailProvider] looks a single delivery up out of it, so
+/// `claim`/`deliver` only need to mutate this one list for every dependent
+/// view to update together.
+final class OrderBoardNotifierProvider
+    extends $AsyncNotifierProvider<OrderBoardNotifier, List<Delivery>> {
+  /// The busboy's raw delivery list, fetched once from
+  /// `GET /v1/busboy/deliveries` and kept live via
+  /// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
+  /// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
+  /// screen's three sub-tabs are [orderBoardFrom] projections of this same
+  /// list, and [orderDetailProvider] looks a single delivery up out of it, so
+  /// `claim`/`deliver` only need to mutate this one list for every dependent
+  /// view to update together.
+  OrderBoardNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'orderBoardProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$orderBoardNotifierHash();
+
+  @$internal
+  @override
+  OrderBoardNotifier create() => OrderBoardNotifier();
+}
+
+String _$orderBoardNotifierHash() =>
+    r'131011fc215665a1d57dc51ae7a0ffa2e71f16c5';
+
+/// The busboy's raw delivery list, fetched once from
+/// `GET /v1/busboy/deliveries` and kept live via
+/// `BusboyRealtimeService`'s `delivery.created`/`delivery.claimed`/
+/// `delivery.completed` (`private-zone.<zoneId>`) — no polling. The Order
+/// screen's three sub-tabs are [orderBoardFrom] projections of this same
+/// list, and [orderDetailProvider] looks a single delivery up out of it, so
+/// `claim`/`deliver` only need to mutate this one list for every dependent
+/// view to update together.
+
+abstract class _$OrderBoardNotifier extends $AsyncNotifier<List<Delivery>> {
+  FutureOr<List<Delivery>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<Delivery>>, List<Delivery>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<Delivery>>, List<Delivery>>,
+              AsyncValue<List<Delivery>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
+
+@ProviderFor(orderDetail)
+final orderDetailProvider = OrderDetailFamily._();
+
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
+
+final class OrderDetailProvider
+    extends $FunctionalProvider<OrderDetail?, OrderDetail?, OrderDetail?>
+    with $Provider<OrderDetail?> {
+  /// Looks [orderId] (a delivery id) up out of the same list
+  /// [orderBoardProvider] holds — null while the board is still
+  /// loading, has errored, or the delivery isn't (or is no longer) on it.
+  OrderDetailProvider._({
+    required OrderDetailFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'orderDetailProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$orderDetailHash();
+
+  @override
+  String toString() {
+    return r'orderDetailProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<OrderDetail?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  OrderDetail? create(Ref ref) {
+    final argument = this.argument as String;
+    return orderDetail(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(OrderDetail? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<OrderDetail?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is OrderDetailProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$orderDetailHash() => r'10714b9b5b47c4feddfdc0937102266dea311656';
+
+/// Looks [orderId] (a delivery id) up out of the same list
+/// [orderBoardProvider] holds — null while the board is still
+/// loading, has errored, or the delivery isn't (or is no longer) on it.
+
+final class OrderDetailFamily extends $Family
+    with $FunctionalFamilyOverride<OrderDetail?, String> {
+  OrderDetailFamily._()
+    : super(
+        retry: null,
+        name: r'orderDetailProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Looks [orderId] (a delivery id) up out of the same list
+  /// [orderBoardProvider] holds — null while the board is still
+  /// loading, has errored, or the delivery isn't (or is no longer) on it.
+
+  OrderDetailProvider call(String orderId) =>
+      OrderDetailProvider._(argument: orderId, from: this);
+
+  @override
+  String toString() => r'orderDetailProvider';
+}
+
+/// Looks [orderId] up out of [orderBoardProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
+
+@ProviderFor(completedOrderDetail)
+final completedOrderDetailProvider = CompletedOrderDetailFamily._();
+
+/// Looks [orderId] up out of [orderBoardProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
+
+final class CompletedOrderDetailProvider
+    extends
+        $FunctionalProvider<
+          CompletedOrderDetail?,
+          CompletedOrderDetail?,
+          CompletedOrderDetail?
+        >
+    with $Provider<CompletedOrderDetail?> {
+  /// Looks [orderId] up out of [orderBoardProvider] for the
+  /// `detail-selesai` (completed-order detail) page — null while the board is
+  /// still loading, has errored, or the delivery isn't on it.
+  CompletedOrderDetailProvider._({
+    required CompletedOrderDetailFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'completedOrderDetailProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$completedOrderDetailHash();
+
+  @override
+  String toString() {
+    return r'completedOrderDetailProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<CompletedOrderDetail?> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  CompletedOrderDetail? create(Ref ref) {
+    final argument = this.argument as String;
+    return completedOrderDetail(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CompletedOrderDetail? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CompletedOrderDetail?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CompletedOrderDetailProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$completedOrderDetailHash() =>
+    r'6f945528e30842d60374b4bf4b8266e7607af500';
+
+/// Looks [orderId] up out of [orderBoardProvider] for the
+/// `detail-selesai` (completed-order detail) page — null while the board is
+/// still loading, has errored, or the delivery isn't on it.
+
+final class CompletedOrderDetailFamily extends $Family
+    with $FunctionalFamilyOverride<CompletedOrderDetail?, String> {
+  CompletedOrderDetailFamily._()
+    : super(
+        retry: null,
+        name: r'completedOrderDetailProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Looks [orderId] up out of [orderBoardProvider] for the
+  /// `detail-selesai` (completed-order detail) page — null while the board is
+  /// still loading, has errored, or the delivery isn't on it.
+
+  CompletedOrderDetailProvider call(String orderId) =>
+      CompletedOrderDetailProvider._(argument: orderId, from: this);
+
+  @override
+  String toString() => r'completedOrderDetailProvider';
+}

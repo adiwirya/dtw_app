@@ -6,24 +6,50 @@ part of 'profile_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$busboyProfileHash() => r'7796fad9f03e39cf3ebcdb3681dac56cb5d6e412';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Backing data for the `profile-saya` screen.
+
+@ProviderFor(busboyProfile)
+final busboyProfileProvider = BusboyProfileProvider._();
 
 /// Backing data for the `profile-saya` screen.
-///
-/// Copied from [busboyProfile].
-@ProviderFor(busboyProfile)
-final busboyProfileProvider = AutoDisposeProvider<BusboyProfile>.internal(
-  busboyProfile,
-  name: r'busboyProfileProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$busboyProfileHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef BusboyProfileRef = AutoDisposeProviderRef<BusboyProfile>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class BusboyProfileProvider
+    extends $FunctionalProvider<BusboyProfile, BusboyProfile, BusboyProfile>
+    with $Provider<BusboyProfile> {
+  /// Backing data for the `profile-saya` screen.
+  BusboyProfileProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'busboyProfileProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$busboyProfileHash();
+
+  @$internal
+  @override
+  $ProviderElement<BusboyProfile> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BusboyProfile create(Ref ref) {
+    return busboyProfile(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BusboyProfile value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BusboyProfile>(value),
+    );
+  }
+}
+
+String _$busboyProfileHash() => r'b1b8bc1905cb7c1e24b60f3d83141dd6a33030ca';

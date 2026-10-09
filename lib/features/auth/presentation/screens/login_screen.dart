@@ -255,7 +255,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             label: 'Masuk',
             onPressed: authState.isLoading ? null : _onMasuk,
           ),
-          if (ref.watch(_cardLoginAvailableProvider).valueOrNull ?? false) ...[
+          if (ref.watch(_cardLoginAvailableProvider).value ?? false) ...[
             const SizedBox(height: 16),
             _buildOrDivider(),
             const SizedBox(height: 16),

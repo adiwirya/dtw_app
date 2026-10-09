@@ -6,26 +6,74 @@ part of 'auth_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authControllerHash() => r'ae8500a8ea6dcf4a85c9ef73018ffd511e954104';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// `keepAlive: true` — without it this autoDisposes as soon as the last
+/// reader drops its subscription (e.g. a bare `container.read`/`ref.read`
+/// with no persistent `watch`), which would silently reset login/logout
+/// state between the action and the next read.
+
+@ProviderFor(AuthController)
+final authControllerProvider = AuthControllerProvider._();
 
 /// `keepAlive: true` — without it this autoDisposes as soon as the last
 /// reader drops its subscription (e.g. a bare `container.read`/`ref.read`
 /// with no persistent `watch`), which would silently reset login/logout
 /// state between the action and the next read.
-///
-/// Copied from [AuthController].
-@ProviderFor(AuthController)
-final authControllerProvider =
-    NotifierProvider<AuthController, AuthState>.internal(
-      AuthController.new,
-      name: r'authControllerProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$authControllerHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final class AuthControllerProvider
+    extends $NotifierProvider<AuthController, AuthState> {
+  /// `keepAlive: true` — without it this autoDisposes as soon as the last
+  /// reader drops its subscription (e.g. a bare `container.read`/`ref.read`
+  /// with no persistent `watch`), which would silently reset login/logout
+  /// state between the action and the next read.
+  AuthControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-typedef _$AuthController = Notifier<AuthState>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$authControllerHash();
+
+  @$internal
+  @override
+  AuthController create() => AuthController();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AuthState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AuthState>(value),
+    );
+  }
+}
+
+String _$authControllerHash() => r'41e190a8bb51310514dd4c56fc09c9c2e73d2a89';
+
+/// `keepAlive: true` — without it this autoDisposes as soon as the last
+/// reader drops its subscription (e.g. a bare `container.read`/`ref.read`
+/// with no persistent `watch`), which would silently reset login/logout
+/// state between the action and the next read.
+
+abstract class _$AuthController extends $Notifier<AuthState> {
+  AuthState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AuthState, AuthState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AuthState, AuthState>,
+              AuthState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

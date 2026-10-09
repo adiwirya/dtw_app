@@ -36,7 +36,7 @@ class OrderDetailScreen extends ConsumerWidget {
     OrderDetail detail,
   ) async {
     try {
-      await ref.read(orderBoardNotifierProvider.notifier).claim(orderId);
+      await ref.read(orderBoardProvider.notifier).claim(orderId);
     } on Object catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -68,7 +68,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final boardAsync = ref.watch(orderBoardNotifierProvider);
+    final boardAsync = ref.watch(orderBoardProvider);
     final detail = ref.watch(orderDetailProvider(orderId));
 
     return Scaffold(
@@ -129,7 +129,7 @@ class OrderDetailScreen extends ConsumerWidget {
     if (boardAsync.hasError) {
       return ErrorView(
         message: errorMessage(boardAsync.error!),
-        onRetry: () => ref.invalidate(orderBoardNotifierProvider),
+        onRetry: () => ref.invalidate(orderBoardProvider),
       );
     }
     if (boardAsync.isLoading) {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 /// Whether the user has completed login. The single merged `GoRouter` (see
 /// `app_router.dart`) reads this to pick its `initialLocation`/`redirect`

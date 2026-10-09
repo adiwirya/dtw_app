@@ -17,7 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 Future<void> acceptOrderAndPrint(WidgetRef ref, String orderId) async {
   TenantOrder? order;
   for (final candidate
-      in ref.read(tenantOrderBoardProvider).valueOrNull ??
+      in ref.read(tenantOrderBoardProvider).value ??
           const <TenantOrder>[]) {
     if (candidate.id == orderId) {
       order = candidate;
@@ -27,7 +27,7 @@ Future<void> acceptOrderAndPrint(WidgetRef ref, String orderId) async {
 
   await ref.read(tenantOrderBoardProvider.notifier).accept(orderId);
 
-  final branch = ref.read(currentTenantBranchProvider).valueOrNull;
+  final branch = ref.read(currentTenantBranchProvider).value;
   if (order != null && branch != null) {
     unawaited(
       ref

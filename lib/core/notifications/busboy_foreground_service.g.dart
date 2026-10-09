@@ -6,24 +6,53 @@ part of 'busboy_foreground_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(busboyForegroundService)
+final busboyForegroundServiceProvider = BusboyForegroundServiceProvider._();
+
+final class BusboyForegroundServiceProvider
+    extends
+        $FunctionalProvider<
+          BusboyForegroundService,
+          BusboyForegroundService,
+          BusboyForegroundService
+        >
+    with $Provider<BusboyForegroundService> {
+  BusboyForegroundServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'busboyForegroundServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$busboyForegroundServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<BusboyForegroundService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  BusboyForegroundService create(Ref ref) {
+    return busboyForegroundService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BusboyForegroundService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BusboyForegroundService>(value),
+    );
+  }
+}
+
 String _$busboyForegroundServiceHash() =>
     r'063cbd6789bb93abfedd3098b7f20164d5e85463';
-
-/// See also [busboyForegroundService].
-@ProviderFor(busboyForegroundService)
-final busboyForegroundServiceProvider =
-    Provider<BusboyForegroundService>.internal(
-      busboyForegroundService,
-      name: r'busboyForegroundServiceProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$busboyForegroundServiceHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef BusboyForegroundServiceRef = ProviderRef<BusboyForegroundService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

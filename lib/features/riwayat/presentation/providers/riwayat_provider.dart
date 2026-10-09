@@ -26,8 +26,8 @@ class RiwayatTab extends _$RiwayatTab {
 }
 
 /// This busboy's own completed-delivery history, fetched once from
-/// `GET /api/v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
-/// logged-in busboy, unlike the Order tab's `GET /api/v1/busboy/deliveries`
+/// `GET /v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+/// logged-in busboy, unlike the Order tab's `GET /v1/busboy/deliveries`
 /// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
 /// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
 /// entry up out of it.
@@ -55,7 +55,7 @@ class RiwayatBoard extends _$RiwayatBoard {
 /// matches [query], case-insensitively. An empty/blank query matches
 /// everything.
 ///
-/// Client-side because `GET /api/v1/busboy/deliveries` takes no search param
+/// Client-side because `GET /v1/busboy/deliveries` takes no search param
 /// and the list is already fetched in full. Applied BEFORE [riwayatDaysFrom]
 /// so a date group that ends up with no matches disappears entirely rather
 /// than rendering an empty header.
@@ -117,7 +117,7 @@ List<RiwayatDayGroup> riwayatDaysFrom(
 /// errored, or the delivery isn't on it.
 @riverpod
 CompletedOrderDetail? riwayatDetail(Ref ref, String entryId) {
-  final deliveries = ref.watch(riwayatBoardProvider).valueOrNull;
+  final deliveries = ref.watch(riwayatBoardProvider).value;
   if (deliveries == null) return null;
   for (final delivery in deliveries) {
     if (delivery.id == entryId) return delivery.toCompletedOrderDetail();

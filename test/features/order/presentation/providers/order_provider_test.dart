@@ -29,7 +29,7 @@ void main() {
     addTearDown(c.dispose);
     // Mirrors the tenant board tests: keeps the autoDispose provider alive
     // for the lifetime of the test instead of tearing down between reads.
-    c.listen(orderBoardNotifierProvider, (_, _) {});
+    c.listen(orderBoardProvider, (_, _) {});
     return c;
   }
 
@@ -40,7 +40,7 @@ void main() {
       ]);
 
       final deliveries = await container.read(
-        orderBoardNotifierProvider.future,
+        orderBoardProvider.future,
       );
 
       expect(deliveries, hasLength(1));
@@ -65,7 +65,7 @@ void main() {
       addTearDown(container.dispose);
 
       await expectLater(
-        container.read(orderBoardNotifierProvider.future),
+        container.read(orderBoardProvider.future),
         throwsA(isA<ApiException>()),
       );
     });
@@ -88,7 +88,7 @@ void main() {
         ),
       );
       addTearDown(c.dispose);
-      c.listen(orderBoardNotifierProvider, (_, _) {});
+      c.listen(orderBoardProvider, (_, _) {});
       return c;
     }
 
@@ -96,14 +96,14 @@ void main() {
       container = buildRealtimeContainer([
         deliveryJson(id: '1', status: 'PENDING_PICKUP'),
       ]);
-      await container.read(orderBoardNotifierProvider.future);
+      await container.read(orderBoardProvider.future);
 
       realtime.emitDeliveryCreated(
         deliveryJson(id: '2', status: 'PENDING_PICKUP'),
       );
       await Future<void>.delayed(Duration.zero);
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(deliveries.map((d) => d.id), containsAll(['1', '2']));
     });
 
@@ -113,14 +113,14 @@ void main() {
         container = buildRealtimeContainer([
           deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         ]);
-        await container.read(orderBoardNotifierProvider.future);
+        await container.read(orderBoardProvider.future);
 
         realtime.emitDeliveryCreated(
           deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         );
         await Future<void>.delayed(Duration.zero);
 
-        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        final deliveries = container.read(orderBoardProvider).value!;
         expect(deliveries, hasLength(1));
       },
     );
@@ -145,9 +145,9 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
+      container.listen(orderBoardProvider, (_, _) {});
 
-      final boardFuture = container.read(orderBoardNotifierProvider.future);
+      final boardFuture = container.read(orderBoardProvider.future);
       // Let build() run up to (and suspend on) the gated fetchDeliveries
       // call — that's also where the deliveryCreated subscription gets
       // wired up, so this event lands squarely in the "fetch still in
@@ -183,7 +183,7 @@ void main() {
         ),
       );
       addTearDown(c.dispose);
-      c.listen(orderBoardNotifierProvider, (_, _) {});
+      c.listen(orderBoardProvider, (_, _) {});
       return c;
     }
 
@@ -193,12 +193,12 @@ void main() {
         container = buildRealtimeContainer([
           deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         ]);
-        await container.read(orderBoardNotifierProvider.future);
+        await container.read(orderBoardProvider.future);
 
         realtime.emitDeliveryClaimed(deliveryJson(id: '1', status: 'CLAIMED'));
         await Future<void>.delayed(Duration.zero);
 
-        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        final deliveries = container.read(orderBoardProvider).value!;
         expect(deliveries.single.status, DeliveryStatus.claimed);
       },
     );
@@ -209,14 +209,14 @@ void main() {
         container = buildRealtimeContainer([
           deliveryJson(id: '1', status: 'CLAIMED'),
         ]);
-        await container.read(orderBoardNotifierProvider.future);
+        await container.read(orderBoardProvider.future);
 
         realtime.emitDeliveryCompleted(
           deliveryJson(id: '1', status: 'DELIVERED'),
         );
         await Future<void>.delayed(Duration.zero);
 
-        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        final deliveries = container.read(orderBoardProvider).value!;
         expect(deliveries.single.status, DeliveryStatus.delivered);
       },
     );
@@ -225,12 +225,12 @@ void main() {
       container = buildRealtimeContainer([
         deliveryJson(id: '1', status: 'PENDING_PICKUP'),
       ]);
-      await container.read(orderBoardNotifierProvider.future);
+      await container.read(orderBoardProvider.future);
 
       realtime.emitDeliveryClaimed(deliveryJson(id: 'nope', status: 'CLAIMED'));
       await Future<void>.delayed(Duration.zero);
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(deliveries.map((d) => d.id), ['1']);
     });
 
@@ -250,14 +250,14 @@ void main() {
           ),
         );
         addTearDown(container.dispose);
-        container.listen(orderBoardNotifierProvider, (_, _) {});
+        container.listen(orderBoardProvider, (_, _) {});
 
         // Deliberately not awaiting the initial fetch yet.
         realtime.emitDeliveryClaimed(deliveryJson(id: '1', status: 'CLAIMED'));
         await Future<void>.delayed(Duration.zero);
 
         final deliveries = await container.read(
-          orderBoardNotifierProvider.future,
+          orderBoardProvider.future,
         );
         expect(deliveries.single.status, DeliveryStatus.pendingPickup);
       },
@@ -287,22 +287,22 @@ void main() {
         container = buildContainer([
           deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         ]);
-        await container.read(orderBoardNotifierProvider.future);
+        await container.read(orderBoardProvider.future);
 
-        await container.read(orderBoardNotifierProvider.notifier).claim('1');
+        await container.read(orderBoardProvider.notifier).claim('1');
 
-        final deliveries = container.read(orderBoardNotifierProvider).value!;
+        final deliveries = container.read(orderBoardProvider).value!;
         expect(deliveries.single.status, DeliveryStatus.claimed);
       },
     );
 
     test('deliver moves a claimed delivery to delivered', () async {
       container = buildContainer([deliveryJson(id: '1', status: 'CLAIMED')]);
-      await container.read(orderBoardNotifierProvider.future);
+      await container.read(orderBoardProvider.future);
 
-      await container.read(orderBoardNotifierProvider.notifier).deliver('1');
+      await container.read(orderBoardProvider.notifier).deliver('1');
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(deliveries.single.status, DeliveryStatus.delivered);
     });
 
@@ -314,20 +314,23 @@ void main() {
       final failing = _FailingRepository(dio: fetchDio);
       container = ProviderContainer(
         overrides: [
-          ...busboyBoardOverrides(dio: fetchDio, storage: storage),
-          busboyDeliveryRepositoryProvider.overrideWithValue(failing),
+          ...busboyBoardOverrides(
+            dio: fetchDio,
+            storage: storage,
+            deliveryRepository: failing,
+          ),
         ],
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
-      await container.read(orderBoardNotifierProvider.future);
+      container.listen(orderBoardProvider, (_, _) {});
+      await container.read(orderBoardProvider.future);
 
       await expectLater(
-        container.read(orderBoardNotifierProvider.notifier).claim('1'),
+        container.read(orderBoardProvider.notifier).claim('1'),
         throwsA(isA<ApiException>()),
       );
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(deliveries.single.status, DeliveryStatus.pendingPickup);
     });
 
@@ -337,10 +340,10 @@ void main() {
         container = buildContainer([
           deliveryJson(id: '1', status: 'PENDING_PICKUP'),
         ]);
-        await container.read(orderBoardNotifierProvider.future);
+        await container.read(orderBoardProvider.future);
 
         await expectLater(
-          container.read(orderBoardNotifierProvider.notifier).claim('nope'),
+          container.read(orderBoardProvider.notifier).claim('nope'),
           throwsA(isA<StateError>()),
         );
       },
@@ -360,7 +363,7 @@ void main() {
       // Deliberately NOT awaiting the initial fetch: `state.value` is still
       // null here.
       await expectLater(
-        container.read(orderBoardNotifierProvider.notifier).deliver('1'),
+        container.read(orderBoardProvider.notifier).deliver('1'),
         throwsA(isA<StateError>()),
       );
     });
@@ -380,16 +383,16 @@ void main() {
         ),
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
-      await container.read(orderBoardNotifierProvider.future);
+      container.listen(orderBoardProvider, (_, _) {});
+      await container.read(orderBoardProvider.future);
 
       await expectLater(
-        container.read(orderBoardNotifierProvider.notifier).claim('3'),
+        container.read(orderBoardProvider.notifier).claim('3'),
         throwsA(isA<ApiException>()),
       );
 
       // Rejected before the API call: no optimistic update stuck around.
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(
         deliveries.firstWhere((d) => d.id == '3').status,
         DeliveryStatus.pendingPickup,
@@ -407,12 +410,12 @@ void main() {
         ),
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
-      await container.read(orderBoardNotifierProvider.future);
+      container.listen(orderBoardProvider, (_, _) {});
+      await container.read(orderBoardProvider.future);
 
-      await container.read(orderBoardNotifierProvider.notifier).claim('2');
+      await container.read(orderBoardProvider.notifier).claim('2');
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(
         deliveries.firstWhere((d) => d.id == '2').status,
         DeliveryStatus.claimed,
@@ -433,12 +436,12 @@ void main() {
         ),
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
-      await container.read(orderBoardNotifierProvider.future);
+      container.listen(orderBoardProvider, (_, _) {});
+      await container.read(orderBoardProvider.future);
 
-      await container.read(orderBoardNotifierProvider.notifier).claim('3');
+      await container.read(orderBoardProvider.notifier).claim('3');
 
-      final deliveries = container.read(orderBoardNotifierProvider).value!;
+      final deliveries = container.read(orderBoardProvider).value!;
       expect(
         deliveries.firstWhere((d) => d.id == '3').status,
         DeliveryStatus.claimed,
@@ -459,17 +462,17 @@ void main() {
         ),
       );
       addTearDown(container.dispose);
-      container.listen(orderBoardNotifierProvider, (_, _) {});
-      await container.read(orderBoardNotifierProvider.future);
+      container.listen(orderBoardProvider, (_, _) {});
+      await container.read(orderBoardProvider.future);
 
       // Not awaited: the optimistic update inside `claim` applies
       // synchronously (before its first `await`), so `claim('3')` right
       // after already sees delivery '2' as claimed-by-me, without needing
       // the server to have confirmed it yet.
-      unawaited(container.read(orderBoardNotifierProvider.notifier).claim('2'));
+      unawaited(container.read(orderBoardProvider.notifier).claim('2'));
 
       await expectLater(
-        container.read(orderBoardNotifierProvider.notifier).claim('3'),
+        container.read(orderBoardProvider.notifier).claim('3'),
         throwsA(isA<ApiException>()),
       );
     });
@@ -489,7 +492,7 @@ void main() {
           ],
         ),
       ]);
-      await container.read(orderBoardNotifierProvider.future);
+      await container.read(orderBoardProvider.future);
 
       final detail = container.read(orderDetailProvider('1'));
 
@@ -501,7 +504,7 @@ void main() {
       container = buildContainer([
         deliveryJson(id: '1', status: 'PENDING_PICKUP'),
       ]);
-      await container.read(orderBoardNotifierProvider.future);
+      await container.read(orderBoardProvider.future);
 
       expect(container.read(orderDetailProvider('nope')), isNull);
     });

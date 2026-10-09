@@ -80,7 +80,7 @@ class DeliveryOrder {
 }
 
 /// A busboy delivery — one table-level pickup/delivery task, possibly
-/// bundling orders from multiple brands (`GET /api/v1/busboy/deliveries`).
+/// bundling orders from multiple brands (`GET /v1/busboy/deliveries`).
 @immutable
 class Delivery {
   const Delivery({
@@ -127,7 +127,7 @@ class Delivery {
   final DateTime createdAt;
 
   /// The busboy who claimed this delivery — null until claimed. Confirmed
-  /// live on `GET /api/v1/busboy/deliveries`. Lets the app tell this
+  /// live on `GET /v1/busboy/deliveries`. Lets the app tell this
   /// device's own claims apart from other busboys' in the same zone (the
   /// board otherwise shows every busboy's deliveries) — e.g. the
   /// max-active-deliveries claim limit in `OrderBoardNotifier.claim`.

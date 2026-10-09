@@ -6,40 +6,88 @@ part of 'new_order_alerts.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(newOrderAlerts)
+final newOrderAlertsProvider = NewOrderAlertsProvider._();
+
+final class NewOrderAlertsProvider
+    extends $FunctionalProvider<NewOrderAlerts, NewOrderAlerts, NewOrderAlerts>
+    with $Provider<NewOrderAlerts> {
+  NewOrderAlertsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'newOrderAlertsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$newOrderAlertsHash();
+
+  @$internal
+  @override
+  $ProviderElement<NewOrderAlerts> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  NewOrderAlerts create(Ref ref) {
+    return newOrderAlerts(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NewOrderAlerts value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NewOrderAlerts>(value),
+    );
+  }
+}
+
 String _$newOrderAlertsHash() => r'033e4ecb8fd6c03b3797a2ba8e8f3a6f79be0962';
 
-/// See also [newOrderAlerts].
-@ProviderFor(newOrderAlerts)
-final newOrderAlertsProvider = Provider<NewOrderAlerts>.internal(
-  newOrderAlerts,
-  name: r'newOrderAlertsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$newOrderAlertsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(busboyNewOrderAlerts)
+final busboyNewOrderAlertsProvider = BusboyNewOrderAlertsProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef NewOrderAlertsRef = ProviderRef<NewOrderAlerts>;
+final class BusboyNewOrderAlertsProvider
+    extends $FunctionalProvider<NewOrderAlerts, NewOrderAlerts, NewOrderAlerts>
+    with $Provider<NewOrderAlerts> {
+  BusboyNewOrderAlertsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'busboyNewOrderAlertsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$busboyNewOrderAlertsHash();
+
+  @$internal
+  @override
+  $ProviderElement<NewOrderAlerts> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  NewOrderAlerts create(Ref ref) {
+    return busboyNewOrderAlerts(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NewOrderAlerts value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NewOrderAlerts>(value),
+    );
+  }
+}
+
 String _$busboyNewOrderAlertsHash() =>
     r'33570edff39d0133b3dc604aee4f9269959c59f5';
-
-/// See also [busboyNewOrderAlerts].
-@ProviderFor(busboyNewOrderAlerts)
-final busboyNewOrderAlertsProvider = Provider<NewOrderAlerts>.internal(
-  busboyNewOrderAlerts,
-  name: r'busboyNewOrderAlertsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$busboyNewOrderAlertsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef BusboyNewOrderAlertsRef = ProviderRef<NewOrderAlerts>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -41,10 +41,10 @@ class TenantOrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final boardAsync = ref.watch(tenantOrderBoardProvider);
     final tenantName =
-        ref.watch(currentTenantBranchProvider).valueOrNull?.branchName ?? '-';
+        ref.watch(currentTenantBranchProvider).value?.branchName ?? '-';
 
     TenantOrder? order;
-    for (final candidate in boardAsync.valueOrNull ?? const <TenantOrder>[]) {
+    for (final candidate in boardAsync.value ?? const <TenantOrder>[]) {
       if (candidate.id == orderId) {
         order = candidate;
         break;

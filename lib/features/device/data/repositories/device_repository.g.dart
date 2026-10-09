@@ -6,22 +6,51 @@ part of 'device_repository.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$deviceRepositoryHash() => r'34adae34862180b3cbf117bbbdd80c61844c1950';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [deviceRepository].
 @ProviderFor(deviceRepository)
-final deviceRepositoryProvider = AutoDisposeProvider<DeviceRepository>.internal(
-  deviceRepository,
-  name: r'deviceRepositoryProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$deviceRepositoryHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final deviceRepositoryProvider = DeviceRepositoryProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef DeviceRepositoryRef = AutoDisposeProviderRef<DeviceRepository>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class DeviceRepositoryProvider
+    extends
+        $FunctionalProvider<
+          DeviceRepository,
+          DeviceRepository,
+          DeviceRepository
+        >
+    with $Provider<DeviceRepository> {
+  DeviceRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deviceRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deviceRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<DeviceRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DeviceRepository create(Ref ref) {
+    return deviceRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DeviceRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DeviceRepository>(value),
+    );
+  }
+}
+
+String _$deviceRepositoryHash() => r'0e6bb92584ff17b602bd16e0dfda22f6ebd63563';

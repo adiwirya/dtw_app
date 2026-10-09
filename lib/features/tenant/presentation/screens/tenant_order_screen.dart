@@ -63,7 +63,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
     final boardAsync = ref.watch(tenantOrderBoardProvider);
     final status = _statuses[_selected];
     final tenantName =
-        ref.watch(currentTenantBranchProvider).valueOrNull?.branchName ?? '';
+        ref.watch(currentTenantBranchProvider).value?.branchName ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -113,7 +113,7 @@ class _TenantOrderScreenState extends ConsumerState<TenantOrderScreen> {
   /// [ReceiptPrinterService] is wired (the real Sunmi printer on a device,
   /// or nothing off Android) — see the class doc.
   Future<void> _printDummyBon(BuildContext context) async {
-    final branch = ref.read(currentTenantBranchProvider).valueOrNull;
+    final branch = ref.read(currentTenantBranchProvider).value;
     final order = TenantOrder(
       id: 'dummy-order',
       orderGroupId: 'dummy-group',

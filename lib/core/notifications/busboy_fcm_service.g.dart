@@ -6,22 +6,51 @@ part of 'busboy_fcm_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$busboyFcmServiceHash() => r'66d95a8e8bdaad3ce794856bf1d9d6d2f3b56c2e';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [busboyFcmService].
 @ProviderFor(busboyFcmService)
-final busboyFcmServiceProvider = Provider<BusboyFcmService>.internal(
-  busboyFcmService,
-  name: r'busboyFcmServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$busboyFcmServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final busboyFcmServiceProvider = BusboyFcmServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef BusboyFcmServiceRef = ProviderRef<BusboyFcmService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class BusboyFcmServiceProvider
+    extends
+        $FunctionalProvider<
+          BusboyFcmService,
+          BusboyFcmService,
+          BusboyFcmService
+        >
+    with $Provider<BusboyFcmService> {
+  BusboyFcmServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'busboyFcmServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$busboyFcmServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<BusboyFcmService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BusboyFcmService create(Ref ref) {
+    return busboyFcmService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BusboyFcmService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BusboyFcmService>(value),
+    );
+  }
+}
+
+String _$busboyFcmServiceHash() => r'66d95a8e8bdaad3ce794856bf1d9d6d2f3b56c2e';

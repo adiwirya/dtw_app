@@ -21,7 +21,7 @@ import 'package:obra_icons/obra_icons.dart';
 ///
 /// One screen hosts all three sub-tabs (Ambil / Antar / Selesai); the shared
 /// `SegmentedTabBar` switches the list in place. Backed by the real,
-/// zone-scoped [orderBoardNotifierProvider] (`GET /api/v1/busboy/deliveries`).
+/// zone-scoped [orderBoardProvider] (`GET /v1/busboy/deliveries`).
 /// The `Sampai dimeja` action on an Antar card calls the real `complete`
 /// endpoint, then raises the shared success modal (`berhasil-ditambahkan-2`)
 /// whose `onConfirm` switches to the Selesai sub-tab. Hosted inside the app
@@ -55,7 +55,7 @@ class OrderScreen extends ConsumerWidget {
     OrderCardData data,
   ) async {
     try {
-      await ref.read(orderBoardNotifierProvider.notifier).deliver(data.orderId);
+      await ref.read(orderBoardProvider.notifier).deliver(data.orderId);
     } on Object catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -82,7 +82,7 @@ class OrderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(orderHeaderStatsProvider);
-    final boardAsync = ref.watch(orderBoardNotifierProvider);
+    final boardAsync = ref.watch(orderBoardProvider);
     final selected = ref.watch(orderTabProvider);
     final status = _statuses[selected];
 
@@ -107,7 +107,7 @@ class OrderScreen extends ConsumerWidget {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => ErrorView(
                   message: errorMessage(error),
-                  onRetry: () => ref.invalidate(orderBoardNotifierProvider),
+                  onRetry: () => ref.invalidate(orderBoardProvider),
                 ),
                 data: (deliveries) => _buildBody(
                   context,
@@ -166,7 +166,7 @@ class OrderScreen extends ConsumerWidget {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => ref.refresh(orderBoardNotifierProvider.future),
+            onRefresh: () => ref.refresh(orderBoardProvider.future),
             child: orders.isEmpty
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),

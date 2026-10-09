@@ -6,22 +6,46 @@ part of 'device_identity.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$deviceIdentityHash() => r'b758fd52752b1810134bd94bf37209201405edea';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [deviceIdentity].
 @ProviderFor(deviceIdentity)
-final deviceIdentityProvider = Provider<DeviceIdentity>.internal(
-  deviceIdentity,
-  name: r'deviceIdentityProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$deviceIdentityHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final deviceIdentityProvider = DeviceIdentityProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef DeviceIdentityRef = ProviderRef<DeviceIdentity>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class DeviceIdentityProvider
+    extends $FunctionalProvider<DeviceIdentity, DeviceIdentity, DeviceIdentity>
+    with $Provider<DeviceIdentity> {
+  DeviceIdentityProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deviceIdentityProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deviceIdentityHash();
+
+  @$internal
+  @override
+  $ProviderElement<DeviceIdentity> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DeviceIdentity create(Ref ref) {
+    return deviceIdentity(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DeviceIdentity value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DeviceIdentity>(value),
+    );
+  }
+}
+
+String _$deviceIdentityHash() => r'b758fd52752b1810134bd94bf37209201405edea';

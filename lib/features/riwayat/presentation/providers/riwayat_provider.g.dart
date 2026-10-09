@@ -6,169 +6,50 @@ part of 'riwayat_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$riwayatDetailHash() => r'2caa0ee90e29bce0d3626a6f5987eab0ca38ad16';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Currently selected Riwayat date tab, as an index into
+/// `[hariIni, kemarin, tujuhHari]`. Kept as app state (not screen-local) so the
+/// `/riwayat/kemarin` and `/riwayat/7-hari` route deep-links can switch the
+/// in-place tab. Mirrors the Order tab provider.
 
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
+@ProviderFor(RiwayatTab)
+final riwayatTabProvider = RiwayatTabProvider._();
 
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-/// Looks [entryId] (a delivery id) up out of the same list
-/// [riwayatBoardProvider] holds — null while the board is still loading, has
-/// errored, or the delivery isn't on it.
-///
-/// Copied from [riwayatDetail].
-@ProviderFor(riwayatDetail)
-const riwayatDetailProvider = RiwayatDetailFamily();
-
-/// Looks [entryId] (a delivery id) up out of the same list
-/// [riwayatBoardProvider] holds — null while the board is still loading, has
-/// errored, or the delivery isn't on it.
-///
-/// Copied from [riwayatDetail].
-class RiwayatDetailFamily extends Family<CompletedOrderDetail?> {
-  /// Looks [entryId] (a delivery id) up out of the same list
-  /// [riwayatBoardProvider] holds — null while the board is still loading, has
-  /// errored, or the delivery isn't on it.
-  ///
-  /// Copied from [riwayatDetail].
-  const RiwayatDetailFamily();
-
-  /// Looks [entryId] (a delivery id) up out of the same list
-  /// [riwayatBoardProvider] holds — null while the board is still loading, has
-  /// errored, or the delivery isn't on it.
-  ///
-  /// Copied from [riwayatDetail].
-  RiwayatDetailProvider call(String entryId) {
-    return RiwayatDetailProvider(entryId);
-  }
-
-  @override
-  RiwayatDetailProvider getProviderOverride(
-    covariant RiwayatDetailProvider provider,
-  ) {
-    return call(provider.entryId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'riwayatDetailProvider';
-}
-
-/// Looks [entryId] (a delivery id) up out of the same list
-/// [riwayatBoardProvider] holds — null while the board is still loading, has
-/// errored, or the delivery isn't on it.
-///
-/// Copied from [riwayatDetail].
-class RiwayatDetailProvider extends AutoDisposeProvider<CompletedOrderDetail?> {
-  /// Looks [entryId] (a delivery id) up out of the same list
-  /// [riwayatBoardProvider] holds — null while the board is still loading, has
-  /// errored, or the delivery isn't on it.
-  ///
-  /// Copied from [riwayatDetail].
-  RiwayatDetailProvider(String entryId)
-    : this._internal(
-        (ref) => riwayatDetail(ref as RiwayatDetailRef, entryId),
-        from: riwayatDetailProvider,
-        name: r'riwayatDetailProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$riwayatDetailHash,
-        dependencies: RiwayatDetailFamily._dependencies,
-        allTransitiveDependencies:
-            RiwayatDetailFamily._allTransitiveDependencies,
-        entryId: entryId,
+/// Currently selected Riwayat date tab, as an index into
+/// `[hariIni, kemarin, tujuhHari]`. Kept as app state (not screen-local) so the
+/// `/riwayat/kemarin` and `/riwayat/7-hari` route deep-links can switch the
+/// in-place tab. Mirrors the Order tab provider.
+final class RiwayatTabProvider extends $NotifierProvider<RiwayatTab, int> {
+  /// Currently selected Riwayat date tab, as an index into
+  /// `[hariIni, kemarin, tujuhHari]`. Kept as app state (not screen-local) so the
+  /// `/riwayat/kemarin` and `/riwayat/7-hari` route deep-links can switch the
+  /// in-place tab. Mirrors the Order tab provider.
+  RiwayatTabProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'riwayatTabProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
       );
 
-  RiwayatDetailProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.entryId,
-  }) : super.internal();
-
-  final String entryId;
-
   @override
-  Override overrideWith(
-    CompletedOrderDetail? Function(RiwayatDetailRef provider) create,
-  ) {
-    return ProviderOverride(
+  String debugGetCreateSourceHash() => _$riwayatTabHash();
+
+  @$internal
+  @override
+  RiwayatTab create() => RiwayatTab();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(int value) {
+    return $ProviderOverride(
       origin: this,
-      override: RiwayatDetailProvider._internal(
-        (ref) => create(ref as RiwayatDetailRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        entryId: entryId,
-      ),
+      providerOverride: $SyncValueProvider<int>(value),
     );
   }
-
-  @override
-  AutoDisposeProviderElement<CompletedOrderDetail?> createElement() {
-    return _RiwayatDetailProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is RiwayatDetailProvider && other.entryId == entryId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, entryId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin RiwayatDetailRef on AutoDisposeProviderRef<CompletedOrderDetail?> {
-  /// The parameter `entryId` of this provider.
-  String get entryId;
-}
-
-class _RiwayatDetailProviderElement
-    extends AutoDisposeProviderElement<CompletedOrderDetail?>
-    with RiwayatDetailRef {
-  _RiwayatDetailProviderElement(super.provider);
-
-  @override
-  String get entryId => (origin as RiwayatDetailProvider).entryId;
 }
 
 String _$riwayatTabHash() => r'1118aefd371c3b342a7fd644154e5476386f3e89';
@@ -177,41 +58,205 @@ String _$riwayatTabHash() => r'1118aefd371c3b342a7fd644154e5476386f3e89';
 /// `[hariIni, kemarin, tujuhHari]`. Kept as app state (not screen-local) so the
 /// `/riwayat/kemarin` and `/riwayat/7-hari` route deep-links can switch the
 /// in-place tab. Mirrors the Order tab provider.
-///
-/// Copied from [RiwayatTab].
-@ProviderFor(RiwayatTab)
-final riwayatTabProvider =
-    AutoDisposeNotifierProvider<RiwayatTab, int>.internal(
-      RiwayatTab.new,
-      name: r'riwayatTabProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$riwayatTabHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
 
-typedef _$RiwayatTab = AutoDisposeNotifier<int>;
-String _$riwayatBoardHash() => r'b7269350f8e7638dc583dc2785a5294900e235eb';
+abstract class _$RiwayatTab extends $Notifier<int> {
+  int build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<int, int>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<int, int>,
+              int,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
 
-/// The busboy's completed-delivery history, fetched once from
-/// `GET /api/v1/busboy/deliveries?status=DELIVERED`. [riwayatDaysFrom]
-/// buckets this same list by date for each [RiwayatRange] tab, and
-/// [riwayatDetailProvider] looks a single entry up out of it.
-///
-/// Copied from [RiwayatBoard].
+/// This busboy's own completed-delivery history, fetched once from
+/// `GET /v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+/// logged-in busboy, unlike the Order tab's `GET /v1/busboy/deliveries`
+/// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
+/// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
+/// entry up out of it.
+// The endpoint takes `from`/`to` (`YYYY-MM-DD`); only the last 7 days are ever
+// shown, so `from` is set to 8 days ago (one day of slack for UTC vs. local
+// dates) and [riwayatDaysFrom] still does the exact bucketing client-side.
+
 @ProviderFor(RiwayatBoard)
-final riwayatBoardProvider =
-    AutoDisposeAsyncNotifierProvider<RiwayatBoard, List<Delivery>>.internal(
-      RiwayatBoard.new,
-      name: r'riwayatBoardProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$riwayatBoardHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final riwayatBoardProvider = RiwayatBoardProvider._();
 
-typedef _$RiwayatBoard = AutoDisposeAsyncNotifier<List<Delivery>>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+/// This busboy's own completed-delivery history, fetched once from
+/// `GET /v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+/// logged-in busboy, unlike the Order tab's `GET /v1/busboy/deliveries`
+/// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
+/// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
+/// entry up out of it.
+// The endpoint takes `from`/`to` (`YYYY-MM-DD`); only the last 7 days are ever
+// shown, so `from` is set to 8 days ago (one day of slack for UTC vs. local
+// dates) and [riwayatDaysFrom] still does the exact bucketing client-side.
+final class RiwayatBoardProvider
+    extends $AsyncNotifierProvider<RiwayatBoard, List<Delivery>> {
+  /// This busboy's own completed-delivery history, fetched once from
+  /// `GET /v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+  /// logged-in busboy, unlike the Order tab's `GET /v1/busboy/deliveries`
+  /// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
+  /// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
+  /// entry up out of it.
+  // The endpoint takes `from`/`to` (`YYYY-MM-DD`); only the last 7 days are ever
+  // shown, so `from` is set to 8 days ago (one day of slack for UTC vs. local
+  // dates) and [riwayatDaysFrom] still does the exact bucketing client-side.
+  RiwayatBoardProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'riwayatBoardProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$riwayatBoardHash();
+
+  @$internal
+  @override
+  RiwayatBoard create() => RiwayatBoard();
+}
+
+String _$riwayatBoardHash() => r'519732e865c2f67ca40edbd1a79f20d9fbe64ec0';
+
+/// This busboy's own completed-delivery history, fetched once from
+/// `GET /v1/busboy/deliveries/history?status=DELIVERED` — scoped to the
+/// logged-in busboy, unlike the Order tab's `GET /v1/busboy/deliveries`
+/// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
+/// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
+/// entry up out of it.
+// The endpoint takes `from`/`to` (`YYYY-MM-DD`); only the last 7 days are ever
+// shown, so `from` is set to 8 days ago (one day of slack for UTC vs. local
+// dates) and [riwayatDaysFrom] still does the exact bucketing client-side.
+
+abstract class _$RiwayatBoard extends $AsyncNotifier<List<Delivery>> {
+  FutureOr<List<Delivery>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<Delivery>>, List<Delivery>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<Delivery>>, List<Delivery>>,
+              AsyncValue<List<Delivery>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
+
+@ProviderFor(riwayatDetail)
+final riwayatDetailProvider = RiwayatDetailFamily._();
+
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
+
+final class RiwayatDetailProvider
+    extends
+        $FunctionalProvider<
+          CompletedOrderDetail?,
+          CompletedOrderDetail?,
+          CompletedOrderDetail?
+        >
+    with $Provider<CompletedOrderDetail?> {
+  /// Looks [entryId] (a delivery id) up out of the same list
+  /// [riwayatBoardProvider] holds — null while the board is still loading, has
+  /// errored, or the delivery isn't on it.
+  RiwayatDetailProvider._({
+    required RiwayatDetailFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'riwayatDetailProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$riwayatDetailHash();
+
+  @override
+  String toString() {
+    return r'riwayatDetailProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<CompletedOrderDetail?> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  CompletedOrderDetail? create(Ref ref) {
+    final argument = this.argument as String;
+    return riwayatDetail(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CompletedOrderDetail? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CompletedOrderDetail?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RiwayatDetailProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$riwayatDetailHash() => r'3adde5307bb86946ff0368f0c903a79d1dfac74a';
+
+/// Looks [entryId] (a delivery id) up out of the same list
+/// [riwayatBoardProvider] holds — null while the board is still loading, has
+/// errored, or the delivery isn't on it.
+
+final class RiwayatDetailFamily extends $Family
+    with $FunctionalFamilyOverride<CompletedOrderDetail?, String> {
+  RiwayatDetailFamily._()
+    : super(
+        retry: null,
+        name: r'riwayatDetailProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Looks [entryId] (a delivery id) up out of the same list
+  /// [riwayatBoardProvider] holds — null while the board is still loading, has
+  /// errored, or the delivery isn't on it.
+
+  RiwayatDetailProvider call(String entryId) =>
+      RiwayatDetailProvider._(argument: entryId, from: this);
+
+  @override
+  String toString() => r'riwayatDetailProvider';
+}

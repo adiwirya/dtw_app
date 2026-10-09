@@ -23,7 +23,7 @@ class OrderSelesaiDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final boardAsync = ref.watch(orderBoardNotifierProvider);
+    final boardAsync = ref.watch(orderBoardProvider);
     final detail = ref.watch(completedOrderDetailProvider(orderId));
 
     void onBack() {
@@ -43,7 +43,7 @@ class OrderSelesaiDetailScreen extends ConsumerWidget {
         child: boardAsync.hasError
             ? ErrorView(
                 message: errorMessage(boardAsync.error!),
-                onRetry: () => ref.invalidate(orderBoardNotifierProvider),
+                onRetry: () => ref.invalidate(orderBoardProvider),
               )
             : Center(
                 child: boardAsync.isLoading

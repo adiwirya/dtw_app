@@ -6,23 +6,53 @@ part of 'tenant_realtime_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(tenantRealtimeService)
+final tenantRealtimeServiceProvider = TenantRealtimeServiceProvider._();
+
+final class TenantRealtimeServiceProvider
+    extends
+        $FunctionalProvider<
+          TenantRealtimeService,
+          TenantRealtimeService,
+          TenantRealtimeService
+        >
+    with $Provider<TenantRealtimeService> {
+  TenantRealtimeServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'tenantRealtimeServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$tenantRealtimeServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<TenantRealtimeService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  TenantRealtimeService create(Ref ref) {
+    return tenantRealtimeService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TenantRealtimeService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TenantRealtimeService>(value),
+    );
+  }
+}
+
 String _$tenantRealtimeServiceHash() =>
     r'c6578c04569ed04b3354064994475edec43d4a4c';
-
-/// See also [tenantRealtimeService].
-@ProviderFor(tenantRealtimeService)
-final tenantRealtimeServiceProvider = Provider<TenantRealtimeService>.internal(
-  tenantRealtimeService,
-  name: r'tenantRealtimeServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$tenantRealtimeServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TenantRealtimeServiceRef = ProviderRef<TenantRealtimeService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

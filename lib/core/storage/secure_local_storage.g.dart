@@ -6,22 +6,46 @@ part of 'secure_local_storage.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$localStorageHash() => r'2e4b4359d47b83122edb0182a50c20ac72b53ff6';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [localStorage].
 @ProviderFor(localStorage)
-final localStorageProvider = AutoDisposeProvider<LocalStorage>.internal(
-  localStorage,
-  name: r'localStorageProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$localStorageHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final localStorageProvider = LocalStorageProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef LocalStorageRef = AutoDisposeProviderRef<LocalStorage>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class LocalStorageProvider
+    extends $FunctionalProvider<LocalStorage, LocalStorage, LocalStorage>
+    with $Provider<LocalStorage> {
+  LocalStorageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'localStorageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$localStorageHash();
+
+  @$internal
+  @override
+  $ProviderElement<LocalStorage> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  LocalStorage create(Ref ref) {
+    return localStorage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LocalStorage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LocalStorage>(value),
+    );
+  }
+}
+
+String _$localStorageHash() => r'2e4b4359d47b83122edb0182a50c20ac72b53ff6';
