@@ -34,6 +34,16 @@ void main() {
       expect(adapter.lastRequest!.queryParameters, {'status': 'CLAIMED'});
     });
 
+    test('passes from as a zero-padded YYYY-MM-DD', () async {
+      final dio = cannedDeliveryListDio([]);
+      final repository = BusboyDeliveryRepository(dio: dio);
+
+      await repository.fetchHistory(from: DateTime(2026, 3, 5));
+
+      final adapter = dio.httpClientAdapter as CannedAdapter;
+      expect(adapter.lastRequest!.queryParameters, {'from': '2026-03-05'});
+    });
+
     test('omits the status query param when not given', () async {
       final dio = cannedDeliveryListDio([]);
       final repository = BusboyDeliveryRepository(dio: dio);

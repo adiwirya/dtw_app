@@ -18,6 +18,12 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _deliveryCompletedController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationCreatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationClaimedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationResolvedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectedController = StreamController<void>.broadcast();
   final _statusController = StreamController<String>.broadcast();
 
@@ -32,6 +38,18 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
   @override
   Stream<Map<String, dynamic>> get deliveryCompleted =>
       _deliveryCompletedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationCreated =>
+      _confirmationCreatedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationClaimed =>
+      _confirmationClaimedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationResolved =>
+      _confirmationResolvedController.stream;
 
   @override
   Stream<void> get reconnected => _reconnectedController.stream;
@@ -68,6 +86,18 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
     _deliveryCompletedController.add(payload);
   }
 
+  void emitConfirmationCreated(Map<String, dynamic> payload) {
+    _confirmationCreatedController.add(payload);
+  }
+
+  void emitConfirmationClaimed(Map<String, dynamic> payload) {
+    _confirmationClaimedController.add(payload);
+  }
+
+  void emitConfirmationResolved(Map<String, dynamic> payload) {
+    _confirmationResolvedController.add(payload);
+  }
+
   void emitReconnected() {
     _reconnectedController.add(null);
   }
@@ -76,6 +106,9 @@ class FakeBusboyRealtimeService implements BusboyRealtimeService {
     await _deliveryCreatedController.close();
     await _deliveryClaimedController.close();
     await _deliveryCompletedController.close();
+    await _confirmationCreatedController.close();
+    await _confirmationClaimedController.close();
+    await _confirmationResolvedController.close();
     await _reconnectedController.close();
     await _statusController.close();
   }

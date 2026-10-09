@@ -6,8 +6,11 @@ import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/order_card.dart';
 import 'package:dtw_app/core/widgets/segmented_tab_bar.dart';
 import 'package:dtw_app/core/widgets/success_modal.dart';
+import 'package:dtw_app/features/order/data/models/order_confirmation.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
+import 'package:dtw_app/features/order/presentation/providers/order_confirmation_provider.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
+import 'package:dtw_app/features/order/presentation/widgets/order_confirmation_card.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_empty_state.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_home_header.dart';
 import 'package:dtw_app/features/order/presentation/widgets/order_success_details.dart';
@@ -39,6 +42,13 @@ class OrderScreen extends ConsumerWidget {
     context.goNamed(
       AppRoutes.orderDetail,
       pathParameters: {'orderId': orderId},
+    );
+  }
+
+  void _openConfirmation(BuildContext context, String confirmationId) {
+    context.goNamed(
+      AppRoutes.orderConfirmationDetail,
+      pathParameters: {'confirmationId': confirmationId},
     );
   }
 
@@ -132,6 +142,12 @@ class OrderScreen extends ConsumerWidget {
     int selected,
   ) {
     final orders = board.listFor(status);
+    // "Perlu Konfirmasi" tasks live on the Ambil (baru) tab only.
+    final confirmations = status == OrderStatus.baru
+        ? ref.watch(openConfirmationsProvider)
+        : const <OrderConfirmation>[];
+    final ambilCount =
+        board.baru.length + ref.watch(openConfirmationsProvider).length;
 
     return Column(
       children: [
@@ -142,10 +158,10 @@ class OrderScreen extends ConsumerWidget {
             SegmentedTabItem(
               label: 'Ambil',
               icon: Icons.room_service_outlined,
-              badge: board.baru.isEmpty
+              badge: ambilCount == 0
                   ? null
                   : OrderTabBadge(
-                      count: board.baru.length,
+                      count: ambilCount,
                       color: AppColors.orderBadgeRed,
                     ),
             ),
@@ -166,13 +182,19 @@ class OrderScreen extends ConsumerWidget {
         ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => ref.refresh(orderBoardProvider.future),
-            child: orders.isEmpty
+            onRefresh: () async {
+              ref.invalidate(orderConfirmationBoardProvider);
+              await ref.refresh(orderBoardProvider.future);
+            },
+            child: orders.isEmpty && confirmations.isEmpty
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [OrderEmptyState(status: status)],
                   )
                 : _OrderList(
+                    confirmations: confirmations,
+                    onConfirmationDetail: (id) =>
+                        _openConfirmation(context, id),
                     orders: orders,
                     onDetail: (orderId) => _openDetail(context, orderId),
                     onSelesaiDetail: (orderId) =>
@@ -188,12 +210,16 @@ class OrderScreen extends ConsumerWidget {
 
 class _OrderList extends StatelessWidget {
   const _OrderList({
+    required this.confirmations,
+    required this.onConfirmationDetail,
     required this.orders,
     required this.onDetail,
     required this.onSelesaiDetail,
     required this.onDeliver,
   });
 
+  final List<OrderConfirmation> confirmations;
+  final ValueChanged<String> onConfirmationDetail;
   final List<OrderCardData> orders;
   final ValueChanged<String> onDetail;
   final ValueChanged<String> onSelesaiDetail;
@@ -201,26 +227,61 @@ class _OrderList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // With confirmations present the Ambil tab splits into two titled
+    // sections (`menu-order-baru`): "Konfirmasi" then "Siap diantar".
+    final sectioned = confirmations.isNotEmpty;
+    final children = <Widget>[
+      if (sectioned) const _SectionTitle('Konfirmasi'),
+      for (final c in confirmations)
+        OrderConfirmationCard(
+          confirmation: c,
+          onTap: () => onConfirmationDetail(c.id),
+        ),
+      if (sectioned && orders.isNotEmpty) const _SectionTitle('Siap diantar'),
+      for (final data in orders) _orderCard(data),
+    ];
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: orders.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 16),
-      itemBuilder: (context, i) {
-        final data = orders[i];
-        final isSelesai = data.status == OrderStatus.selesai;
-        return OrderCard(
-          data: data,
-          // Selesai cards open the completed-order detail (`detail-selesai`);
-          // Baru/Antar open the pickup detail (`menu-order-baru-2`).
-          onTap: isSelesai
-              ? () => onSelesaiDetail(data.orderId)
-              : () => onDetail(data.orderId),
-          onDetailTap: () => onDetail(data.orderId),
-          onPrimaryAction:
-              data.status == OrderStatus.antar ? () => onDeliver(data) : null,
-        );
-      },
+      itemCount: children.length,
+      separatorBuilder: (_, i) =>
+          SizedBox(height: children[i] is _SectionTitle ? 12 : 16),
+      itemBuilder: (context, i) => children[i],
+    );
+  }
+
+  Widget _orderCard(OrderCardData data) {
+    final isSelesai = data.status == OrderStatus.selesai;
+    return OrderCard(
+      data: data,
+      // Selesai cards open the completed-order detail (`detail-selesai`);
+      // Baru/Antar open the pickup detail (`menu-order-baru-2`).
+      onTap: isSelesai
+          ? () => onSelesaiDetail(data.orderId)
+          : () => onDetail(data.orderId),
+      onDetailTap: () => onDetail(data.orderId),
+      onPrimaryAction:
+          data.status == OrderStatus.antar ? () => onDeliver(data) : null,
+    );
+  }
+}
+
+/// A bold section heading on the Ambil tab ("Konfirmasi", "Siap diantar").
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.neutral900,
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+      ),
     );
   }
 }

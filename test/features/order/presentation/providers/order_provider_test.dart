@@ -541,8 +541,8 @@ class _FailingRepository implements BusboyDeliveryRepository {
       _delegate.fetchRating(userId: userId);
 
   @override
-  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) =>
-      _delegate.fetchHistory(status: status);
+  Future<List<Delivery>> fetchHistory({DeliveryStatus? status, DateTime? from}) =>
+      _delegate.fetchHistory(status: status, from: from);
 }
 
 /// A repository whose [fetchDeliveries] only resolves once [fetchGate]
@@ -579,6 +579,6 @@ class _DelayedFetchRepository implements BusboyDeliveryRepository {
       _delegate.fetchRating(userId: userId);
 
   @override
-  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) =>
-      _delegate.fetchHistory(status: status);
+  Future<List<Delivery>> fetchHistory({DeliveryStatus? status, DateTime? from}) =>
+      _delegate.fetchHistory(status: status, from: from);
 }

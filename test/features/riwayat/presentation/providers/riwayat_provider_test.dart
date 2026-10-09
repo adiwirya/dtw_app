@@ -32,7 +32,10 @@ void main() {
       expect(deliveries.single.id, '1');
       final adapter = dio.httpClientAdapter as CannedAdapter;
       expect(adapter.lastRequest!.path, '/v1/busboy/deliveries/history');
-      expect(adapter.lastRequest!.queryParameters, {'status': 'DELIVERED'});
+      final query = adapter.lastRequest!.queryParameters;
+      expect(query['status'], 'DELIVERED');
+      // Bounded to the last 8 days (7 shown + 1 day slack): YYYY-MM-DD.
+      expect(query['from'], matches(r'^\d{4}-\d{2}-\d{2}$'));
     });
 
     test('surfaces a fetch failure as AsyncError', () async {

@@ -34,12 +34,16 @@ class BusboyDeliveryRepository {
   /// [fetchDeliveries], which returns every busboy's deliveries in the
   /// zone). Same response item shape as [fetchDeliveries], so [Delivery]
   /// parses it unchanged.
-  Future<List<Delivery>> fetchHistory({DeliveryStatus? status}) async {
+  Future<List<Delivery>> fetchHistory({
+    DeliveryStatus? status,
+    DateTime? from,
+  }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/v1/busboy/deliveries/history',
         queryParameters: {
           if (status != null) 'status': _statusToWire(status),
+          if (from != null) 'from': _ymd(from),
         },
       );
       final data = response.data!['data'] as List;
@@ -99,6 +103,10 @@ class BusboyDeliveryRepository {
       throw mapDioError(error);
     }
   }
+
+  String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   String _statusToWire(DeliveryStatus status) => switch (status) {
         DeliveryStatus.pendingPickup => 'PENDING_PICKUP',

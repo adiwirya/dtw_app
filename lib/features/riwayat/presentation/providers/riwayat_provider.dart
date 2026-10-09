@@ -31,11 +31,9 @@ class RiwayatTab extends _$RiwayatTab {
 /// (everyone in the zone). [riwayatDaysFrom] buckets this same list by date
 /// for each [RiwayatRange] tab, and [riwayatDetailProvider] looks a single
 /// entry up out of it.
-// TODO(open-question): the busboy API has no date-range query param on this
-// endpoint either, so this fetches this busboy's entire DELIVERED history
-// (unbounded, no pagination) and buckets by date client-side — fine for now,
-// but will need a real range/pagination param from backend once delivery
-// history grows large.
+// The endpoint takes `from`/`to` (`YYYY-MM-DD`); only the last 7 days are ever
+// shown, so `from` is set to 8 days ago (one day of slack for UTC vs. local
+// dates) and [riwayatDaysFrom] still does the exact bucketing client-side.
 @riverpod
 class RiwayatBoard extends _$RiwayatBoard {
   @override
@@ -47,7 +45,10 @@ class RiwayatBoard extends _$RiwayatBoard {
     }
     return ref
         .watch(busboyDeliveryRepositoryProvider)
-        .fetchHistory(status: DeliveryStatus.delivered);
+        .fetchHistory(
+          status: DeliveryStatus.delivered,
+          from: DateTime.now().subtract(const Duration(days: 8)),
+        );
   }
 }
 

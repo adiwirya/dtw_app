@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dtw_app/core/flavor.dart';
 import 'package:dtw_app/core/realtime/busboy_realtime_service.dart';
 import 'package:dtw_app/core/storage/secure_local_storage.dart';
+import 'package:dtw_app/features/order/data/repositories/busboy_confirmation_repository.dart';
 import 'package:dtw_app/features/order/data/repositories/busboy_delivery_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -13,7 +14,7 @@ import 'fake_local_storage.dart';
 /// The zone id every busboy-board test is scoped to.
 const String testZoneId = 'zone-1';
 
-/// One item in the busboy `GET /v1/busboy/deliveries` item shape.
+/// One item in the busboy `GET /api/v1/busboy/deliveries` item shape.
 /// [id] is the delivery's real identifier — claim/complete target and board
 /// lookup key. There is no `receipt_number` at this level (confirmed live):
 /// it lives per-order instead — see [deliveryOrderJson].
@@ -98,11 +99,19 @@ List<Override> busboyBoardOverrides({
   FakeLocalStorage? storage,
   BusboyRealtimeService? realtime,
   String? sessionUserId,
+  Dio? confirmationDio,
   BusboyDeliveryRepository? deliveryRepository,
 }) => [
   localStorageProvider.overrideWithValue(storage ?? zoneScopedStorage()),
   busboyDeliveryRepositoryProvider.overrideWithValue(
     deliveryRepository ?? BusboyDeliveryRepository(dio: dio),
+  ),
+  // Defaults to "no confirmations", so a screen test never reaches the
+  // network for them.
+  busboyConfirmationRepositoryProvider.overrideWithValue(
+    BusboyConfirmationRepository(
+      dio: confirmationDio ?? cannedDio(200, busboyEnvelope([])),
+    ),
   ),
   busboyRealtimeServiceProvider.overrideWithValue(
     realtime ?? FakeBusboyRealtimeService(),

@@ -15,6 +15,7 @@ import 'package:dtw_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:dtw_app/features/device/presentation/screens/device_onboarding_screen.dart';
 import 'package:dtw_app/features/order/data/models/order_models.dart';
 import 'package:dtw_app/features/order/presentation/providers/order_provider.dart';
+import 'package:dtw_app/features/order/presentation/screens/order_confirmation_detail_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_detail_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_screen.dart';
 import 'package:dtw_app/features/order/presentation/screens/order_selesai_detail_screen.dart';
@@ -53,6 +54,8 @@ abstract class AppRoutes {
   // --- Tab 0: Order (home = menu-order-baru) ---
   static const order = 'order'; // menu-order-baru
   static const orderDetail = 'orderDetail'; // menu-order-baru-2
+  static const orderConfirmationDetail =
+      'orderConfirmationDetail'; // detail of a "Perlu Konfirmasi" task
   static const orderAntar = 'orderAntar'; // menu-order-antar
   static const orderBerhasil = 'orderBerhasil'; // berhasil-ditambahkan (modal)
   static const orderSelesai = 'orderSelesai'; // menu-order-selesai
@@ -375,6 +378,13 @@ GoRouter appRouter(Ref ref) {
                     name: AppRoutes.orderDetail,
                     builder: (context, state) => OrderDetailScreen(
                       orderId: state.pathParameters['orderId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'konfirmasi/:confirmationId',
+                    name: AppRoutes.orderConfirmationDetail,
+                    builder: (context, state) => OrderConfirmationDetailScreen(
+                      confirmationId: state.pathParameters['confirmationId']!,
                     ),
                   ),
                   // The Order home shows all three sub-tabs in place; these

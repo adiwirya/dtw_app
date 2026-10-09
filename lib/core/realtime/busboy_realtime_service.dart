@@ -25,7 +25,7 @@ abstract class BusboyRealtimeService {
 
   /// Emits the decoded payload of every `delivery.created` event received on
   /// the subscribed channel — the same shape as one `GET
-  /// /api/v1/busboy/deliveries` list item.
+  /// /v1/busboy/deliveries` list item.
   Stream<Map<String, dynamic>> get deliveryCreated;
 
   /// Emits the decoded payload of every `delivery.claimed` event — another
@@ -37,6 +37,18 @@ abstract class BusboyRealtimeService {
   /// CLAIMED delivery marked delivered. Same payload shape as
   /// [deliveryCreated]: the full, now-DELIVERED delivery.
   Stream<Map<String, dynamic>> get deliveryCompleted;
+
+  /// Emits the decoded payload of every `order-confirmation.created` event -
+  /// a new "customer must decide" task. Same shape as one
+  /// `GET /v1/busboy/order-confirmations` item.
+  Stream<Map<String, dynamic>> get confirmationCreated;
+
+  /// `order-confirmation.claimed` - a busboy took the task. Same payload shape.
+  Stream<Map<String, dynamic>> get confirmationClaimed;
+
+  /// `order-confirmation.resolved` - the customer's decision was recorded.
+  /// Same payload shape.
+  Stream<Map<String, dynamic>> get confirmationResolved;
 
   /// Emits once each time the underlying connection re-establishes after a
   /// drop (not on the very first connect). There is no gap-fill/replay
@@ -59,6 +71,12 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _deliveryCompletedController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationCreatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationClaimedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _confirmationResolvedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectedController = StreamController<void>.broadcast();
   final _statusController = StreamController<String>.broadcast();
 
@@ -73,6 +91,18 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
   @override
   Stream<Map<String, dynamic>> get deliveryCompleted =>
       _deliveryCompletedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationCreated =>
+      _confirmationCreatedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationClaimed =>
+      _confirmationClaimedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get confirmationResolved =>
+      _confirmationResolvedController.stream;
 
   @override
   Stream<void> get reconnected => _reconnectedController.stream;
@@ -133,7 +163,16 @@ class ReverbBusboyRealtimeService implements BusboyRealtimeService {
     reverb.private('zone.$zoneId')
       ..listen('.delivery.created', _deliveryCreatedController.add)
       ..listen('.delivery.claimed', _deliveryClaimedController.add)
-      ..listen('.delivery.completed', _deliveryCompletedController.add);
+      ..listen('.delivery.completed', _deliveryCompletedController.add)
+      ..listen('.order-confirmation.created', _confirmationCreatedController.add)
+      ..listen(
+        '.order-confirmation.claimed',
+        _confirmationClaimedController.add,
+      )
+      ..listen(
+        '.order-confirmation.resolved',
+        _confirmationResolvedController.add,
+      );
   }
 
   @override
