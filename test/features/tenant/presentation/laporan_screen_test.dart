@@ -82,6 +82,7 @@ void main() {
           'brand_name': 'Janji Jiwa',
           'branch_name': 'Janji Jiwa',
           'area_name': 'Downtown',
+          'kd_lokasi': 'SMB',
           'is_active': true,
           'created_at': '2026-08-07 09:16:37',
         }),

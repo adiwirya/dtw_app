@@ -9,7 +9,7 @@ void main() {
   testWidgets(
     'alasan-penolakan reason sheet',
     (tester) async {
-      tester.view.physicalSize = const Size(390, 520);
+      tester.view.physicalSize = const Size(390, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
