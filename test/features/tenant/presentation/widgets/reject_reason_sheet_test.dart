@@ -8,7 +8,9 @@ const _item = OrderLineItem(qty: 2, name: 'Es Kopi Susu', price: 'Rp36.000');
 
 Future<void> _pump(WidgetTester tester) async {
   await tester.pumpWidget(
-    const MaterialApp(home: Scaffold(body: RejectReasonSheet(item: _item))),
+    const MaterialApp(
+      home: Scaffold(body: RejectReasonSheet(item: _item)),
+    ),
   );
 }
 
@@ -37,7 +39,7 @@ void main() {
   testWidgets('Simpan Alasan pops with the selected preset title', (
     tester,
   ) async {
-    String? result;
+    RejectReasonResult? result;
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
@@ -55,18 +57,53 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Bahan tidak tersedia'));
+    await tester.tap(find.text('Jumlah Terbatas'));
     await tester.pump();
     await tester.tap(find.text('Simpan Alasan'));
     await tester.pumpAndSettle();
 
-    expect(result, 'Bahan tidak tersedia');
+    expect(result?.reason, 'Jumlah Terbatas');
+    // Defaults to the item's quantity (_item has qty 2).
+    expect(result?.quantity, 2);
+  });
+
+  testWidgets('the Jumlah stepper lowers the rejected quantity (min 1)', (
+    tester,
+  ) async {
+    RejectReasonResult? result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                result = await showRejectReasonSheet(context, item: _item);
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Kurangi jumlah'));
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('Kurangi jumlah')); // no-op at 1
+    await tester.pump();
+    await tester.tap(find.text('Stok Habis'));
+    await tester.pump();
+    await tester.tap(find.text('Simpan Alasan'));
+    await tester.pumpAndSettle();
+
+    expect(result?.quantity, 1);
   });
 
   testWidgets(
     'typing a custom reason overrides the selected preset',
     (tester) async {
-      String? result;
+      RejectReasonResult? result;
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -94,14 +131,17 @@ void main() {
       await tester.tap(find.text('Simpan Alasan'));
       await tester.pumpAndSettle();
 
-      expect(result, 'Alasan custom dari tenant');
+      expect(result?.reason, 'Alasan custom dari tenant');
     },
   );
 
   testWidgets('the close icon pops with null (dismissed, no reason)', (
     tester,
   ) async {
-    String? result = 'unset';
+    RejectReasonResult? result = const RejectReasonResult(
+      reason: 'unset',
+      quantity: 1,
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(

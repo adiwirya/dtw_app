@@ -32,8 +32,9 @@ class TenantOrderBoard extends _$TenantOrderBoard {
 
   @override
   Future<List<TenantOrder>> build() async {
-    final branchId =
-        await ref.read(localStorageProvider).read(tenantBranchIdStorageKey);
+    final branchId = await ref
+        .read(localStorageProvider)
+        .read(tenantBranchIdStorageKey);
     if (branchId == null) {
       throw StateError('TenantOrderBoard requires a tenant-scoped session');
     }
@@ -77,8 +78,9 @@ class TenantOrderBoard extends _$TenantOrderBoard {
         _onOrderCreated(payload);
       }
     });
-    _reconnectedSubscription =
-        realtime.reconnected.listen((_) => _onReconnected(repository));
+    _reconnectedSubscription = realtime.reconnected.listen(
+      (_) => _onReconnected(repository),
+    );
 
     final List<TenantOrder> orders;
     try {
@@ -93,8 +95,9 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     final buffered = pendingDuringFetch.values.toList();
     _trackBroadcastEventId(buffered);
     final fetchedIds = fetched.map((o) => o.id).toSet();
-    final fresh =
-        _excludeCancelled(buffered).where((o) => !fetchedIds.contains(o.id));
+    final fresh = _excludeCancelled(
+      buffered,
+    ).where((o) => !fetchedIds.contains(o.id));
     return [...fresh, ...fetched];
   }
 
@@ -127,8 +130,10 @@ class TenantOrderBoard extends _$TenantOrderBoard {
     } on Object catch (error) {
       // Same best-effort pattern as `dioProvider`'s realtime disconnect and
       // `AuthController.logout`: log for diagnosis, never propagate.
-      debugPrint('TenantOrderBoard gap-fill failed, keeping current list: '
-          '$error');
+      debugPrint(
+        'TenantOrderBoard gap-fill failed, keeping current list: '
+        '$error',
+      );
       return;
     }
     final current = state.value;
@@ -155,17 +160,16 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   /// Accepts every item — a thin wrapper over [_process] with nothing
   /// rejected.
   Future<void> accept(String orderId) =>
-      _process(orderId, rejectedItemIds: const []);
+      _process(orderId, rejectedItems: const []);
 
   /// Sends the tenant's per-item decision for a PENDING order. The backend
-  /// derives the result: [rejectedItemIds] empty is a no-op for this method
+  /// derives the result: [rejectedItems] empty is a no-op for this method
   /// (use [accept]); some or all of the order's items rejected moves it to
-  /// PREPARING (partial) or CANCELLED (all) — see [_process].
+  /// AWAITING_CONFIRMATION (partial) or CANCELLED (all) — see [_process].
   Future<void> reject(
     String orderId, {
-    required List<String> rejectedItemIds,
-  }) =>
-      _process(orderId, rejectedItemIds: rejectedItemIds);
+    required List<RejectedItem> rejectedItems,
+  }) => _process(orderId, rejectedItems: rejectedItems);
 
   /// `POST /v1/orders/{id}/process` — the PENDING-only accept/reject
   /// decision. Guards + optimistic-update-then-rollback mirror [_transition];
@@ -174,7 +178,7 @@ class TenantOrderBoard extends _$TenantOrderBoard {
   /// `_transition`'s old cancelled case) or not (→ PREPARING, in place).
   Future<void> _process(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) async {
     final current = state.value;
     if (current == null) {
@@ -191,27 +195,43 @@ class TenantOrderBoard extends _$TenantOrderBoard {
       );
     }
     final previous = current[index];
-    final allRejected = previous.items.isNotEmpty &&
-        previous.items.every((item) => rejectedItemIds.contains(item.id));
+    // Fully rejected = every item refused for its whole quantity; a partial
+    // quantity leaves part of the line accepted.
+    final allRejected =
+        previous.items.isNotEmpty &&
+        previous.items.every(
+          (item) => rejectedItems.any(
+            (r) => r.id == item.id && r.quantity >= item.qty,
+          ),
+        );
 
     // ponytail: the item list itself isn't pruned on a partial reject (stays
     // stale until the next fetch/realtime event) — upgrade if the Diproses
     // card needs to reflect exactly which items survived.
     final optimistic = allRejected
-        ? [for (final o in current) if (o.id != orderId) o]
+        ? [
+            for (final o in current)
+              if (o.id != orderId) o,
+          ]
         : [
             for (final o in current)
               if (o.id == orderId)
-                previous.copyWith(status: TenantOrderStatus.preparing)
+                previous.copyWith(
+                  status: rejectedItems.isEmpty
+                      ? TenantOrderStatus.preparing
+                      : TenantOrderStatus.awaitingConfirmation,
+                )
               else
                 o,
           ];
     state = AsyncData(optimistic);
 
     try {
-      await ref.read(tenantOrderRepositoryProvider).processOrder(
+      await ref
+          .read(tenantOrderRepositoryProvider)
+          .processOrder(
             orderId,
-            rejectedItemIds: rejectedItemIds,
+            rejectedItems: rejectedItems,
           );
     } on Object catch (_) {
       state = AsyncData(current);

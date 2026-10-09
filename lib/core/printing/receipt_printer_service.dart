@@ -66,10 +66,9 @@ const _dividerWidth = 32;
 /// busboy side): `GET /v1/tenant-branches/{id}`'s `brand_name`, `area_name`
 /// and `kd_lokasi`.
 ///
-/// The design also shows per-item modifier bullets and a quoted customer
-/// note under an item. Both are omitted here — `GET /v1/orders`' item shape
-/// carries neither today (see [TenantOrder]/`OrderLineItem`), and this
-/// project only models a field once it's confirmed live.
+/// Each item's modifiers print as indented `- option` bullets under it (price
+/// on the right when the option isn't free), then the customer's note, if any,
+/// in quotes.
 List<ReceiptLine> buildReceiptLines(
   TenantOrder order, {
   required String brandName,
@@ -117,6 +116,24 @@ List<ReceiptLine> buildReceiptLines(
         ),
       ]),
     );
+    for (final modifier in item.modifiers) {
+      // Paid options show their price, free ones just the bullet.
+      lines.add(
+        modifier.price > 0
+            ? ReceiptRow([
+                SunmiColumn('   - ${modifier.name}', width: 6),
+                SunmiColumn(
+                  _plainAmount(modifier.price),
+                  width: 3,
+                  align: SunmiAlign.right,
+                ),
+              ])
+            : ReceiptText('   - ${modifier.name}'),
+      );
+    }
+    if (item.notes?.trim() case final note? when note.isNotEmpty) {
+      lines.add(ReceiptText('   "$note"'));
+    }
   }
 
   lines.addAll([

@@ -17,7 +17,7 @@ void main() {
             'success': true,
             'message': 'Success',
             'code': 200,
-            'trace_id': 'abc'
+            'trace_id': 'abc',
           },
           'data': [
             {
@@ -40,9 +40,7 @@ void main() {
         expect(orders, hasLength(1));
         expect(orders.single.id, 'order-1');
         expect(
-          (dio.httpClientAdapter as CannedAdapter)
-              .lastRequest!
-              .queryParameters,
+          (dio.httpClientAdapter as CannedAdapter).lastRequest!.queryParameters,
           {'branch_id': 'branch-1'},
         );
       },
@@ -56,7 +54,7 @@ void main() {
             'success': false,
             'message': 'Validation failed.',
             'code': 422,
-            'trace_id': 'abc'
+            'trace_id': 'abc',
           },
           'errors': {
             'branch_id': ['The branch id field is required.'],
@@ -87,7 +85,7 @@ void main() {
             'success': true,
             'message': 'Success',
             'code': 200,
-            'trace_id': 'abc'
+            'trace_id': 'abc',
           },
         });
         final repository = TenantOrderRepository(dio: dio);
@@ -112,7 +110,7 @@ void main() {
             'success': false,
             'message': 'Error',
             'code': 500,
-            'trace_id': 'abc'
+            'trace_id': 'abc',
           },
         });
         final repository = TenantOrderRepository(dio: dio);
@@ -136,7 +134,7 @@ void main() {
 
   group('processOrder', () {
     test(
-      'POSTs rejected_item_ids to /process',
+      'POSTs rejected_items (id, reason, quantity) to /process',
       () async {
         final dio = cannedDio(200, {
           'meta': {
@@ -150,14 +148,20 @@ void main() {
 
         await repository.processOrder(
           'order-1',
-          rejectedItemIds: ['item-1', 'item-2'],
+          rejectedItems: [
+            RejectedItem(id: 'item-1', reason: 'Stok habis', quantity: 1),
+            RejectedItem(id: 'item-2', reason: 'Jumlah Terbatas', quantity: 2),
+          ],
         );
 
         final adapter = dio.httpClientAdapter as CannedAdapter;
         expect(adapter.lastRequest!.path, '/v1/orders/order-1/process');
         expect(adapter.lastRequest!.method, 'POST');
         expect(adapter.lastRequest!.data, {
-          'rejected_item_ids': ['item-1', 'item-2'],
+          'rejected_items': [
+            {'id': 'item-1', 'reason': 'Stok habis', 'quantity': 1},
+            {'id': 'item-2', 'reason': 'Jumlah Terbatas', 'quantity': 2},
+          ],
         });
       },
     );
@@ -175,10 +179,10 @@ void main() {
         });
         final repository = TenantOrderRepository(dio: dio);
 
-        await repository.processOrder('order-1', rejectedItemIds: const []);
+        await repository.processOrder('order-1', rejectedItems: const []);
 
         final adapter = dio.httpClientAdapter as CannedAdapter;
-        expect(adapter.lastRequest!.data, {'rejected_item_ids': <String>[]});
+        expect(adapter.lastRequest!.data, {'rejected_items': <Object>[]});
       },
     );
 
@@ -196,7 +200,7 @@ void main() {
         final repository = TenantOrderRepository(dio: dio);
 
         await expectLater(
-          repository.processOrder('order-1', rejectedItemIds: const []),
+          repository.processOrder('order-1', rejectedItems: const []),
           throwsA(isA<ApiException>()),
         );
       },
@@ -285,7 +289,7 @@ void main() {
             'success': true,
             'message': 'Success',
             'code': 200,
-            'trace_id': 'abc'
+            'trace_id': 'abc',
           },
           'data': <dynamic>[],
         });
@@ -298,9 +302,7 @@ void main() {
 
         expect(orders, isEmpty);
         expect(
-          (dio.httpClientAdapter as CannedAdapter)
-              .lastRequest!
-              .queryParameters,
+          (dio.httpClientAdapter as CannedAdapter).lastRequest!.queryParameters,
           {'branch_id': 'branch-1', 'after_id': 42},
         );
       },

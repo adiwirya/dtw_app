@@ -9,6 +9,10 @@ import 'package:flutter/foundation.dart';
 /// — see [incomingOrderStatusFromBackend] for the translation.
 enum TenantOrderStatus {
   pending,
+
+  /// Some items were rejected, the rest accepted — waiting on the customer's
+  /// PROCEED/CANCEL decision, relayed by a busboy.
+  awaitingConfirmation,
   preparing,
   ready,
   delivering,
@@ -18,25 +22,27 @@ enum TenantOrderStatus {
 }
 
 TenantOrderStatus tenantOrderStatusFromWire(String value) => switch (value) {
-      'PENDING' => TenantOrderStatus.pending,
-      'PREPARING' => TenantOrderStatus.preparing,
-      'READY' => TenantOrderStatus.ready,
-      'DELIVERING' => TenantOrderStatus.delivering,
-      'COMPLETED' => TenantOrderStatus.completed,
-      'PARTIAL_COMPLETED' => TenantOrderStatus.partialCompleted,
-      'CANCELLED' => TenantOrderStatus.cancelled,
-      _ => throw FormatException('Unknown order_status: $value'),
-    };
+  'PENDING' => TenantOrderStatus.pending,
+  'AWAITING_CONFIRMATION' => TenantOrderStatus.awaitingConfirmation,
+  'PREPARING' => TenantOrderStatus.preparing,
+  'READY' => TenantOrderStatus.ready,
+  'DELIVERING' => TenantOrderStatus.delivering,
+  'COMPLETED' => TenantOrderStatus.completed,
+  'PARTIAL_COMPLETED' => TenantOrderStatus.partialCompleted,
+  'CANCELLED' => TenantOrderStatus.cancelled,
+  _ => throw FormatException('Unknown order_status: $value'),
+};
 
 String tenantOrderStatusToWire(TenantOrderStatus status) => switch (status) {
-      TenantOrderStatus.pending => 'PENDING',
-      TenantOrderStatus.preparing => 'PREPARING',
-      TenantOrderStatus.ready => 'READY',
-      TenantOrderStatus.delivering => 'DELIVERING',
-      TenantOrderStatus.completed => 'COMPLETED',
-      TenantOrderStatus.partialCompleted => 'PARTIAL_COMPLETED',
-      TenantOrderStatus.cancelled => 'CANCELLED',
-    };
+  TenantOrderStatus.pending => 'PENDING',
+  TenantOrderStatus.awaitingConfirmation => 'AWAITING_CONFIRMATION',
+  TenantOrderStatus.preparing => 'PREPARING',
+  TenantOrderStatus.ready => 'READY',
+  TenantOrderStatus.delivering => 'DELIVERING',
+  TenantOrderStatus.completed => 'COMPLETED',
+  TenantOrderStatus.partialCompleted => 'PARTIAL_COMPLETED',
+  TenantOrderStatus.cancelled => 'CANCELLED',
+};
 
 /// How a tenant order reaches the customer — a busboy carries it
 /// ([delivery]), or the customer collects it themselves at the counter
@@ -50,16 +56,14 @@ String tenantOrderStatusToWire(TenantOrderStatus status) => switch (status) {
 enum OrderFulfillmentType { delivery, selfPickup }
 
 /// Maps the real `order_group.is_delivery` boolean to [OrderFulfillmentType].
-/// `null` (no `order_group` to read it from at all — see the Spec's Blocking
-/// Questions for why `GET /v1/orders`'s flat shape can't provide this today)
-/// defaults to [OrderFulfillmentType.delivery]: the safer wrong guess, since
-/// it only means a real self-pickup order fetched via the initial/REST path
-/// behaves like it does today (straight to "Selesai") rather than wrongly
-/// demanding a pickup code on what might actually be a delivery order.
+/// `null` (a payload without the flag) defaults to
+/// [OrderFulfillmentType.delivery]: the safer wrong guess, since it only means
+/// a self-pickup order behaves like a delivery one (straight to "Selesai")
+/// rather than wrongly demanding a pickup code on what might be a delivery.
 OrderFulfillmentType orderFulfillmentTypeFromIsDelivery({bool? isDelivery}) =>
     isDelivery == false
-        ? OrderFulfillmentType.selfPickup
-        : OrderFulfillmentType.delivery;
+    ? OrderFulfillmentType.selfPickup
+    : OrderFulfillmentType.delivery;
 
 /// Translates a backend status into the three UI sub-tabs. [TenantOrder]
 /// lists are filtered to exclude [TenantOrderStatus.cancelled] before this
@@ -86,6 +90,8 @@ IncomingOrderStatus incomingOrderStatusFromBackend(
           ? IncomingOrderStatus.diproses
           : IncomingOrderStatus.selesai;
     // A busboy has claimed it — the tenant's part is over.
+    // Nothing for the tenant to do until the customer decides (no buttons).
+    case TenantOrderStatus.awaitingConfirmation:
     case TenantOrderStatus.delivering:
     case TenantOrderStatus.completed:
     case TenantOrderStatus.partialCompleted:
@@ -135,8 +141,9 @@ class TenantOrder {
       customerName: json['customer_name'] as String?,
       grandTotal: (json['grand_total'] as num).toInt(),
       status: tenantOrderStatusFromWire(json['order_status'] as String),
-      createdAt:
-          DateTime.parse((json['created_at'] as String).replaceFirst(' ', 'T')),
+      createdAt: DateTime.parse(
+        (json['created_at'] as String).replaceFirst(' ', 'T'),
+      ),
       items: [
         for (final item in rawItems.cast<Map<String, dynamic>>())
           OrderLineItem(
@@ -146,13 +153,19 @@ class TenantOrder {
             subtotal: (item['subtotal'] as num).round(),
             qty: (item['quantity'] as num).toInt(),
             notes: item['notes'] as String?,
+            modifiers: [
+              for (final m in (item['modifiers'] as List? ?? const []))
+                OrderModifier(
+                  name: (m as Map<String, dynamic>)['modifier_option'] as String,
+                  price: (m['total_price'] as num?)?.round() ?? 0,
+                ),
+            ],
           ),
       ],
       broadcastEventId: json['broadcast_event_id'] as int?,
-      // The flat GET /v1/orders shape has no `is_delivery` of its own — see
-      // orderFulfillmentTypeFromIsDelivery's doc and the Spec's Blocking
-      // Questions. `fromBroadcastPayload` threads its `order_group`'s
-      // `is_delivery` in under this same key before delegating here.
+      // `GET /v1/orders` carries `is_delivery` itself; `fromBroadcastPayload`
+      // threads the `order_group`'s in under this same key before delegating
+      // here.
       fulfillmentType: orderFulfillmentTypeFromIsDelivery(
         isDelivery: json['is_delivery'] as bool?,
       ),
@@ -195,10 +208,9 @@ class TenantOrder {
   /// existed.
   final String? tableNumber;
 
-  /// The customer's name, printed on the bon. Not in the live
-  /// `GET /v1/orders` shape as of 2026-10-06 — read from `customer_name`
-  /// (the key the order group uses) when the API starts sending it, `null`
-  /// until then.
+  /// The customer's name, printed on the bon — `customer_name` on
+  /// `GET /v1/orders`, or the order group's on a broadcast payload. `null`
+  /// when the API sends none.
   final String? customerName;
   final int grandTotal;
   final TenantOrderStatus status;
@@ -210,19 +222,19 @@ class TenantOrder {
   final OrderFulfillmentType fulfillmentType;
 
   TenantOrder copyWith({TenantOrderStatus? status}) => TenantOrder(
-        id: id,
-        orderGroupId: orderGroupId,
-        branchId: branchId,
-        receiptNumber: receiptNumber,
-        tableNumber: tableNumber,
-        customerName: customerName,
-        grandTotal: grandTotal,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        items: items,
-        broadcastEventId: broadcastEventId,
-        fulfillmentType: fulfillmentType,
-      );
+    id: id,
+    orderGroupId: orderGroupId,
+    branchId: branchId,
+    receiptNumber: receiptNumber,
+    tableNumber: tableNumber,
+    customerName: customerName,
+    grandTotal: grandTotal,
+    status: status ?? this.status,
+    createdAt: createdAt,
+    items: items,
+    broadcastEventId: broadcastEventId,
+    fulfillmentType: fulfillmentType,
+  );
 
   /// The human-facing table label: the real [tableNumber] when the API has
   /// one, else [receiptNumber].

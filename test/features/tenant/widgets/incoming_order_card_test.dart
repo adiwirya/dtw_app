@@ -256,4 +256,38 @@ void main() {
       expect(changed, isFalse);
     });
   });
+
+  group('IncomingOrderCard modifiers', () {
+    const withModifiers = IncomingOrderData(
+      orderId: '1',
+      displayNumber: 'RCP-1',
+      tableName: 'Meja A-1',
+      time: '10:36 WIB',
+      status: IncomingOrderStatus.baru,
+      items: [
+        OrderLineItem(
+          name: 'Nasi Goreng',
+          price: 'Rp40.000',
+          modifiers: [
+            OrderModifier(name: 'Level 2'),
+            OrderModifier(name: 'Keju', price: 3000),
+          ],
+        ),
+        OrderLineItem(name: 'Es Teh', price: 'Rp5.000'),
+      ],
+      total: 'Rp45.000',
+    );
+
+    testWidgets('lists each modifier under its item, priced when paid', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(const IncomingOrderCard(data: withModifiers)));
+
+      expect(find.text('- Level 2'), findsOneWidget);
+      expect(find.text('- Keju'), findsOneWidget);
+      // Only the paid option shows a price.
+      expect(find.text('Rp3.000'), findsOneWidget);
+      expect(find.text('- Es Teh'), findsNothing);
+    });
+  });
 }

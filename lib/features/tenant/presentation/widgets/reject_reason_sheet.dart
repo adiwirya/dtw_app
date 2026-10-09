@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 /// A preset rejection reason offered on the `alasan-penolakan` modal.
 enum RejectReasonOption {
   stokHabis('Stok Habis', 'Stok saat ini sudah habis'),
-  bahanTidakTersedia('Bahan tidak tersedia', 'Bahan utama tidak tersedia');
+  jumlahTerbatas(
+    'Jumlah Terbatas',
+    'Jumlah barang yang tersedia tidak mencukupi',
+  );
 
   const RejectReasonOption(this.title, this.subtitle);
 
@@ -18,17 +21,27 @@ enum RejectReasonOption {
   final String subtitle;
 }
 
+/// What the `alasan-penolakan` sheet captures: why, and how many units of the
+/// item are rejected (the rest of the line is still accepted).
+@immutable
+class RejectReasonResult {
+  const RejectReasonResult({required this.reason, required this.quantity});
+
+  final String reason;
+  final int quantity;
+}
+
 /// Presents the `alasan-penolakan` reason-capture as a bottom sheet and
-/// completes with the chosen reason text, or null if dismissed.
+/// completes with the chosen [RejectReasonResult], or null if dismissed.
 ///
 /// The sheet reproduces the modal frame (rounded-top white card): the rejected
-/// [item] summary, two preset [RejectReasonOption] radios and an "Alasan
-/// Lainnya" free-text field, saved with the "Simpan Alasan" CTA.
-Future<String?> showRejectReasonSheet(
+/// [item] summary, a "Jumlah" stepper, two preset [RejectReasonOption] radios
+/// and an "Alasan Lainnya" free-text field, saved with the "Simpan Alasan" CTA.
+Future<RejectReasonResult?> showRejectReasonSheet(
   BuildContext context, {
   required OrderLineItem item,
 }) {
-  return showModalBottomSheet<String>(
+  return showModalBottomSheet<RejectReasonResult>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
@@ -57,6 +70,9 @@ class _RejectReasonSheetState extends State<RejectReasonSheet> {
   RejectReasonOption? _selected;
   final TextEditingController _other = TextEditingController();
 
+  /// Units rejected, 1..[OrderLineItem.qty]; starts at the item's quantity.
+  late int _quantity = widget.item.qty;
+
   @override
   void dispose() {
     _other.dispose();
@@ -74,7 +90,9 @@ class _RejectReasonSheetState extends State<RejectReasonSheet> {
   void _save() {
     final reason = _resolvedReason;
     if (reason == null) return;
-    Navigator.of(context).pop(reason);
+    Navigator.of(context).pop(
+      RejectReasonResult(reason: reason, quantity: _quantity),
+    );
   }
 
   @override
@@ -92,6 +110,12 @@ class _RejectReasonSheetState extends State<RejectReasonSheet> {
           _header(),
           const SizedBox(height: 16),
           _ReasonItemCard(item: widget.item),
+          const SizedBox(height: 12),
+          _QuantityRow(
+            quantity: _quantity,
+            max: widget.item.qty,
+            onChanged: (value) => setState(() => _quantity = value),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Pilih Alasan',
@@ -152,6 +176,91 @@ class _RejectReasonSheetState extends State<RejectReasonSheet> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "Jumlah" label + `− n +` stepper for the number of units rejected.
+class _QuantityRow extends StatelessWidget {
+  const _QuantityRow({
+    required this.quantity,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final int quantity;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Jumlah',
+            style: TextStyle(
+              color: AppColors.neutral900,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+        ),
+        _stepButton(
+          Icons.remove,
+          'Kurangi jumlah',
+          quantity > 1 ? () => onChanged(quantity - 1) : null,
+        ),
+        SizedBox(
+          width: 32,
+          child: Text(
+            '$quantity',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.neutral900,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+        ),
+        _stepButton(
+          Icons.add,
+          'Tambah jumlah',
+          quantity < max ? () => onChanged(quantity + 1) : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _stepButton(IconData icon, String label, VoidCallback? onTap) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: onTap == null
+                  ? AppColors.neutral300
+                  : AppColors.successGreen,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: onTap == null
+                ? AppColors.neutral300
+                : AppColors.successGreen,
+          ),
+        ),
+      ),
     );
   }
 }

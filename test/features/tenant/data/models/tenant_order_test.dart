@@ -325,6 +325,15 @@ void main() {
       }
     });
 
+    test('AWAITING_CONFIRMATION parses and has no tenant actions (selesai)', () {
+      final status = tenantOrderStatusFromWire('AWAITING_CONFIRMATION');
+      expect(status, TenantOrderStatus.awaitingConfirmation);
+      expect(
+        incomingOrderStatusFromBackend(status, OrderFulfillmentType.delivery),
+        IncomingOrderStatus.selesai,
+      );
+    });
+
     test('throws on an unknown wire value', () {
       expect(() => tenantOrderStatusFromWire('WAT'), throwsFormatException);
     });
@@ -595,6 +604,74 @@ void main() {
       expect(updated.status, TenantOrderStatus.preparing);
       expect(updated.id, order.id);
       expect(updated.receiptNumber, order.receiptNumber);
+    });
+  });
+
+  group('TenantOrder.fromJson modifiers', () {
+    Map<String, dynamic> json(Object? modifiers) => {
+      'id': 'o1',
+      'order_group_id': 'g1',
+      'branch_id': 'b1',
+      'receipt_number': 'R1',
+      'grand_total': 1000,
+      'order_status': 'PENDING',
+      'created_at': '2026-10-09T10:00:00.000000Z',
+      'items': [
+        {
+          'id': 'i1',
+          'product_name': 'Nasi Goreng',
+          'subtotal': 1000,
+          'quantity': 1,
+          'modifiers': modifiers,
+        },
+      ],
+    };
+
+    test('maps modifier_option and total_price, in order', () {
+      final order = TenantOrder.fromJson(
+        json([
+          {
+            'modifier_group': 'Level Pedas',
+            'modifier_option': 'Level 2',
+            'total_price': 0,
+          },
+          {
+            'modifier_group': 'Topping',
+            'modifier_option': 'Keju',
+            'total_price': 3000,
+          },
+        ]),
+      );
+      final modifiers = order.items.single.modifiers;
+      expect(modifiers.map((m) => m.name), ['Level 2', 'Keju']);
+      expect(modifiers.map((m) => m.price), [0, 3000]);
+    });
+
+    test('is empty when modifiers is missing or null', () {
+      expect(TenantOrder.fromJson(json(null)).items.single.modifiers, isEmpty);
+    });
+  });
+
+  group('OrderLineItem.acceptedSubtotal', () {
+    const item = OrderLineItem(
+      name: 'Es Teh',
+      price: 'Rp20.000',
+      subtotal: 20000,
+      qty: 4,
+    );
+
+    test('is the whole line when available', () {
+      expect(item.acceptedSubtotal, 20000);
+    });
+
+    test('prorates by the units not rejected', () {
+      final partial = item.copyWith(available: false, rejectedQty: 1);
+      expect(partial.acceptedSubtotal, 15000);
+    });
+
+    test('is 0 when every unit is rejected', () {
+      final all = item.copyWith(available: false, rejectedQty: 4);
+      expect(all.acceptedSubtotal, 0);
     });
   });
 }

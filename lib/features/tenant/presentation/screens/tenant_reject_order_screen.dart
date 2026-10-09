@@ -5,9 +5,11 @@ import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/error_view.dart';
 import 'package:dtw_app/core/widgets/primary_button.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
+import 'package:dtw_app/features/tenant/data/repositories/tenant_order_repository.dart';
 import 'package:dtw_app/features/tenant/presentation/providers/tenant_order_provider.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/incoming_order_card.dart';
 import 'package:dtw_app/features/tenant/presentation/widgets/reject_confirmed_modal.dart';
+import 'package:dtw_app/features/tenant/presentation/widgets/reject_reason_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,12 +49,12 @@ String _formatOrderDateTime(DateTime at) {
 /// which items of a PENDING order are unavailable and confirms.
 ///
 /// **Per-item, backed by `POST /v1/orders/{id}/process`.** Toggling an item
-/// off marks it for rejection; confirming sends the rejected items' ids.
+/// off marks it for rejection; confirming sends the rejected items.
 /// The backend derives the outcome: none rejected → every item accepted,
-/// order → PREPARING; some → the rest accepted, order → PREPARING; all →
-/// order → CANCELLED. There is no reason field in that API, so this screen
-/// captures none (a prior all-or-nothing version required a cancellation
-/// reason for a whole-order-only API; that constraint is gone).
+/// order → PREPARING; some → the rest accepted, order →
+/// AWAITING_CONFIRMATION; all → order → CANCELLED. Rejecting an item opens the
+/// `alasan-penolakan` sheet, which captures the reason and how many units are
+/// refused (both sent as `rejected_items[]`).
 ///
 /// Every value shown is read off the real [tenantOrderBoardProvider] entry for
 /// [orderId] — there is no seeded order data here.
@@ -103,13 +105,34 @@ class _TenantRejectOrderScreenState
   List<OrderLineItem> _seedItems(TenantOrder order) {
     final items = order.items;
     if (!widget.seedFirstItemRejected || items.isEmpty) return items;
-    return [items.first.copyWith(available: false), ...items.skip(1)];
+    return [
+      items.first.copyWith(
+        available: false,
+        rejectReason: RejectReasonOption.stokHabis.title,
+        rejectedQty: items.first.qty,
+      ),
+      ...items.skip(1),
+    ];
   }
 
-  void _onAvailabilityChanged(int index, bool available) {
+  Future<void> _onAvailabilityChanged(int index, bool available) async {
+    var updated = _items![index].copyWith(available: available);
+    if (!available) {
+      // The API requires a reason per rejected item: ask for it (and how many
+      // units) first, and leave the item untouched if the sheet is dismissed.
+      final result = await showRejectReasonSheet(
+        context,
+        item: _items![index],
+      );
+      if (result == null || !mounted) return;
+      updated = updated.copyWith(
+        rejectReason: result.reason,
+        rejectedQty: result.quantity,
+      );
+    }
     setState(() {
       final items = List<OrderLineItem>.of(_items!);
-      items[index] = items[index].copyWith(available: available);
+      items[index] = updated;
       _items = items;
     });
   }
@@ -133,16 +156,21 @@ class _TenantRejectOrderScreenState
   Future<void> _confirm(TenantOrder order) async {
     if (_submitting) return;
     final items = _items ?? const <OrderLineItem>[];
-    final rejectedItemIds = [
+    final rejectedItems = [
       for (final item in items)
-        if (!item.available) item.id,
+        if (!item.available)
+          RejectedItem(
+            id: item.id,
+            reason: item.rejectReason ?? '',
+            quantity: item.rejectedQty ?? item.qty,
+          ),
     ];
     setState(() => _submitting = true);
 
     try {
       await ref
           .read(tenantOrderBoardProvider.notifier)
-          .reject(order.id, rejectedItemIds: rejectedItemIds);
+          .reject(order.id, rejectedItems: rejectedItems);
     } on Object catch (error) {
       // Covers both the mapped ApiException from the repository and the
       // StateError the board throws when the target order is not on it — a
@@ -156,16 +184,14 @@ class _TenantRejectOrderScreenState
     }
 
     if (!mounted) return;
-    final acceptedCount = items.length - rejectedItemIds.length;
+    final acceptedCount = items.length - rejectedItems.length;
     final acceptedTotal = formatRupiah(
-      items
-          .where((item) => item.available)
-          .fold<int>(0, (sum, item) => sum + item.subtotal),
+      items.fold<int>(0, (sum, item) => sum + item.acceptedSubtotal),
     );
     await showRejectConfirmedModal(
       context,
       acceptedCount: acceptedCount,
-      rejectedCount: rejectedItemIds.length,
+      rejectedCount: rejectedItems.length,
       acceptedTotal: acceptedTotal,
       onConfirm: () => context.goNamed(TenantRoutes.pesananDiproses),
     );
@@ -180,15 +206,14 @@ class _TenantRejectOrderScreenState
       _items ??= List.of(_seedItems(order));
     }
     final items = _items;
-    final rejectedCount =
-        items == null ? 0 : items.where((item) => !item.available).length;
+    final rejectedCount = items == null
+        ? 0
+        : items.where((item) => !item.available).length;
     final acceptedCount = items == null ? 0 : items.length - rejectedCount;
     final acceptedTotal = formatRupiah(
       items == null
           ? 0
-          : items
-              .where((item) => item.available)
-              .fold<int>(0, (sum, item) => sum + item.subtotal),
+          : items.fold<int>(0, (sum, item) => sum + item.acceptedSubtotal),
     );
 
     return Scaffold(
@@ -277,6 +302,7 @@ class _TenantRejectOrderScreenState
           if (i > 0) const SizedBox(height: 16),
           OrderItemAvailabilityRow(
             item: items[i],
+            reason: items[i].rejectReason,
             onAvailabilityChanged: (available) =>
                 _onAvailabilityChanged(i, available),
           ),

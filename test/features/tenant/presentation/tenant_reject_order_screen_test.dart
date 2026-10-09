@@ -96,6 +96,16 @@ Future<CannedAdapter> _pump(
   return dio.httpClientAdapter as CannedAdapter;
 }
 
+/// Toggles item [index] off and completes the reason sheet that opens.
+Future<void> _rejectItem(WidgetTester tester, int index) async {
+  await tester.tap(find.byType(AppToggle).at(index));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Stok Habis').last);
+  await tester.pump();
+  await tester.tap(find.text('Simpan Alasan'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('formatRupiah groups thousands with a dot', (_) async {
     expect(formatRupiah(35000), 'Rp35.000');
@@ -104,8 +114,9 @@ void main() {
     expect(formatRupiah(0), 'Rp0');
   });
 
-  testWidgets('renders the real order and its items off the board',
-      (tester) async {
+  testWidgets('renders the real order and its items off the board', (
+    tester,
+  ) async {
     await _pump(tester);
 
     expect(find.text('Tolak Pesanan'), findsOneWidget);
@@ -126,8 +137,9 @@ void main() {
   // Regression test: this row kept showing the receipt number after
   // `table_number` was added to the API, so the Order card said `A-01` while
   // the reject screen for the same order said `RCP-...`.
-  testWidgets('shows the real table number when the API has one',
-      (tester) async {
+  testWidgets('shows the real table number when the API has one', (
+    tester,
+  ) async {
     await _pump(tester, tableNumber: 'A-01');
 
     expect(find.text('A-01'), findsOneWidget);
@@ -141,38 +153,51 @@ void main() {
     expect(find.text('Stok Habis'), findsNothing);
   });
 
-  testWidgets('confirm is disabled until at least one item is rejected',
-      (tester) async {
+  testWidgets('confirm is disabled until at least one item is rejected', (
+    tester,
+  ) async {
     await _pump(tester);
 
     expect(_confirmButton(tester).onPressed, isNull);
 
-    await tester.tap(find.byType(AppToggle).at(1));
-    await tester.pumpAndSettle();
+    await _rejectItem(tester, 1);
 
     expect(_confirmButton(tester).onPressed, isNotNull);
   });
 
   testWidgets(
-    'toggling an item off (no reason sheet) updates the row + summary',
+    'toggling an item off asks for a reason, then updates the row + summary',
     (tester) async {
       await _pump(tester);
 
-      await tester.tap(find.byType(AppToggle).at(1));
-      await tester.pumpAndSettle();
+      await _rejectItem(tester, 1);
 
       expect(find.text('Tidak Tersedia'), findsOneWidget);
       expect(find.text('1 item ditolak oleh tenant'), findsOneWidget);
       expect(find.text('1 dari 2 item tersedia'), findsOneWidget);
       // Accepted total drops to Paket Super Besar only.
       expect(find.text('Rp35.000'), findsWidgets);
-      // No reason prompt anywhere in the toggle flow.
-      expect(find.text('Alasan Menolak Item'), findsNothing);
+      expect(find.text('Alasan : '), findsOneWidget);
     },
   );
 
-  testWidgets('konfirmasi-pesanan deep link seeds the first item rejected',
-      (tester) async {
+  testWidgets('dismissing the reason sheet leaves the item available', (
+    tester,
+  ) async {
+    await _pump(tester);
+
+    await tester.tap(find.byType(AppToggle).at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tidak Tersedia'), findsNothing);
+    expect(_confirmButton(tester).onPressed, isNull);
+  });
+
+  testWidgets('konfirmasi-pesanan deep link seeds the first item rejected', (
+    tester,
+  ) async {
     await _pump(tester, seedFirstItemRejected: true);
 
     expect(find.text('Tidak Tersedia'), findsOneWidget);
@@ -193,7 +218,9 @@ void main() {
         expect(adapter.lastRequest?.method, 'POST');
         expect(adapter.lastRequest?.path, '/v1/orders/$_orderId/process');
         expect(adapter.lastRequest?.data, {
-          'rejected_item_ids': ['item-1'],
+          'rejected_items': [
+            {'id': 'item-1', 'reason': 'Stok Habis', 'quantity': 1},
+          ],
         });
 
         expect(find.text('Pesanan dikonfirmasi'), findsOneWidget);
@@ -211,16 +238,17 @@ void main() {
       (tester) async {
         final adapter = await _pump(tester);
 
-        await tester.tap(find.byType(AppToggle).at(0));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byType(AppToggle).at(1));
-        await tester.pumpAndSettle();
+        await _rejectItem(tester, 0);
+        await _rejectItem(tester, 1);
 
         await tester.tap(find.text('Konfirmasi Pesanan'));
         await tester.pumpAndSettle();
 
         expect(adapter.lastRequest?.data, {
-          'rejected_item_ids': ['item-1', 'item-2'],
+          'rejected_items': [
+            {'id': 'item-1', 'reason': 'Stok Habis', 'quantity': 1},
+            {'id': 'item-2', 'reason': 'Stok Habis', 'quantity': 1},
+          ],
         });
         expect(find.text('0 item diterima'), findsOneWidget);
         expect(find.text('2 item ditolak'), findsOneWidget);
@@ -229,8 +257,9 @@ void main() {
 
     // The regression test for the silent-failure bug: rejecting an order that
     // IS on the board has to actually reach the backend.
-    testWidgets('an order id not on the board surfaces not-found, no confirm',
-        (tester) async {
+    testWidgets('an order id not on the board surfaces not-found, no confirm', (
+      tester,
+    ) async {
       final adapter = await _pump(tester, orderId: 'ghost-order');
 
       expect(find.text(orderNotFoundMessage), findsOneWidget);

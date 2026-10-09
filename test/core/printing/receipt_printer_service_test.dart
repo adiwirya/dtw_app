@@ -113,6 +113,53 @@ void main() {
       ]);
     });
 
+    test('prints each modifier as an indented bullet, priced when not free', () {
+      final order = TenantOrder(
+        id: 'order-1',
+        orderGroupId: 'group-1',
+        branchId: 'branch-1',
+        receiptNumber: 'PRN-1',
+        grandTotal: 50000,
+        status: TenantOrderStatus.pending,
+        createdAt: DateTime(2026, 9, 5, 12, 35),
+        items: const [
+          OrderLineItem(
+            name: 'Nasi Goreng',
+            price: 'Rp40.000',
+            subtotal: 40000,
+            modifiers: [
+              OrderModifier(name: 'Level 2'),
+              OrderModifier(name: 'Keju', price: 3000),
+            ],
+          ),
+          OrderLineItem(
+            name: 'Es Teh',
+            price: 'Rp5.000',
+            subtotal: 5000,
+            notes: 'Tanpa es',
+          ),
+          OrderLineItem(
+            name: 'Kopi',
+            price: 'Rp5.000',
+            subtotal: 5000,
+            notes: '  ',
+          ),
+        ],
+      );
+
+      final texts = receiptTexts(order);
+
+      final item = texts.indexWhere((t) => t.contains('Nasi Goreng'));
+      expect(texts[item + 1], '   - Level 2');
+      expect(texts[item + 2], '   - Keju | 3.000');
+      // An item without modifiers gets no bullet rows.
+      expect(texts[item + 3], contains('Es Teh'));
+      // The customer note prints quoted; a blank note prints nothing.
+      expect(texts[item + 4], '   "Tanpa es"');
+      expect(texts[item + 5], contains('Kopi'));
+      expect(texts[item + 6], '---');
+    });
+
     test('falls back to "-" when the order has no table number', () {
       final texts = _textsOf(
         buildReceiptLines(

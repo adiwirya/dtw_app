@@ -342,7 +342,7 @@ void main() {
 
       await container.read(tenantOrderBoardProvider.notifier).reject(
             '1',
-            rejectedItemIds: ['item-1'],
+            rejectedItems: [_rej('item-1')],
           );
 
       final orders = container.read(tenantOrderBoardProvider).value!;
@@ -350,7 +350,7 @@ void main() {
     });
 
     test(
-        'reject moves the order to preparing when only some items are '
+        'reject moves the order to awaiting confirmation when only some items are '
         'rejected', () async {
       container = buildContainer(
         statusCode: 200,
@@ -369,11 +369,11 @@ void main() {
 
       await container.read(tenantOrderBoardProvider.notifier).reject(
             '1',
-            rejectedItemIds: ['item-1'],
+            rejectedItems: [_rej('item-1')],
           );
 
       final orders = container.read(tenantOrderBoardProvider).value!;
-      expect(orders.single.status, TenantOrderStatus.preparing);
+      expect(orders.single.status, TenantOrderStatus.awaitingConfirmation);
     });
 
     test('reject reverts (order reappears) and rethrows on API failure',
@@ -400,7 +400,7 @@ void main() {
       await expectLater(
         container
             .read(tenantOrderBoardProvider.notifier)
-            .reject('1', rejectedItemIds: const ['item-1']),
+            .reject('1', rejectedItems: [_rej('item-1')]),
         throwsA(isA<ApiException>()),
       );
 
@@ -528,7 +528,7 @@ void main() {
       await expectLater(
         container
             .read(tenantOrderBoardProvider.notifier)
-            .reject('nope', rejectedItemIds: const ['item-1']),
+            .reject('nope', rejectedItems: [_rej('item-1')]),
         throwsA(isA<StateError>()),
       );
 
@@ -592,7 +592,7 @@ class _FailingUpdateRepository implements TenantOrderRepository {
   @override
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) {
     throw ApiException(message: 'Terjadi kesalahan. Coba lagi.');
   }
@@ -638,9 +638,9 @@ class _RecordingReplayRepository implements TenantOrderRepository {
   @override
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) =>
-      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
+      _delegate.processOrder(orderId, rejectedItems: rejectedItems);
 
   @override
   Future<void> completePickup(String orderId, {required String pickupCode}) =>
@@ -678,9 +678,9 @@ class _FailingReplayRepository implements TenantOrderRepository {
   @override
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) =>
-      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
+      _delegate.processOrder(orderId, rejectedItems: rejectedItems);
 
   @override
   Future<void> completePickup(String orderId, {required String pickupCode}) =>
@@ -721,9 +721,9 @@ class _DelayedFetchRepository implements TenantOrderRepository {
   @override
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) =>
-      _delegate.processOrder(orderId, rejectedItemIds: rejectedItemIds);
+      _delegate.processOrder(orderId, rejectedItems: rejectedItems);
 
   @override
   Future<void> completePickup(String orderId, {required String pickupCode}) =>
@@ -736,3 +736,6 @@ class _DelayedFetchRepository implements TenantOrderRepository {
   }) =>
       _delegate.fetchMissedEvents(branchId: branchId, afterId: afterId);
 }
+
+RejectedItem _rej(String id) =>
+    RejectedItem(id: id, reason: 'Stok habis', quantity: 1);

@@ -48,7 +48,7 @@ class _StubReplayRepository implements TenantOrderRepository {
   @override
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) =>
       throw UnimplementedError();
 

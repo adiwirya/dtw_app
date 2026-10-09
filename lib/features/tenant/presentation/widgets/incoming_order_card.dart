@@ -1,4 +1,5 @@
 import 'package:dtw_app/core/theme/app_theme.dart';
+import 'package:dtw_app/core/utils/currency.dart';
 import 'package:dtw_app/core/widgets/app_toggle.dart';
 import 'package:dtw_app/features/tenant/data/models/tenant_order.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,19 @@ import 'package:flutter/material.dart';
 /// - [selesai] ("Selesai"): no action buttons.
 enum IncomingOrderStatus { baru, diproses, selesai }
 
+/// One option the customer picked on an item (`modifiers[]` on the live item
+/// shape), e.g. `Level 2` for free or `Keju` for [price] 3000.
+@immutable
+class OrderModifier {
+  const OrderModifier({required this.name, this.price = 0});
+
+  /// `modifier_option`.
+  final String name;
+
+  /// `total_price` in rupiah; 0 when the option is free.
+  final int price;
+}
+
 /// One line item of an incoming order (`Frame 2018` in the card).
 @immutable
 class OrderLineItem {
@@ -26,10 +40,13 @@ class OrderLineItem {
     this.available = true,
     this.imageUrl,
     this.notes,
+    this.rejectReason,
+    this.rejectedQty,
+    this.modifiers = const <OrderModifier>[],
   });
 
   /// The real item id — what `POST /v1/orders/{id}/process`'s
-  /// `rejected_item_ids` targets. Defaults to `''` for presentational-only
+  /// `rejected_items[].id` targets. Defaults to `''` for presentational-only
   /// call sites (prototype frames, widget tests); `TenantOrder.fromJson`
   /// always sets the real one.
   final String id;
@@ -63,7 +80,31 @@ class OrderLineItem {
   /// shown on the order detail screen, `null` when there is none.
   final String? notes;
 
-  OrderLineItem copyWith({bool? available}) => OrderLineItem(
+  /// The customer's chosen options for this item — printed under the item on
+  /// the bon. Empty when there are none.
+  final List<OrderModifier> modifiers;
+
+  /// Why the tenant rejected this item (set with [available] `false`).
+  final String? rejectReason;
+
+  /// Units rejected out of [qty] (set with [available] `false`); the rest of
+  /// the line is still accepted.
+  final int? rejectedQty;
+
+  /// What the customer still pays for: the whole [subtotal] when available,
+  /// else only the units not rejected (`subtotal` is the line total, so it is
+  /// prorated by quantity).
+  int get acceptedSubtotal {
+    if (available) return subtotal;
+    final kept = qty - (rejectedQty ?? qty);
+    return qty <= 0 ? 0 : subtotal * kept ~/ qty;
+  }
+
+  OrderLineItem copyWith({
+    bool? available,
+    String? rejectReason,
+    int? rejectedQty,
+  }) => OrderLineItem(
     id: id,
     name: name,
     price: price,
@@ -72,6 +113,9 @@ class OrderLineItem {
     available: available ?? this.available,
     imageUrl: imageUrl,
     notes: notes,
+    rejectReason: rejectReason ?? this.rejectReason,
+    rejectedQty: rejectedQty ?? this.rejectedQty,
+    modifiers: modifiers,
   );
 }
 
@@ -248,6 +292,11 @@ class IncomingOrderCard extends StatelessWidget {
     fontSize: 14,
     height: 1.2,
   );
+  static const TextStyle _modifierStyle = TextStyle(
+    color: AppColors.neutral500,
+    fontSize: 12,
+    height: 1.2,
+  );
   static const TextStyle _totalStyle = TextStyle(
     color: AppColors.neutral900,
     fontSize: 16,
@@ -359,6 +408,23 @@ class IncomingOrderCard extends StatelessWidget {
               Text(item.price, style: _itemStyle),
             ],
           ),
+          // The customer's chosen options (e.g. "Level 2", "Keju"), indented
+          // under the item; a paid option shows its price on the right.
+          for (final modifier in item.modifiers)
+            Padding(
+              padding: const EdgeInsets.only(left: 24, top: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('- ${modifier.name}', style: _modifierStyle),
+                  ),
+                  if (modifier.price > 0) ...[
+                    const SizedBox(width: 8),
+                    Text(formatRupiah(modifier.price), style: _modifierStyle),
+                  ],
+                ],
+              ),
+            ),
           const SizedBox(height: 8),
         ],
         Text('Catatan : ${data.note ?? '-'}', style: _mutedStyle),

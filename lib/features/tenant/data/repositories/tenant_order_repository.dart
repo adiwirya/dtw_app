@@ -7,6 +7,26 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'tenant_order_repository.g.dart';
 
+/// One rejected line of `POST /v1/orders/{id}/process`: [quantity] units of
+/// item [id] are refused (the rest of the line stays accepted), for [reason].
+class RejectedItem {
+  const RejectedItem({
+    required this.id,
+    required this.reason,
+    required this.quantity,
+  });
+
+  final String id;
+  final String reason;
+  final int quantity;
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'reason': reason,
+    'quantity': quantity,
+  };
+}
+
 class TenantOrderRepository {
   const TenantOrderRepository({required this._dio});
 
@@ -45,18 +65,20 @@ class TenantOrderRepository {
   }
 
   /// The tenant's item-level decision on a PENDING order. The backend derives
-  /// the resulting status from [rejectedItemIds]: empty → every item
+  /// the resulting status from [rejectedItems]: empty → every item
   /// accepted, order → PREPARING; some → the rest accepted, order →
-  /// PREPARING; all → order → CANCELLED. 400s if the order is no longer
-  /// PENDING.
+  /// AWAITING_CONFIRMATION (customer decides via a busboy); all → order →
+  /// CANCELLED. 400s if the order is no longer PENDING.
   Future<void> processOrder(
     String orderId, {
-    required List<String> rejectedItemIds,
+    required List<RejectedItem> rejectedItems,
   }) async {
     try {
       await _dio.post<void>(
         '/v1/orders/$orderId/process',
-        data: {'rejected_item_ids': rejectedItemIds},
+        data: {
+          'rejected_items': [for (final i in rejectedItems) i.toJson()],
+        },
       );
     } on DioException catch (error) {
       throw mapDioError(error);
